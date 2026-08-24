@@ -200,7 +200,13 @@ async fn run_prepared_pty(prepared: PreparedPtyClient) -> anyhow::Result<()> {
         let mut buf = [0u8; 4096];
         while !stop_r.load(Ordering::Acquire) {
             match read(master_r.as_raw_fd(), &mut buf) {
-                Ok(0) => break,
+                // macOS reports EOF from a PTY master while no process has
+                // the slave open. Linux typically reports EIO instead. Keep
+                // the advertised endpoint alive on both platforms so a host
+                // tool can connect later.
+                Ok(0) => {
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
                 Ok(n) => {
                     if can_write {
                         let data = Bytes::copy_from_slice(&buf[..n]);
@@ -237,16 +243,23 @@ async fn run_prepared_pty(prepared: PreparedPtyClient) -> anyhow::Result<()> {
     });
 
     tokio::select! {
-        _ = &mut reader => {},
-        _ = &mut writer => {},
+        // Do not await the selected JoinHandle again: its completion value was
+        // already consumed by select. Tokio rightfully panics if a completed
+        // JoinHandle is polled twice.
+        _ = &mut reader => {
+            // Unregister closes the Broker fanout and wakes writer.blocking_recv().
+            // The reader owns a nonblocking descriptor and observes `stopping`
+            // promptly.
+            stopping.store(true, Ordering::Release);
+            drop(registration);
+            let _ = writer.await;
+        },
+        _ = &mut writer => {
+            stopping.store(true, Ordering::Release);
+            drop(registration);
+            let _ = reader.await;
+        },
     }
-
-    // Unregister closes the Broker fanout and wakes writer.blocking_recv(). The
-    // reader owns a nonblocking descriptor and observes `stopping` promptly.
-    stopping.store(true, Ordering::Release);
-    drop(registration);
-    let _ = reader.await;
-    let _ = writer.await;
     Ok(())
 }
 
