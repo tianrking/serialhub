@@ -27,7 +27,7 @@
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <img alt="Status" src="https://img.shields.io/badge/status-MVP-22c55e?style=flat-square" />
+  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.0.2"><img alt="Version" src="https://img.shields.io/badge/version-v0.0.2-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
@@ -68,7 +68,7 @@
 - [名称与兼容迁移](./MIGRATION.md)
 - [目录结构](#目录结构)
 - [开发](#开发)
-- [路线图](#路线图)
+- [当前发布范围](#当前发布范围)
 - [常见问题](#常见问题)
 - [贡献](#贡献)
 - [许可证](#许可证)
@@ -97,6 +97,7 @@
 | 许可证 | MIT |
 | 文档 | [English](./README.md)（默认）· **简体中文** · [Español](./README.es.md) |
 | 产品/架构详述 | [`POSITIONING.md`](./POSITIONING.md) |
+| 当前发布 | [v0.0.2](https://github.com/tianrking/serialhub/releases/tag/v0.0.2) |
 
 > **项目已由 ohmyserial 更名为 SerialHub。** `serialhub` 是正式命令和包名；
 > 0.x 发布包仍提供兼容可执行文件，版本化账本 schema、Prometheus 指标和浏览器
@@ -749,15 +750,15 @@ CI：Ubuntu · macOS · Windows。
 
 ---
 
-## 路线图
+## 当前发布范围
 
-| 阶段 | 内容 |
-|------|------|
-| ✅ 基础 | 核心 hub、可信 TX、租约、TCP、HTTP/WS、PTY、mock、日志、CLI |
-| ✅ 证据 | 规范事件账本、可选哈希分段、查询/导出/事件 WS、安全回放 |
-| ✅ 控制面 | 有界工作流、设备身份选择、DTR/RTS/BREAK、独占交接、多端口监督 |
-| ✅ Web 调试 | 会话配置、快捷命令、定时发送、校验和、FireWater/JustFloat、波形观察 |
-| ✅ 已交付 | RFC2217、Windows COM 桥文档、NMEA/SLIP/COBS/Modbus RTU 分析器、Web 证据工具、Prometheus 指标 |
+v0.0.2 是当前公开发布基线，包含核心 Hub、可信 TX 与租约、Unix PTY、TCP、
+HTTP/WebSocket、RFC2217、多 profile 监督、事件账本与安全回放、设备身份选择、
+有界维护交接、Prometheus 指标和内嵌 Web 控制台。
+
+它明确**不承诺**自研 Windows 内核虚拟 COM 驱动、UDP 传输、完整终端模拟、
+通用脚本引擎、云 SaaS，或对每一种适配器与设备组合的硬件认证。完整的平台支持、
+安全 / 部署边界、文档导航和 HIL 要求见 [`POSITIONING.md`](./POSITIONING.md)。
 
 ---
 

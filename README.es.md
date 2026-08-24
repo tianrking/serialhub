@@ -27,7 +27,7 @@
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <img alt="Status" src="https://img.shields.io/badge/status-MVP-22c55e?style=flat-square" />
+  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.0.2"><img alt="Version" src="https://img.shields.io/badge/version-v0.0.2-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
@@ -66,7 +66,7 @@
 - [Seguridad](#seguridad)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Desarrollo](#desarrollo)
-- [Hoja de ruta](#hoja-de-ruta)
+- [Alcance de la versión actual](#alcance-de-la-versión-actual)
 - [FAQ](#faq)
 - [Contribuir](#contribuir)
 - [Licencia](#licencia)
@@ -95,6 +95,7 @@ Ideal para depuración embebida cuando **un terminal humano y un agente/script d
 | Licencia | MIT |
 | Documentación | [English](./README.md) (por defecto) · [中文](./README.zh-CN.md) · **Español** |
 | Arquitectura | [`POSITIONING.md`](./POSITIONING.md) |
+| Versión actual | [v0.0.2](https://github.com/tianrking/serialhub/releases/tag/v0.0.2) |
 
 ---
 
@@ -588,13 +589,18 @@ CI: Ubuntu · macOS · Windows.
 
 ---
 
-## Hoja de ruta
+## Alcance de la versión actual
 
-| Fase | Alcance |
-|------|---------|
-| ✅ Núcleo | Políticas, TCP, HTTP/WS, PTY, mock, logs, CLI y multi-puerto con colisiones |
-| ✅ Control + web | Perfiles, eventos/replay, workflows, lease/handoff, DTR/RTS/BREAK, comandos rápidos, temporizador, checksums y onda |
-| ✅ Entregado | RFC2217, guía de puente COM, analizadores NMEA/SLIP/COBS/Modbus RTU, evidencia web y métricas Prometheus |
+v0.0.2 es la línea pública actual: incluye el hub, TX confiable y leases,
+PTY en Unix, TCP, HTTP/WebSocket, RFC2217, supervisión de varios perfiles,
+ledger de eventos con replay seguro, identidad USB, handoff acotado, métricas
+Prometheus y consola web integrada.
+
+No promete un controlador virtual COM de kernel para Windows, UDP, emulación
+completa de terminal, un motor de scripts programable, SaaS en la nube ni
+certificación de hardware para todos los adaptadores y dispositivos. Consulta
+[`POSITIONING.md`](./POSITIONING.md) para la matriz de plataformas, el contrato
+de seguridad/despliegue, el mapa de documentación y el límite HIL.
 
 ---
 

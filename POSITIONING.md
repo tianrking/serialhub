@@ -1,546 +1,162 @@
-# SerialHub — 产品定位与完整架构
+# SerialHub 产品定义与架构（v0.0.2）
 
-> 本文档冻结产品方向与架构边界，作为设计与实现的单一事实来源（SSOT）。  
-> 实现细节可演进；未经讨论，不轻易改动本文中的原则与 ADR。
-
----
-
-## 1. 一句话定位
-
-> **跨平台、开源、小巧的串口共享中枢：独占真实串口，把数据安全分发给人类上位机与 AI Agent。**
-
-英文：
-
-> **A tiny, open-source serial hub for humans and agents — one real port, many safe clients, all platforms.**
+> **当前发布基线：** [SerialHub v0.0.2](https://github.com/tianrking/serialhub/releases/tag/v0.0.2)<br>
+> **产品名 / 主命令 / Rust 包：** `SerialHub` / `serialhub` / `serialhub`<br>
+> **许可证：** MIT<br>
+> **适用范围：** 本文定义已发布产品的定位、能力边界、平台承诺和运维原则；不保留预研阶段、待决策事项或过时的 MVP 规划。
 
 ---
 
-## 2. 要填的空白（Why）
+## 1. 产品定义
 
-| 现状 | 缺口 |
-|------|------|
-| Windows 商业 Splitter | 闭源、收费、锁平台 |
-| com0com + hub4com | 开源但老旧、Windows only、体验碎 |
-| socat / ser2net | 零件强，不是「人 + Agent 共调试」产品 |
-| macOS / 跨架构 | 几乎没有完整开源 Hub |
+**SerialHub 是一个本地优先、跨平台的串口共享中枢。** 它由一个进程独占打开真实 UART / COM / tty，把设备的 RX 安全分发给多个客户端，并以明确的策略仲裁所有 TX。
 
-**我们做的不是「又一个虚拟串口驱动」，而是：**
+它面向两类同时存在的使用者：
+
+- 人类工程师：终端、传统上位机、Web 控制台；
+- 自动化与 Agent：HTTP、WebSocket、TCP、RFC2217 和有界工作流。
+
+产品承诺不是“让多个程序同时直接打开一个串口”，而是：
 
 ```text
-Serial Hub = 真串口独占 + 多客户端共享 + 写仲裁 + 双形态接入 + 可观测
+一条真实串口
+  └─ 一个 SerialHub owner
+       ├─ RX：按权限、有界地 fan-out 给多个消费者
+       └─ TX：按策略、租约和连接世代仲裁后才写入设备
 ```
 
-时代红利：**嵌入式调试 × 自动化 × AI Agent 同时要碰串口**。
+这避免了操作系统的独占打开冲突，也避免多个 writer 静默交错字节。
 
 ---
 
-## 3. 产品原则（How we win）
+## 2. 适用场景与非目标
 
-1. **小巧优先** — 单二进制、低依赖、配置文件即可跑  
-2. **工作流完整，而非按钮最多** — 人能用、Agent 能用、不互踩  
-3. **默认安全可预期** — TX 策略清晰，冲突有规则  
-4. **跨平台一等公民** — Windows / Linux / macOS，x64 / arm64  
-5. **开源免费** — 建议 MIT 或 Apache-2.0  
-6. **可扩展但不膨胀** — 核心固定，协议/接入可插拔  
+| 场景 | SerialHub 提供的价值 |
+| --- | --- |
+| 嵌入式调试 | 人类终端查看日志时，脚本或 Agent 仍可观察、受控发送命令 |
+| 自动化 / CI | 用 HTTP 确认主机侧写入、用事件账本留存证据、用有界工作流执行有限步骤 |
+| 多个上位机观察同一设备 | Unix PTY、TCP、WebSocket 并联接入，RX 不必抢占真口 |
+| Windows 传统 COM 软件 | Hub 持有真实 `COMx`；需要虚拟 COM 时，用现有驱动提供的 COM 对配合 `bridge-com` |
+| 远程协作 | 本机仍保持回环监听；通过 SSH 隧道或带 TLS / 认证的反向代理访问 |
 
-反模式：一上来对标商业 VSPD 全功能、堆 GUI、做企业云。
+以下能力**不是 v0.0.2 的承诺**，不应据此采购、部署或宣传：
 
----
-
-## 4. 目标用户与场景
-
-| 用户 | 场景 |
-|------|------|
-| 嵌入式工程师 | 上位机看日志的同时，脚本/Agent 自动测 |
-| Agent / 自动化 | 读串口流、按策略发命令，不抢真口 |
-| 产线 / CI | 烧录后冒烟，多消费者读同一日志 |
-| 远程协作 | 本机真口，远端通过 TCP/WS 旁路观察 |
-
-**非目标（至少 v1）：** 替代完整 IDE、做协议分析仪全家桶、做商业级内核虚拟 COM 驱动生态。
+- 自研、内核级 Windows 虚拟 COM 驱动；
+- UDP 传输、完整终端仿真器或通用可编程脚本引擎；
+- 云账号、多租户 SaaS 或把明文串口接口直接暴露到 LAN / Internet；
+- 对每一种 USB-UART 芯片、驱动、接线或设备协议的通用硬件认证。
 
 ---
 
-## 5. 核心价值主张
+## 3. v0.0.2 已交付能力
 
-对外三句话：
+| 能力域 | 已交付内容 | 关键约束 |
+| --- | --- | --- |
+| 真实串口所有权 | 串口参数、自动重连、精确 USB VID/PID/序列号选择 | 每个真实端口只由一个 Hub owner 打开；模糊 USB 匹配会 fail-closed |
+| 多端接入 | Unix PTY、原始 TCP、HTTP、WebSocket、可选 RFC2217 | 所有明文监听保持 loopback；每个读客户端都有有界队列 |
+| TX 安全 | `queue_by_line`、`queue_by_frame`、`exclusive`、`primary_wins` | 不允许静默字节交错；原子 HTTP / WS 二进制写受大小和超时限制 |
+| 写租约 | 随机、不透明 `lease_token` 的获取、续租、释放和失效 | `owner` 只是显示/审计信息，不是凭证；token 不进入状态或事件账本 |
+| 控制与维护 | DTR / RTS / BREAK、有界 handoff、单进程多 profile `supervise` | 控制线默认关闭；需要显式 capability 和有效租约 |
+| 可观测性 | 状态、端点、客户端、Prometheus 指标、事件查询 / 导出 / 流 | 主机侧 `write_all` + `flush` 不等同于设备协议 ACK |
+| 证据与回放 | 有界内存事件环、可选 SHA-256 链式 NDJSON、只读离线回放 | 哈希发现损坏或断链，但不是来源签名；回放绝不触碰真实设备 |
+| Web 控制台 | 会话配置、文字 / Hex、校验和、定时发送、解析器、日志与证据工具 | Bearer 只保存在页面内存；页面不直接打开真实串口 |
+| 兼容接入 | RFC2217 Telnet 串口服务、Windows `bridge-com` | RFC2217 和 raw TCP 没有 Bearer 握手，因此也只能绑定 loopback |
 
-1. **一个人打开串口，程序也能同时看。**  
-2. **Agent 能读、能写，但不会和人手撕协议。**  
-3. **Windows / Linux / macOS 同一套用法。**
+---
 
-对内能力公式：
+## 4. 平台支持与实际边界
+
+| 平台 / 发布资产 | 真串口 owner | PTY | TCP / HTTP / WS | Windows 旧 COM 软件 |
+| --- | --- | --- | --- | --- |
+| Linux x64 / ARM64 | 已实现 | 已实现 | 已实现 | 不适用 |
+| macOS x64 / Apple Silicon | 已实现 | 已实现 | 已实现 | 不适用 |
+| Windows x64 / ARM64 | 已实现（`COMx`） | 不支持 | 已实现 | `bridge-com` + 已安装的虚拟 COM 提供方 |
+
+v0.0.2 Release 提供上述六个目标的二进制资产。CI、单元 / 集成测试、mock 传输和跨平台编译证明的是可重复的代码与协议行为；它们**不等同于**对某一 USB 转串口适配器、OS 驱动、RS-232/RS-485 电气层或业务设备命令的实机认证。
+
+在面向生产的设备 / 适配器组合上线前，必须按 [`RELIABILITY_TEST_MATRIX.md`](./RELIABILITY_TEST_MATRIX.md) 做硬件在环验证：端口枚举、串口参数、拔插重连、控制线、真实上位机和实际协议命令都应留存证据。
+
+---
+
+## 5. 架构与不可变契约
 
 ```text
-serialhub = RealPort Exclusive
-            + RX Fan-out
-            + TX Arbitration
-            + Client Adapters (PTY/COM-like, TCP, WebSocket, HTTP)
-            + Session Observability
+真实 UART / COM / tty
+        │  仅一个 owner 打开、读写、重连和控制线操作
+        ▼
+┌─────────────────────────────────────────────────────────────┐
+│ SerialHub                                                     │
+│  Serial owner → Broker → RX fan-out / TX policy / lease      │
+│                   │                                           │
+│                   ├─ PTY（仅 macOS / Linux）                  │
+│                   ├─ TCP raw / RFC2217（仅 loopback）         │
+│                   ├─ HTTP API / WebSocket（Agent / Web）      │
+│                   └─ 事件账本、指标、回放与监督               │
+└─────────────────────────────────────────────────────────────┘
 ```
 
----
+### 数据面
 
-## 6. 功能分层（做什么 / 不做什么）
+- **RX：** Hub 实际从系统驱动读到的字节按读取权限 fan-out；慢客户端采用可配置、有限的丢弃或断开策略，不能无限阻塞真口读循环。
+- **TX：** 所有来源先进入策略层；流式写入按行或帧组装，HTTP 与 WebSocket 二进制写入为受限的原子请求。
+- **连接世代：** 每次真口重连都产生新的 epoch；旧连接时期排队的写入在真正触发 OS 写入前重新校验，不会被重放给新会话。
 
-### 6.1 MVP（必须有，第一完整版本）
+### 控制面
 
-| 能力 | 说明 |
-|------|------|
-| 打开/关闭真串口 | path、baud、data/parity/stop、flow |
-| 独占占用 | 系统层面只由 hub 打开真口 |
-| RX 广播 | 所有可读客户端收到同一份设备数据 |
-| TX 仲裁 | 默认按行排队；支持写锁租约 |
-| Unix 虚拟口 | macOS/Linux：PTY + 稳定 symlink 路径 |
-| Windows 接入 | TCP raw + WebSocket（真虚拟 COM 见跨平台策略） |
-| Agent API | WebSocket 字节流 + HTTP 写命令/查状态 |
-| 会话日志 | 文件 raw/hex、控制台 mirror |
-| 断线重连 | 真口掉线可配置自动重开 |
-| CLI + TOML 配置 | `serialhub run -c config.toml` |
-| 跨平台构建 | Windows / Linux / macOS，x64 / aarch64 |
+- `GET /v1/status`、`/v1/endpoints`、`/v1/clients` 提供运行状态；
+- `POST /v1/lock` / `DELETE /v1/lock` 管理写租约；
+- `POST /v1/write` 在成功时确认的是 Hub 的主机侧写入和 flush；
+- `POST /v1/control`、`/v1/handoff`、`/v1/handoff/resume` 是显式授权的物理控制与维护操作；
+- `POST /v1/workflows/run` 只执行受边界保护的线性工作流，不是脚本执行器。
 
-### 6.2 v1.x（差异化增强）
+### 安全与部署
 
-| 能力 | 说明 |
-|------|------|
-| 多实例 / 多真口 | 一份进程管多个 real port profile |
-| 客户端权限 | `read_only` / `can_write` / 命名角色 |
-| 写策略插件化 | exclusive / queue_line / queue_frame / primary_wins |
-| 历史环形缓冲 | Agent 晚连也能拿到最近 N KB/秒 |
-| RFC2217 | 网络侧串口控制信号 |
-| Web 监视页 | 可选轻量 UI（非必须） |
-| 录制回放 | 当假设备喂给上位机 |
-| 指标 | 字节数、客户端数、锁持有者、错误计数 |
+1. HTTP、WebSocket、原始 TCP 和 RFC2217 的明文监听只允许回环地址。
+2. `api.token_env` 从环境变量读取 Bearer；不得放进 TOML、URL、提交记录或日志。
+3. HTTP Host、WebSocket Origin 与 CORS 使用精确匹配；拒绝通配 CORS 与查询串 token。
+4. 写租约、读写 capability、控制 capability 和大小 / 超时上限共同形成最小权限边界。
+5. 远程访问通过 SSH 隧道，或让 TLS / 认证反向代理只连接回环 listener；Bearer 本身不能保护网络上的明文流量。
 
-### 6.3 明确后置 / 不做（防膨胀）
-
-| 项 | 原因 |
-|----|------|
-| 自研 Windows 内核虚拟 COM 驱动 | 成本高、签名难；v1 用 TCP/WS 或对接 com0com |
-| 深度协议语义仲裁（Modbus 状态机级） | 垂直场景，插件后做 |
-| 云账号 / 远程 SaaS | 偏离本地调试工具定位 |
-| 重 GUI 安装套件 | CLI + 配置优先 |
+完整的请求、响应和错误语义见 [`README.md`](./README.md) 与 [`web/PROTOCOL.zh-TW.md`](./web/PROTOCOL.zh-TW.md)。
 
 ---
 
-## 7. 跨平台策略
+## 6. 命名与兼容性
 
-### 7.1 支持矩阵（产品承诺）
+`SerialHub` 与 `serialhub` 是唯一的产品显示名、仓库名、主命令和包名。
 
-| 平台 | 架构 | 真串口 | 类串口客户端 | Agent 客户端 |
-|------|------|--------|--------------|--------------|
-| macOS | arm64 / x64 | ✅ | PTY ✅ | TCP/WS/HTTP ✅ |
-| Linux | x64 / arm64 / 其它 unix | ✅ | PTY ✅ | TCP/WS/HTTP ✅ |
-| Windows | x64 / arm64 | ✅ | **见下** | TCP/WS/HTTP ✅ |
-
-### 7.2 Windows「虚拟串口」现实策略
-
-用户空间 **无法** 像 Unix 一样轻松造出系统级 COM 而不装驱动。
-
-**三层策略：**
-
-| 层级 | 做法 | 定位 |
-|------|------|------|
-| **L0 默认（跨平台统一）** | TCP raw + WebSocket + HTTP | 所有平台行为一致；Agent 首选 |
-| **L1 Unix 原生** | PTY + symlink | 上位机直接选 `/tmp/serialhub-ui` |
-| **L2 Windows 兼容** | 文档化对接 com0com/hub4com，或后续可选驱动/桥 | 传统只认 COM 的上位机 |
-
-架构保证：
-
-> **业务核心不依赖「虚拟 COM 实现」**；虚拟口只是 Client Adapter 之一。
-
-Rust 核心一套，平台差异关在 adapter 里。
-
-### 7.3 技术选型（Rust 栈）
-
-| 层级 | 建议 crate / 技术 |
-|------|-------------------|
-| 运行时 | `tokio` |
-| 真串口 | `serialport`（或 async 包装） |
-| CLI | `clap` |
-| 配置 | `serde` + `toml` |
-| HTTP/WS | `axum` + WebSocket |
-| Unix PTY | `nix` / `portable-pty` |
-| 日志 | `tracing` + `tracing-subscriber` |
-| 错误 | lib: `thiserror`；bin: `anyhow` |
-| 跨平台 CI | GitHub Actions：win / linux / mac × 主流 arch |
+为了不破坏现有自动化，0.x 期间仍保留以下**兼容性标识**：`ohmyserial` 兼容可执行文件、版本化事件 schema、Prometheus 指标和浏览器存储键。它们不是对外品牌名称，也不应出现在新的部署、教程、截图或命令示例中。具体迁移规则见 [`MIGRATION.md`](./MIGRATION.md)。
 
 ---
 
-## 8. 系统总架构
+## 7. 文档体系与权威顺序
 
-```text
-                        ┌──────────────────────────────────────┐
-                        │              CLI / Config            │
-                        │   run | status | list-ports | ...    │
-                        └──────────────────┬───────────────────┘
-                                           │
-                        ┌──────────────────▼───────────────────┐
-                        │           Hub Supervisor             │
-                        │  lifecycle, reload, multi-profile    │
-                        └──────────────────┬───────────────────┘
-                                           │
-          ┌────────────────────────────────┼────────────────────────────────┐
-          │                                │                                │
-          ▼                                ▼                                ▼
- ┌─────────────────┐            ┌─────────────────────┐          ┌──────────────────┐
- │  Serial Core    │            │   Router / Broker   │          │  Observability   │
- │  open/close     │◄──────────►│  RX fan-out         │─────────►│  binlog / metrics│
- │  baud/flow      │  bytes in  │  TX arbitration     │  events  │  tracing         │
- │  reconnect      │───────────►│  write lock lease   │          └──────────────────┘
- │  DTR/RTS policy │  bytes out │  client registry    │
- └─────────────────┘            └──────────┬──────────┘
-                                           │
-                    ┌──────────────────────┼──────────────────────┐
-                    │                      │                      │
-                    ▼                      ▼                      ▼
-            ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
-            │ PtyAdapter   │       │ TcpAdapter   │       │ Ws/Http API  │
-            │ (unix)       │       │ raw stream   │       │ agent-first  │
-            └──────────────┘       └──────────────┘       └──────────────┘
-                    │                      │                      │
-                    ▼                      ▼                      ▼
-              传统上位机              通用客户端/脚本              Agent / IDE 插件
-```
+| 需要回答的问题 | 当前权威文档 |
+| --- | --- |
+| 安装、启动、配置、API 和安全默认值 | [`README.md`](./README.md) / [`README.zh-CN.md`](./README.zh-CN.md) / [`README.es.md`](./README.es.md) |
+| 产品范围、平台承诺和非目标 | 本文档 |
+| 生成可校验的示例配置 | [`serialhub.example.toml`](./serialhub.example.toml)；再运行 `serialhub check -c ...` |
+| 改名与兼容性 | [`MIGRATION.md`](./MIGRATION.md) |
+| 事件账本、持久化、查询与回放 | [`EVENTS.md`](./EVENTS.md) |
+| Agent 的有界工作流 | [`WORKFLOWS.md`](./WORKFLOWS.md) |
+| 外部工具直连真口的安全交接 | [`HANDOFF.md`](./HANDOFF.md) |
+| 单进程多 profile | [`SUPERVISOR.md`](./SUPERVISOR.md) |
+| Windows COM-only 软件 | [`WINDOWS_COM_BRIDGE.md`](./WINDOWS_COM_BRIDGE.md) |
+| 自动化覆盖与 HIL 边界 | [`RELIABILITY_TEST_MATRIX.md`](./RELIABILITY_TEST_MATRIX.md) |
+| Web 控制台和 HTTP / WS 协议 | [`web/README.md`](./web/README.md)、[`web/README.zh-TW.md`](./web/README.zh-TW.md)、[`web/PROTOCOL.zh-TW.md`](./web/PROTOCOL.zh-TW.md) |
 
-### 8.1 数据面（Data plane）
-
-```text
-Device RX ──► Serial Core ──► Broker.broadcast(rx) ──► all readable clients
-
-Client TX ──► Broker.admit(tx_policy) ──► queue/lock ──► Serial Core ──► Device
-```
-
-### 8.2 控制面（Control plane）
-
-- 打开/关闭 profile  
-- 查询客户端列表、写锁持有者  
-- 申请/释放写锁  
-- 动态调整部分策略（可选）  
-- 健康状态：`connected` / `reconnecting` / `error`  
+CLI 的 `--help`、配置校验结果和已发布的端点行为优先于示例文本；发现不一致时，应修正文档而不是依赖旧文章或猜测。
 
 ---
 
-## 9. 核心模块划分
+## 8. 发布与文档维护规则
 
-```text
-serialhub/
-├── cli/                 # 命令行入口、子命令
-├── config/              # TOML schema、校验、默认值
-├── serial/              # 真串口生命周期、参数、重连
-├── broker/              # RX fan-out、TX 策略、客户端注册
-├── policy/              # exclusive | queue_line | queue_frame | primary
-├── client/
-│   ├── pty.rs           # macOS/Linux
-│   ├── tcp.rs           # 全平台
-│   ├── ws.rs            # 全平台
-│   └── http_api.rs      # 控制 + 写命令
-├── observe/             # 日志、hex dump、metrics
-└── util/                # 平台宏、路径、shutdown
-```
+每次发布前必须同步完成以下事项：
 
-原则：**broker 与 platform adapter 解耦**；任何新接入方式只加 client adapter。
+1. 版本号、CHANGELOG、主 README 的 Release 状态和本文档的发布基线一致；
+2. 新能力同时更新主 README、对应专题文档、示例配置与 Web 协议（如适用）；
+3. 旧名称仅在兼容性 / 迁移说明中保留；
+4. 文档必须区分“自动化验证通过”和“已在特定硬件组合 HIL 验收”；
+5. 删除或改写已失效的规划、临时决策和不再存在的命令，而不是把它们当作历史教程保留。
 
----
-
-## 10. 关键语义
-
-### 10.1 RX
-
-- 从真串口读到的每个字节/块，**复制**给所有 `can_read` 客户端  
-- 不保证「消息边界」（串口本身无消息）；可选按行 mirror 到日志  
-- 某客户端阻塞/慢：**不得拖死真口读循环**（有界队列 + 可配丢弃/断开）
-
-慢客户端策略：
-
-| 策略 | 含义 |
-|------|------|
-| `drop_oldest`（默认） | 丢掉该客户端最旧的待处理 RX 块，再放入新块 |
-| `drop_newest` | 保留已排队的数据，丢掉发给该客户端的新块 |
-| `disconnect_slow` | queue 满时立即断开慢客户端 |
-| `block` | 最多阻塞 `slow_block_ms`，仍无空间则断开，禁止无限拖住真口 |
-
-每个 `can_read` 客户端的 pending queue 以 `client_queue` 为硬边界；丢弃、阻塞与慢端断开须分别计数。
-
-### 10.2 TX
-
-| 模式 | 行为 | 适用 |
-|------|------|------|
-| `queue_by_line`（**默认**） | 按 `\n` 完整行串行写出 | 文本日志 / AT / CLI 设备 |
-| `queue_by_frame` | 按分隔符/长度帧串行 | 二进制协议 |
-| `exclusive` | 同时仅一个 writer；需持锁 | 危险命令、烧录期 |
-| `primary_wins` | 指定 primary 抢占 | 人在环优先 |
-
-**写锁租约（lease）**
-
-- 首次申请返回随机、不透明的 `lease_token`；`owner` 仅用于显示/审计，不具授权能力
-- 写入、续租和主动释放均以 token 鉴权；同名 client 不能冒充
-- 到期自动释放；客户端断线/註销**不按名称释放**，避免同名连接影响他人租约
-- HTTP/WS 控制面可查询 `lock_owner` 和剩余 TTL，但状态接口不返回 token
-
-HTTP 原子写的 `ok: true` 必须表示串口所有者已完成主机侧 `write_all` + `flush`，而非仅仅入队；它不等于设备协议 ACK。入队和确认共用 `write_timeout_ms`。若 host write 失败或 ACK 超时，结果可能 partial/unknown，调用者不得盲重试。
-
-流式 delimiter 组帧受 `max_frame_bytes` 限制；HTTP 与 WS Binary 原子写受 `max_write_bytes` 限制。每个串口连接有递增 epoch，写入在真正触发 host write 前重验 epoch、截止时间和租约，断线前的旧 queue 不可在重连后回放。
-
-**冲突结果必须可预期**：拒绝并返回错误，或排队；**禁止静默字节交错**。
-
-### 10.3 串口参数与控制线
-
-| 项 | 默认策略 |
-|----|----------|
-| baud/parity 等 | 以 Hub 配置为准 |
-| 客户端尝试改波特率 | Unix PTY：可忽略或仅记录；不随意改真口 |
-| DTR/RTS | 配置项：`pass_from_primary` / `fixed` / `ignore` |
-| 真口断开 | 客户端连接保持，状态 `reconnecting`，可自动重开 |
-
-Arduino 等依赖 DTR 复位的场景，须在用户文档中单独说明。
-
----
-
-## 11. 客户端模型
-
-### 11.1 统一 Client 抽象
-
-```text
-Client {
-  id, name, kind,          // pty | tcp | ws | http-session
-  can_read, can_write,
-  created_at,
-  tx_queue_depth,
-  stats
-}
-```
-
-### 11.2 接入形态
-
-| Kind | 平台 | 给谁用 | 能力 |
-|------|------|--------|------|
-| `pty` | macOS/Linux | 传统串口上位机 | 读写字节流 |
-| `tcp` | 全平台 | 脚本、通用工具 | 原始双向字节流 |
-| `websocket` | 全平台 | Agent、前端 | 二进制帧 + 可选 JSON 控制 |
-| `http` | 全平台 | Agent 控制面 | status / write / lock |
-
-### 11.3 Agent 推荐路径（产品默认故事）
-
-```text
-上位机  → PTY（Unix）或 TCP（Windows）
-Agent   → WebSocket 订阅 RX + HTTP POST 写命令（带写锁）
-```
-
-不要强迫 Agent 假装自己是 COM 口。
-
----
-
-## 12. 配置模型
-
-```toml
-[real]
-path = "/dev/tty.usbmodem14101"   # Windows: "COM3"
-baud = 115200
-databits = 8
-parity = "none"
-stopbits = 1
-flow = "none"
-reconnect = true
-reconnect_ms = 1000
-
-[tx]
-mode = "queue_by_line"            # exclusive | queue_by_line | queue_by_frame | primary_wins
-primary = "ui"
-write_lock_ms = 3000
-write_timeout_ms = 5000
-max_frame_bytes = 65536
-max_write_bytes = 65536
-slow_client = "drop_oldest"
-client_queue = 256
-slow_block_ms = 1000
-
-[[clients]]
-name = "ui"
-type = "pty"
-link = "/tmp/serialhub-ui"
-can_write = true
-
-[[clients]]
-name = "agent"
-type = "websocket"
-bind = "127.0.0.1:8787"
-can_write = true
-history_bytes = 65536
-
-[api]
-bind = "127.0.0.1:8787"
-enabled = true
-can_read = true
-can_write = true
-# token_env = "SERIALHUB_API_TOKEN"
-# cors_origins = ["https://serial-console.example.com"]
-
-[log]
-file = "logs/session.blog"
-mirror_console = true
-format = "hex+text"               # text | hex | hex+text
-```
-
-配置即契约：**同一份配置在三平台语义尽量一致**；`type = "pty"` 在 Windows 上应明确报错或给出降级说明。
-
----
-
-## 13. API 草图（控制面）
-
-| 接口 | 作用 |
-|------|------|
-| `GET /v1/status` | 真口状态、波特率、客户端、锁 |
-| `GET /v1/clients` | 列表 |
-| `POST /v1/write` | 原子 text/hex；租约有效时携带 `lease_token`；等待 host write + flush |
-| `POST /v1/lock` | 无 token 时申请；带 `lease_token` 时续租 |
-| `DELETE /v1/lock` | 带 `lease_token` 释放 |
-| `WS /v1/stream` | 二进制 RX；可选带侧信道事件 |
-| `GET /v1/health` | liveness |
-
-安全默认：**只绑 `127.0.0.1`**。明文 API / 独立 WS 即使配置 Bearer 也拒绝非回环监听，远程访问走 SSH tunnel 或 TLS reverse proxy；`token_env` 密钥仅从环境变量读取，除 health 外的 `/v1/*` 使用 Bearer。HTTP/WS 同时校验实际监听 Host，阻断 DNS rebinding；浏览器 CORS 默认同源，白名单必须精确匹配并拒绝 `*`，浏览器 Bearer 使用 `Sec-WebSocket-Protocol: bearer, <token>`，不使用 query token。
-
-原始 TCP 没有 API Bearer 握手，必须保持 loopback；远程协作使用 SSH tunnel，而不是把 raw TCP 直接暴露到 LAN/WAN。
-
----
-
-## 14. 可观测性
-
-| 信号 | 用途 |
-|------|------|
-| 结构化 tracing 日志 | 排障 |
-| session blog（带时间戳与方向 tag） | 复盘、喂给 Agent |
-| 计数器 | `rx_bytes`, `tx_bytes`, `drops`, lock 争用 |
-| 事件 | client_join/leave, reconnected, lock_granted/expired |
-
-方向标记：`RX`（设备→主机）、`TX:<client_name>`（某客户端→设备）。
-
----
-
-## 15. 进程与部署形态
-
-| 形态 | 说明 |
-|------|------|
-| 前台 CLI | 开发调试默认 |
-| 单二进制 | `serialhub` |
-| 可选系统服务 | 后置：systemd / launchd / Windows Service |
-| 多 profile | `serialhub run -c a.toml` 可多开进程；或单进程多 real（v1.x） |
-
-资源目标：
-
-- 空闲内存尽量小（MB 级）  
-- RX 路径低拷贝、有界缓冲  
-- 不引入重运行时（无浏览器内核、无 Electron）  
-
----
-
-## 16. 威胁模型与安全边界
-
-| 风险 | 对策 |
-|------|------|
-| 局域网任意人写串口 | 所有明文监听只走 loopback；远程使用 SSH/TLS；可叠加环境变量 Bearer；校验 Host 防 DNS rebinding |
-| 两客户端命令互毁 | TX 策略 + 权限 + 写锁 |
-| 慢客户端内存爆 | 有界队列 + drop 策略 |
-| 日志含密钥/token | 文档警示；可选 redact 插件后置 |
-| 路径错误打开错误设备 | 启动前 list + 确认；配置显式 path |
-
-启动/关闭也属于可信边界：配置先校验、listener 先完成 bind；任一启动失败要撤销已启动 task。资源由 owner/registration guard 回收，shutdown 要关闭 fan-out、停止串口线程，并把未写 queue 明确拒绝/排空，禁止留下 detached worker。
-
-`mock:demo` 测试只能证明 hub、策略、租约、API 与生命周期逻辑；不能据此宣称 OS 串口 driver、USB/UART 时序、物理控制线或真实设备 ACK 已验证。
-
----
-
-## 17. 版本路线图
-
-### Phase 0 — 定义冻结（当前）
-
-- 定位、架构、TX 默认策略、平台矩阵  
-- 配置 schema、模块边界  
-
-### Phase 1 — MVP 可跑
-
-- Serial Core + Broker + TCP + WS/HTTP  
-- Unix PTY  
-- TOML + CLI  
-- 基础 blog 日志  
-- CI：三平台编译  
-
-### Phase 2 — 好用
-
-- 写锁 API、history buffer、权限  
-- 重连与状态完善  
-- Windows 上位机对接指南（TCP↔COM 桥）  
-- 完整文档与示例（Arduino / 日志设备 / Agent）  
-
-### Phase 3 — 丰富
-
-- RFC2217、frame policy、多真口  
-- 可选 Web monitor  
-- 录制回放  
-- 评估 Windows 虚拟 COM 方案（驱动 or 官方桥）  
-
----
-
-## 18. 成功标准
-
-1. **同一块板子**：人用上位机、Agent 用 WS，同时在线稳定。  
-2. **TX 不出现静默交错**（策略生效，错误可解释）。  
-3. **macOS / Linux / Windows 官方支持**，arch 覆盖桌面主流。  
-4. **5 分钟内**：装二进制 → 改配置 → 跑起来 → 两边都看到 RX。  
-5. **许可证清晰、无付费墙**，文档足够让人不用读源码。  
-
----
-
-## 19. 命名与品牌
-
-| 项 | 建议 |
-|----|------|
-| 仓库/项目 | `serialhub` / `serialhub` |
-| 二进制 | `serialhub` |
-| 角色隐喻 | Hub / Broker / Switch（避免叫 Driver，以免被当成内核驱动） |
-| Tagline | One port. Many clients. Zero fights. |
-
----
-
-## 20. 架构决策记录（ADR 摘要）
-
-| ID | 决策 | 理由 |
-|----|------|------|
-| ADR-1 | Rust 单二进制 | 跨平台、性能、分发简单 |
-| ADR-2 | 核心与虚拟串口解耦 | Windows 无 PTY 也能完整 Agent 工作流 |
-| ADR-3 | 默认 `queue_by_line` | 文本调试最常见，避免字节交错 |
-| ADR-4 | Agent 走 WS/HTTP 一等公民 | 比强行虚拟 COM 更稳、更好自动化 |
-| ADR-5 | 默认 localhost | 串口写入等价于碰硬件 |
-| ADR-6 | Windows 真 COM 虚拟后置 | 先交付价值，驱动成本不挡 MVP |
-| ADR-7 | 开源免费（MIT/Apache） | 对准商业闭源空白 |
-
----
-
-## 21. 总结表
-
-| 维度 | 定义 |
-|------|------|
-| **是什么** | 跨平台开源串口共享中枢 |
-| **不是什么** | 商业 VSPD 克隆 / 协议分析 IDE |
-| **核心矛盾解法** | 独占真口 + RX 广播 + TX 仲裁 |
-| **人怎么接** | PTY（Unix）/ TCP（通用） |
-| **Agent 怎么接** | WebSocket 流 + HTTP 控制 |
-| **平台** | Windows · Linux · macOS（x64/arm64） |
-| **默认 TX** | 按行排队 + 可选写锁 |
-| **开源** | 免费，许可证待选定 MIT/Apache |
-| **空白点** | 人+Agent 共调试的完整产品，而非零件 |
-
----
-
-## 22. 待拍板事项
-
-实现前建议明确：
-
-1. **许可证**：MIT vs Apache-2.0  
-2. **TX 默认**：是否锁定 `queue_by_line`  
-3. **Windows 上位机**：v1 是否接受「TCP 为主、COM 靠桥」，还是必须原生 COM  
-4. **二进制名 / 配置名**最终定名  
-5. **MVP 范围**：第一版 `1 real + 1 pty + 1 ws`，或 `tcp + ws + pty` 全上  
-
----
-
-*文档版本：v0.1（定位冻结稿）*
+这份文档随当前发布维护；没有独立的草案规划或待拍板清单。

@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Documentation
+
+- Replaced the pre-release positioning draft with the maintained v0.0.2 product
+  definition, support boundaries, deployment/security contract, and canonical
+  documentation map.
+- Updated the English, Simplified Chinese, Spanish, and Web protocol entry
+  points to identify v0.0.2 as the current release and removed stale
+  MVP/phase-planning language.
+
 ## [0.0.2] — 2026-08-24
 
 ### SerialHub branding and safe configuration preflight
@@ -57,7 +66,7 @@ All notable changes to this project are documented in this file.
 
 ### Multi-profile supervision
 
-- Added `ohmyserial supervise -c profile-a.toml -c profile-b.toml` for independent real-port hubs in one process.
+- Added `serialhub supervise -c profile-a.toml -c profile-b.toml` for independent real-port hubs in one process.
 - Added preflight collision checks for listeners, PTY links, real paths, USB selectors, and ledger directories, plus startup rollback and coordinated graceful shutdown.
 
 ### Event ledger and safe replay

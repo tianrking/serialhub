@@ -446,4 +446,4 @@ curl -s -X DELETE http://127.0.0.1:8787/v1/lock \
 
 ---
 
-*版本對應：serialhub hub MVP + fan-out · 與 `web/` React 控制台同步*
+*版本對應：SerialHub v0.0.2 · 與 `web/` React 控制台同步*
