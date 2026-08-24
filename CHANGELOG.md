@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.0.2] — 2026-08-24
+
 ### SerialHub branding and safe configuration preflight
 
 - Renamed the project, canonical Cargo package, GitHub repository, and primary

@@ -1,7 +1,7 @@
 {
   "name": "serialhub-web",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "SerialHub 本機串口共享控制台（繁體中文）",
   "type": "module",
   "scripts": {
