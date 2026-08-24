@@ -57,6 +57,10 @@ pub struct PreparedPtyClient {
     link: PtyLinkGuard,
     slave_path: String,
     master: Arc<OwnedFd>,
+    // Keep one slave descriptor open for the lifetime of the endpoint. macOS
+    // can tear down/reset PTY termios when the final slave closes; that would
+    // re-enable echo and turn device RX into false client TX.
+    slave_guard: OwnedFd,
     can_read: bool,
     can_write: bool,
 }
@@ -91,7 +95,6 @@ pub fn prepare_pty_client(
 
     set_nonblocking(master.as_raw_fd())?;
     setup_link(&link, &slave_path)?;
-    drop(slave); // host tools open the slave via symlink
 
     Ok(PreparedPtyClient {
         broker,
@@ -99,6 +102,7 @@ pub fn prepare_pty_client(
         link: PtyLinkGuard { link },
         slave_path,
         master: Arc::new(master),
+        slave_guard: slave,
         can_read,
         can_write,
     })
@@ -129,6 +133,7 @@ async fn run_prepared_pty(prepared: PreparedPtyClient) -> anyhow::Result<()> {
         link,
         slave_path,
         master,
+        slave_guard: _slave_guard,
         can_read,
         can_write,
     } = prepared;
