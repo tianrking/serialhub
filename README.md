@@ -1,7 +1,7 @@
-# ohmyserial
+# SerialHub
 
 <p align="center">
-  <img alt="ohmyserial" src="https://img.shields.io/badge/ohmyserial-serial%20hub-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
+  <img alt="serialhub" src="https://img.shields.io/badge/serialhub-serial%20hub-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
 </p>
 
 <p align="center">
@@ -23,14 +23,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tianrking/oh_myserial/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/oh_myserial/ci.yml?branch=main&style=flat-square&label=CI" /></a>
+  <a href="https://github.com/tianrking/serialhub/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/serialhub/ci.yml?branch=main&style=flat-square&label=CI" /></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <img alt="Version" src="https://img.shields.io/badge/version-v0.0.1-blue?style=flat-square" />
-  <img alt="Status" src="https://img.shields.io/badge/status-MVP-22c55e?style=flat-square" />
-  <a href="https://github.com/tianrking/oh_myserial/releases/tag/v0.0.1"><img alt="Release" src="https://img.shields.io/badge/release-v0.0.1-0ea5e9?style=flat-square" /></a>
-  <a href="https://github.com/tianrking/oh_myserial"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Foh__myserial-181717?style=flat-square&logo=github" /></a>
+  <img alt="Version" src="https://img.shields.io/badge/version-unreleased-blue?style=flat-square" />
+  <img alt="Status" src="https://img.shields.io/badge/status-active-22c55e?style=flat-square" />
+  <a href="https://github.com/tianrking/serialhub/releases"><img alt="Release" src="https://img.shields.io/badge/release-watch%20releases-0ea5e9?style=flat-square" /></a>
+  <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
 <p align="center">
@@ -50,7 +50,7 @@
 
 ## Table of contents
 
-- [What is ohmyserial?](#what-is-ohmyserial)
+- [What is SerialHub?](#what-is-serialhub)
 - [Problem & solution](#problem--solution)
 - [Features](#features)
 - [How it works](#how-it-works)
@@ -66,6 +66,7 @@
 - [Unix PTY](#unix-pty-macos--linux)
 - [Windows notes](#windows-notes)
 - [Security](#security)
+- [Migration](./MIGRATION.md)
 - [Project structure](#project-structure)
 - [Development](#development)
 - [Roadmap](#roadmap)
@@ -76,9 +77,9 @@
 
 ---
 
-## What is ohmyserial?
+## What is SerialHub?
 
-**ohmyserial** is a small, open-source **serial port sharing hub** written in Rust.
+**SerialHub** is a small, open-source **serial port sharing hub** written in Rust.
 
 It:
 
@@ -91,12 +92,17 @@ Ideal for embedded debug when **a human terminal and an AI agent/script must sha
 
 | Item | Value |
 |------|--------|
-| Binary name | `ohmyserial` |
-| Repository | [github.com/tianrking/oh_myserial](https://github.com/tianrking/oh_myserial) |
+| Binary name | `serialhub` |
+| Repository | [github.com/tianrking/serialhub](https://github.com/tianrking/serialhub) |
 | Language | Rust (edition 2021) |
 | License | MIT |
 | Default docs | **English** · [中文](./README.zh-CN.md) · [Español](./README.es.md) |
 | Architecture deep-dive | [`POSITIONING.md`](./POSITIONING.md) |
+
+> **Renamed from ohmyserial.** `serialhub` is the canonical command and
+> package name. The 0.x release keeps a compatibility executable; versioned
+> event schemas, metric names, and saved browser settings remain stable. See
+> [MIGRATION.md](./MIGRATION.md) before upgrading automation.
 
 ---
 
@@ -117,7 +123,7 @@ Device (UART/COM)
         │
         ▼
    ┌──────────┐
-   │ ohmyserial│  ← only process that opens the real port
+   │ serialhub│  ← only process that opens the real port
    └────┬─────┘
         │
    ┌────┴─────────────────────────────┐
@@ -148,8 +154,9 @@ Device (UART/COM)
 | Web serial console | Profiles, line endings, quick commands, timed send, checksums, protocol parsing, waveform, evidence filters/export, metrics, control lines | ✅ |
 | Event ledger | Versioned RX/TX/connection/control/gap evidence; bounded memory + optional hashed NDJSON | ✅ |
 | Safe replay | Verified, read-only `immediate` / `original` / `manual` replay | ✅ |
+| Config preflight | `serialhub check -c profile.toml` validates TOML and safe endpoint policy without opening a serial device | ✅ |
 | Mock port | `mock:demo` loopback without hardware | ✅ |
-| TOML config + CLI | `share` / `run` / `init` / `list-ports` / `status` / `supervise` | ✅ |
+| TOML config + CLI | `share` / `run` / `check` / `init` / `list-ports` / `status` / `supervise` | ✅ |
 | Multi-port single process | Multiple independent real profiles with collision checks | ✅ |
 | RFC2217 | Telnet serial control over network | ✅ |
 | Windows COM bridge | `bridge-com` + existing com0com/virtual-COM pair | ✅ |
@@ -222,8 +229,8 @@ For COM-only legacy software, use the built-in user-mode bridge with an
 existing signed virtual-COM provider such as com0com:
 
 ```powershell
-ohmyserial.exe share COM3 --tcp 1 --tcp-raw --tcp-base 8788
-ohmyserial.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
+serialhub.exe share COM3 --tcp 1 --tcp-raw --tcp-base 8788
+serialhub.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
 ```
 
 The complete pair setup and security boundary are documented in
@@ -234,9 +241,9 @@ it does not install or replace a Windows kernel driver.
 
 ## Install & build
 
-### Prebuilt binaries (v0.0.1+)
+### Prebuilt binaries
 
-Download from [GitHub Releases](https://github.com/tianrking/oh_myserial/releases):
+Download from [GitHub Releases](https://github.com/tianrking/serialhub/releases):
 
 | Platform | Artifact |
 |----------|----------|
@@ -249,8 +256,8 @@ Download from [GitHub Releases](https://github.com/tianrking/oh_myserial/release
 
 ```bash
 # example (Linux/macOS)
-tar -xzf ohmyserial-v0.0.1-<target>.tar.gz
-./ohmyserial-v0.0.1-<target>/ohmyserial share mock:demo --ui
+tar -xzf serialhub-<tag>-<target>.tar.gz
+./serialhub-<tag>-<target>/serialhub share mock:demo --ui
 ```
 
 ### Requirements (from source)
@@ -262,23 +269,23 @@ tar -xzf ohmyserial-v0.0.1-<target>.tar.gz
 ### Build from source
 
 ```bash
-git clone https://github.com/tianrking/oh_myserial.git
-cd oh_myserial
+git clone https://github.com/tianrking/serialhub.git
+cd serialhub
 ./scripts/build-all.sh   # web + cargo release
 # or: cargo build --release   # uses committed web/dist
 ```
 
 | OS | Binary |
 |----|--------|
-| Unix | `./target/release/ohmyserial` |
-| Windows | `.\target\release\ohmyserial.exe` |
+| Unix | `./target/release/serialhub` |
+| Windows | `.\target\release\serialhub.exe` |
 
 ### Verify
 
 ```bash
 cargo test
-./target/release/ohmyserial --help
-./target/release/ohmyserial share mock:demo --ui
+./target/release/serialhub --help
+./target/release/serialhub share mock:demo --ui
 ```
 
 The complete release gate and hardware-in-the-loop boundary are documented in
@@ -302,26 +309,26 @@ Tagged releases (`v*`) publish archives automatically.
 
 ```bash
 # 1) see ports
-./target/release/ohmyserial list-ports
+./target/release/serialhub list-ports
 
 # 2) share one (macOS/Linux: 2 virtual serials by default + TCP + WebSocket)
-./target/release/ohmyserial share /dev/cu.usbmodem14101 --baud 115200
+./target/release/serialhub share /dev/cu.usbmodem14101 --baud 115200
 
 # more virtual serials for more serial GUIs
-./target/release/ohmyserial share /dev/ttyUSB0 --pty 3 --tcp 1
+./target/release/serialhub share /dev/ttyUSB0 --pty 3 --tcp 1
 
 # Windows (no PTY): multi TCP + multi WS clients
-./target/release/ohmyserial share COM3 --tcp 2
+./target/release/serialhub share COM3 --tcp 2
 
 # no hardware (demo)
-./target/release/ohmyserial share mock:demo
+./target/release/serialhub share mock:demo
 ```
 
-On start, ohmyserial prints a **connect card**, e.g.:
+On start, serialhub prints a **connect card**, e.g.:
 
 ```text
-SERIAL  /tmp/ohmyserial-v0     ← open in serial app #1
-SERIAL  /tmp/ohmyserial-v1     ← open in serial app #2
+SERIAL  /tmp/serialhub-v0     ← open in serial app #1
+SERIAL  /tmp/serialhub-v1     ← open in serial app #2
 TCP     127.0.0.1:8788         ← nc / scripts (many clients OK)
 WS      ws://127.0.0.1:8787/v1/stream
 HTTP    http://127.0.0.1:8787
@@ -347,11 +354,11 @@ HTTP    http://127.0.0.1:8787
 ### Optional: config file
 
 ```bash
-./target/release/ohmyserial init -o ohmyserial.toml
-./target/release/ohmyserial run -c ohmyserial.toml
-./target/release/ohmyserial supervise -c board-a.toml -c board-b.toml
+./target/release/serialhub init -o serialhub.toml
+./target/release/serialhub run -c serialhub.toml
+./target/release/serialhub supervise -c board-a.toml -c board-b.toml
 # overrides without editing file:
-./target/release/ohmyserial run -c ohmyserial.toml -d /dev/ttyUSB0 --pty 3
+./target/release/serialhub run -c serialhub.toml -d /dev/ttyUSB0 --pty 3
 ```
 
 ---
@@ -361,8 +368,8 @@ HTTP    http://127.0.0.1:8787
 ### Core idea: one real port → many parallel endpoints
 
 ```text
-                 ┌─ PTY /tmp/ohmyserial-v0  → serial GUI #1
-                 ├─ PTY /tmp/ohmyserial-v1  → serial GUI #2  (or agent via serial lib)
+                 ┌─ PTY /tmp/serialhub-v0  → serial GUI #1
+                 ├─ PTY /tmp/serialhub-v1  → serial GUI #2  (or agent via serial lib)
  Real UART ──► hub ┼─ TCP :8788            → many nc/scripts at once
                  ├─ TCP :8789            → more tools
                  └─ WS  /v1/stream        → many agents at once
@@ -383,7 +390,7 @@ curl -s http://127.0.0.1:8787/v1/endpoints | jq .
 ```toml
 [fanout]
 pty_count = 2                 # macOS/Linux virtual serials
-pty_link_prefix = "/tmp/ohmyserial-v"
+pty_link_prefix = "/tmp/serialhub-v"
 tcp_count = 1
 tcp_base_port = 8788
 
@@ -391,7 +398,7 @@ tcp_base_port = 8788
 bind = "127.0.0.1:8787"
 ```
 
-- Open `/tmp/ohmyserial-v0` and `/tmp/ohmyserial-v1` in two serial apps  
+- Open `/tmp/serialhub-v0` and `/tmp/serialhub-v1` in two serial apps
 - Agent connects to `ws://127.0.0.1:8787/v1/stream` (many agents OK)  
 - Scripts: `nc 127.0.0.1 8788` (many connections OK)
 
@@ -430,10 +437,12 @@ curl -s -X DELETE http://127.0.0.1:8787/v1/lock \
 
 ## Configuration
 
-Example file: [`ohmyserial.example.toml`](./ohmyserial.example.toml)
+Example file: [`serialhub.example.toml`](./serialhub.example.toml)
 
 ```bash
-ohmyserial init -o ohmyserial.toml
+serialhub init -o serialhub.toml
+serialhub check -c serialhub.toml  # no port is opened
+serialhub run -c serialhub.toml
 ```
 
 ### Bulk fan-out `[fanout]`
@@ -475,12 +484,12 @@ can_read = true
 can_write = true
 # Physical DTR/RTS/BREAK control; every request still needs a write lease.
 can_control = false
-# token_env = "OHMYSERIAL_API_TOKEN"
+# token_env = "SERIALHUB_API_TOKEN"
 # cors_origins = ["https://serial-console.example.com"]
 
 [fanout]
 pty_count = 0               # set 2+ on macOS/Linux for multi serial GUI
-pty_link_prefix = "/tmp/ohmyserial-v"
+pty_link_prefix = "/tmp/serialhub-v"
 tcp_count = 2
 tcp_host = "127.0.0.1"
 tcp_base_port = 8788
@@ -490,13 +499,13 @@ tcp_base_port = 8788
 # [[clients]]
 # type = "pty"
 # name = "ui"
-# link = "/tmp/ohmyserial-ui"
+# link = "/tmp/serialhub-ui"
 
 [ledger]
 memory_events = 16384
 memory_bytes = 33554432
 stream_capacity = 1024
-# directory = "./ohmyserial-ledger"  # opt in to hashed NDJSON persistence
+# directory = "./serialhub-ledger"  # opt in to hashed NDJSON persistence
 rotate_bytes = 67108864
 fsync_each_event = false
 
@@ -529,20 +538,21 @@ format = "hex+text"
 ## CLI reference
 
 ```bash
-ohmyserial share <device> [serial/endpoint flags]  # zero-config hub
-ohmyserial run -c ohmyserial.toml    # start hub
-ohmyserial supervise -c board-a.toml -c board-b.toml  # multiple real ports
-ohmyserial init [-o file]           # sample config to stdout/file
-ohmyserial list-ports               # list serial devices
-ohmyserial status [--api URL]       # GET /v1/status
-ohmyserial bridge-com COM13 --tcp 127.0.0.1:8788  # existing COM pair -> TCP
-ohmyserial replay <source>          # verify and emit a sealed ledger capture
-ohmyserial replay <source> --mode original --speed 2
-ohmyserial replay <source> --mode manual --step 10
+serialhub share <device> [serial/endpoint flags]  # zero-config hub
+serialhub run -c serialhub.toml    # start hub
+serialhub check -c serialhub.toml  # validate profile without opening a serial port
+serialhub supervise -c board-a.toml -c board-b.toml  # multiple real ports
+serialhub init [-o file]           # sample config to stdout/file
+serialhub list-ports               # list serial devices
+serialhub status [--api URL]       # GET /v1/status
+serialhub bridge-com COM13 --tcp 127.0.0.1:8788  # existing COM pair -> TCP
+serialhub replay <source>          # verify and emit a sealed ledger capture
+serialhub replay <source> --mode original --speed 2
+serialhub replay <source> --mode manual --step 10
 ```
 
 ```bash
-RUST_LOG=debug ohmyserial run -c ohmyserial.toml
+RUST_LOG=debug serialhub run -c serialhub.toml
 ```
 
 ---
@@ -660,7 +670,7 @@ Every run has an ordered v1 evidence stream covering byte-exact RX observed by t
 curl -s 'http://127.0.0.1:8787/v1/events?after_seq=0&limit=100&type=rx,tx'
 
 # Replay a sealed segment or a directory containing exactly one session.
-ohmyserial replay ./one-session-directory --mode original --speed 2
+serialhub replay ./one-session-directory --mode original --speed 2
 ```
 
 The raw `/v1/stream` WebSocket carries bidirectional serial bytes. `/v1/events/stream` is separate: it emits read-only JSON text envelopes and supports cursor/filter catch-up. Replay verifies sealed input and only prints the original envelopes; it never opens a device or sends recorded TX back into the live broker.
@@ -703,12 +713,12 @@ Configuration and listener binds are validated during startup. A bind failure fa
 [[clients]]
 type = "pty"
 name = "ui"
-link = "/tmp/ohmyserial-ui"
+link = "/tmp/serialhub-ui"
 can_write = true
 can_read = true
 ```
 
-Open `/tmp/ohmyserial-ui` in minicom, screen, Serial Studio, etc.
+Open `/tmp/serialhub-ui` in minicom, screen, Serial Studio, etc.
 
 > Real baud/framing is owned by the hub `[real]` section. Some apps may fail PTY baud ioctls; the data path still works.
 
@@ -739,7 +749,7 @@ Open `/tmp/ohmyserial-ui` in minicom, screen, Serial Studio, etc.
 ## Project structure
 
 ```text
-oh_myserial/
+serialhub/
 ├── README.md                 # English (default)
 ├── README.zh-CN.md
 ├── README.es.md
@@ -747,7 +757,7 @@ oh_myserial/
 ├── WINDOWS_COM_BRIDGE.md       # Windows COM-only legacy application bridge
 ├── EVENTS.md                 # Canonical event ledger, persistence, API, replay
 ├── WORKFLOWS.md              # Bounded linear agent workflow contract
-├── ohmyserial.example.toml
+├── serialhub.example.toml
 ├── web/                      # Optional React console (Traditional Chinese)
 │   ├── README.md             # Web console build and feature guide
 │   ├── PROTOCOL.zh-TW.md     # Full HTTP/WS protocol
@@ -764,7 +774,7 @@ The React UI is **embedded** into the hub binary (from `web/dist`):
 ```bash
 cd web && npm ci && npm run build && cd ..
 cargo build --release
-./target/release/ohmyserial share mock:demo --ui
+./target/release/serialhub share mock:demo --ui
 # open http://127.0.0.1:8787/
 ```
 
@@ -790,7 +800,7 @@ page does not become a second serial owner and does not persist bearer tokens.
 
 ```bash
 cargo test
-cargo run -- run -c ohmyserial.example.toml
+cargo run -- run -c serialhub.example.toml
 cargo fmt
 cargo clippy
 ```
@@ -840,7 +850,7 @@ or multiple matches keeps the owner disconnected instead of guessing.
 
 ## Contributing
 
-Issues & PRs: https://github.com/tianrking/oh_myserial  
+Issues & PRs: https://github.com/tianrking/serialhub
 
 Please stay aligned with [`POSITIONING.md`](./POSITIONING.md).
 
@@ -848,13 +858,13 @@ Please stay aligned with [`POSITIONING.md`](./POSITIONING.md).
 
 ## License
 
-[MIT](./LICENSE) © ohmyserial contributors
+[MIT](./LICENSE) © serialhub contributors
 
 ---
 
 ## Tech tags
 
-`serial` · `uart` · `com-port` · `tty` · `serial-hub` · `serial-mux` · `port-sharing` · `embedded` · `debugging` · `ai-agent` · `websocket` · `http-api` · `tcp` · `pty` · `tokio` · `axum` · `rust` · `cross-platform` · `macos` · `linux` · `windows` · `toml` · `mit-license` · `ohmyserial`
+`serial` · `uart` · `com-port` · `tty` · `serial-hub` · `serial-mux` · `port-sharing` · `embedded` · `debugging` · `ai-agent` · `websocket` · `http-api` · `tcp` · `pty` · `tokio` · `axum` · `rust` · `cross-platform` · `macos` · `linux` · `windows` · `toml` · `mit-license` · `serialhub`
 
 ---
 

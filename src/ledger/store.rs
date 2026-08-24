@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 use super::EventEnvelope;
 
+// This is a versioned on-disk segment identifier; see `EVENT_SCHEMA`.
 const SEGMENT_SCHEMA: &str = "ohmyserial.segment";
 const SEGMENT_VERSION: u16 = 1;
 
@@ -31,7 +32,7 @@ pub struct StoreOptions {
 impl Default for StoreOptions {
     fn default() -> Self {
         Self {
-            directory: PathBuf::from("ohmyserial-ledger"),
+            directory: PathBuf::from("serialhub-ledger"),
             segment_max_bytes: 64 * 1024 * 1024,
             segment_max_events: 100_000,
             flush_every_events: 1,

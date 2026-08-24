@@ -252,7 +252,7 @@ async fn handle_subnegotiation(
     let mut response_value = value.to_vec();
     let result = match command {
         SIGNATURE => {
-            response_value = b"ohmyserial-rfc2217".to_vec();
+            response_value = b"serialhub-rfc2217".to_vec();
             Ok(())
         }
         SET_BAUDRATE if value.len() == 4 => {

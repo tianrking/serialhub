@@ -1,6 +1,6 @@
 # Windows COM bridge
 
-`ohmyserial` can own a physical `COMx` port directly. Some legacy programs,
+`serialhub` can own a physical `COMx` port directly. Some legacy programs,
 however, can only open a local COM device and cannot speak TCP, WebSocket, or
 RFC2217. The `bridge-com` command covers that workflow by forwarding an
 existing COM endpoint to one of the Hub's raw TCP fan-out listeners.
@@ -8,7 +8,7 @@ existing COM endpoint to one of the Hub's raw TCP fan-out listeners.
 The bridge is a user-mode data path:
 
 ```text
-legacy app (COM12) <-> com0com pair <-> bridge-com (COM13) <-> TCP :8788 <-> ohmyserial Hub <-> real UART
+legacy app (COM12) <-> com0com pair <-> bridge-com (COM13) <-> TCP :8788 <-> serialhub Hub <-> real UART
 ```
 
 The repository does not ship a signed Windows kernel virtual-COM driver. A
@@ -35,7 +35,7 @@ or administrator command line and then continue with the verification below.
 ## 2. Start the Hub
 
 ```powershell
-ohmyserial.exe share COM3 --tcp 1 --tcp-raw --tcp-base 8788 --api 127.0.0.1:8787
+serialhub.exe share COM3 --tcp 1 --tcp-raw --tcp-base 8788 --api 127.0.0.1:8787
 ```
 
 The default raw TCP endpoint is `127.0.0.1:8788`. Confirm it in the embedded
@@ -50,7 +50,7 @@ Invoke-RestMethod http://127.0.0.1:8787/v1/endpoints
 Use the endpoint that belongs to the bridge side of the pair:
 
 ```powershell
-ohmyserial.exe bridge-com COM13 --tcp 127.0.0.1:8788 `
+serialhub.exe bridge-com COM13 --tcp 127.0.0.1:8788 `
   --baud 115200 --data-bits 8 --parity none --stop-bits 1 --flow-control none
 ```
 

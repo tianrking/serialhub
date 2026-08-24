@@ -1,6 +1,6 @@
 # Bounded device workflows
 
-ohmyserial can run a small, linear workflow against the live broker. This is
+serialhub can run a small, linear workflow against the live broker. This is
 an automation primitive for agents, not a general scripting engine.
 
 ## Contract

@@ -1,7 +1,7 @@
-# ohmyserial
+# SerialHub
 
 <p align="center">
-  <img alt="ohmyserial" src="https://img.shields.io/badge/ohmyserial-hub%20serie-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
+  <img alt="serialhub" src="https://img.shields.io/badge/serialhub-hub%20serie-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
 </p>
 
 <p align="center">
@@ -23,12 +23,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tianrking/oh_myserial/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/oh_myserial/ci.yml?branch=main&style=flat-square&label=CI" /></a>
+  <a href="https://github.com/tianrking/serialhub/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/serialhub/ci.yml?branch=main&style=flat-square&label=CI" /></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
   <img alt="Status" src="https://img.shields.io/badge/status-MVP-22c55e?style=flat-square" />
-  <a href="https://github.com/tianrking/oh_myserial"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Foh__myserial-181717?style=flat-square&logo=github" /></a>
+  <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
 <p align="center">
@@ -48,7 +48,7 @@
 
 ## Tabla de contenidos
 
-- [¿Qué es ohmyserial?](#qué-es-ohmyserial)
+- [¿Qué es serialhub?](#qué-es-serialhub)
 - [Problema y solución](#problema-y-solución)
 - [Funciones](#funciones)
 - [Cómo funciona](#cómo-funciona)
@@ -74,9 +74,9 @@
 
 ---
 
-## ¿Qué es ohmyserial?
+## ¿Qué es serialhub?
 
-**ohmyserial** es un **hub de puerto serie** pequeño y open source escrito en Rust.
+**serialhub** es un **hub de puerto serie** pequeño y open source escrito en Rust.
 
 Hace lo siguiente:
 
@@ -89,8 +89,8 @@ Ideal para depuración embebida cuando **un terminal humano y un agente/script d
 
 | Concepto | Valor |
 |----------|--------|
-| Binario | `ohmyserial` |
-| Repositorio | [github.com/tianrking/oh_myserial](https://github.com/tianrking/oh_myserial) |
+| Binario | `serialhub` |
+| Repositorio | [github.com/tianrking/serialhub](https://github.com/tianrking/serialhub) |
 | Lenguaje | Rust (edition 2021) |
 | Licencia | MIT |
 | Documentación | [English](./README.md) (por defecto) · [中文](./README.zh-CN.md) · **Español** |
@@ -115,7 +115,7 @@ Dispositivo (UART/COM)
         │
         ▼
    ┌──────────┐
-   │ ohmyserial│  ← único proceso que abre el puerto real
+   │ serialhub│  ← único proceso que abre el puerto real
    └────┬─────┘
         │
    ┌────┴─────────────────────────────┐
@@ -146,7 +146,7 @@ Dispositivo (UART/COM)
 | Consola web serie | Perfiles, finales de línea, comandos rápidos, temporizador, checksums, protocolos, onda y líneas de control | ✅ |
 | Event ledger y replay seguro | Evidencia RX/TX/connection/control/gap con ring acotado y replay verificado | ✅ |
 | Puerto mock | `mock:demo` sin hardware | ✅ |
-| TOML + CLI | `share` / `run` / `init` / `list-ports` / `status` / `supervise` | ✅ |
+| TOML + CLI | `share` / `run` / `check` / `init` / `list-ports` / `status` / `supervise` | ✅ |
 | Multi-puerto en un proceso | Varios perfiles reales con detección de colisiones | ✅ |
 | RFC2217 | Control serie por red | ✅ |
 | Puente COM en Windows | `bridge-com` + par com0com/COM virtual instalado | ✅ |
@@ -213,8 +213,8 @@ Para programas antiguos que solo abren COM, usa `bridge-com` con un par creado
 por com0com u otro proveedor COM virtual ya instalado:
 
 ```powershell
-ohmyserial.exe share COM3 --tcp 1 --tcp-raw --tcp-base 8788
-ohmyserial.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
+serialhub.exe share COM3 --tcp 1 --tcp-raw --tcp-base 8788
+serialhub.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
 ```
 
 Consulta [`WINDOWS_COM_BRIDGE.md`](./WINDOWS_COM_BRIDGE.md) para la instalación
@@ -238,19 +238,19 @@ driver kernel ni sustituye la firma del controlador.
 ### Compilar desde el código
 
 ```bash
-git clone https://github.com/tianrking/oh_myserial.git
-cd oh_myserial
+git clone https://github.com/tianrking/serialhub.git
+cd serialhub
 cargo build --release
 ```
 
 | SO | Binario |
 |----|---------|
-| Unix | `./target/release/ohmyserial` |
-| Windows | `.\target\release\ohmyserial.exe` |
+| Unix | `./target/release/serialhub` |
+| Windows | `.\target\release\serialhub.exe` |
 
 ```bash
 cargo test
-./target/release/ohmyserial --help
+./target/release/serialhub --help
 ```
 
 ---
@@ -260,11 +260,11 @@ cargo test
 **Sin archivo de configuración:**
 
 ```bash
-./target/release/ohmyserial list-ports
-./target/release/ohmyserial share /dev/cu.usbmodem14101 --baud 115200
-./target/release/ohmyserial share /dev/ttyUSB0 --pty 3
-./target/release/ohmyserial share COM3 --tcp 2          # Windows
-./target/release/ohmyserial share mock:demo
+./target/release/serialhub list-ports
+./target/release/serialhub share /dev/cu.usbmodem14101 --baud 115200
+./target/release/serialhub share /dev/ttyUSB0 --pty 3
+./target/release/serialhub share COM3 --tcp 2          # Windows
+./target/release/serialhub share mock:demo
 ```
 
 Por defecto en macOS/Linux: **2 series virtuales (PTY)** + TCP + WebSocket.  
@@ -298,8 +298,8 @@ detallado en [`web/PROTOCOL.zh-TW.md`](./web/PROTOCOL.zh-TW.md).
 ### Idea central: un puerto real → muchos extremos en paralelo
 
 ```text
-                 ┌─ PTY /tmp/ohmyserial-v0  → GUI serie #1
-                 ├─ PTY /tmp/ohmyserial-v1  → GUI #2 / agente por serie virtual
+                 ┌─ PTY /tmp/serialhub-v0  → GUI serie #1
+                 ├─ PTY /tmp/serialhub-v1  → GUI #2 / agente por serie virtual
  UART real ──► hub ┼─ TCP :8788            → muchos scripts a la vez
                  ├─ TCP :8789            → más herramientas
                  └─ WS  /v1/stream        → muchos agentes a la vez
@@ -318,7 +318,7 @@ curl -s http://127.0.0.1:8787/v1/endpoints
 ```toml
 [fanout]
 pty_count = 2
-pty_link_prefix = "/tmp/ohmyserial-v"
+pty_link_prefix = "/tmp/serialhub-v"
 tcp_count = 1
 tcp_base_port = 8788
 ```
@@ -344,7 +344,7 @@ curl -s -X DELETE http://127.0.0.1:8787/v1/lock
 
 ## Configuración
 
-Ejemplo: [`ohmyserial.example.toml`](./ohmyserial.example.toml)
+Ejemplo: [`serialhub.example.toml`](./serialhub.example.toml)
 
 ```toml
 [real]
@@ -383,7 +383,7 @@ history_bytes = 65536
 # [[clients]]
 # type = "pty"
 # name = "ui"
-# link = "/tmp/ohmyserial-ui"
+# link = "/tmp/serialhub-ui"
 
 [log]
 mirror_console = true
@@ -405,13 +405,14 @@ format = "hex+text"
 ## CLI
 
 ```bash
-ohmyserial run -c ohmyserial.toml    # iniciar hub
-ohmyserial share <device> [opciones de serie/endpoint]
-ohmyserial supervise -c board-a.toml -c board-b.toml
-ohmyserial init [-o file]           # config de ejemplo
-ohmyserial list-ports               # listar puertos
-ohmyserial status [--api URL]       # consultar estado
-ohmyserial bridge-com COM13 --tcp 127.0.0.1:8788  # par COM existente -> TCP
+serialhub run -c serialhub.toml    # iniciar hub
+serialhub check -c serialhub.toml  # validar el perfil sin abrir el puerto serie
+serialhub share <device> [opciones de serie/endpoint]
+serialhub supervise -c board-a.toml -c board-b.toml
+serialhub init [-o file]           # config de ejemplo
+serialhub list-ports               # listar puertos
+serialhub status [--api URL]       # consultar estado
+serialhub bridge-com COM13 --tcp 127.0.0.1:8788  # par COM existente -> TCP
 ```
 
 Añade `--tcp-raw` a `share` para protocolos binarios o `bridge-com`; evita el
@@ -422,7 +423,7 @@ usa un TOML y permite overrides temporales de los parámetros de línea y
 endpoints. `supervise` levanta varios perfiles con detección de colisiones.
 
 ```bash
-RUST_LOG=debug ohmyserial run -c ohmyserial.toml
+RUST_LOG=debug serialhub run -c serialhub.toml
 ```
 
 ---
@@ -526,12 +527,12 @@ Con **write lock** activo, solo el dueño puede hacer TX. Expira por tiempo, rel
 [[clients]]
 type = "pty"
 name = "ui"
-link = "/tmp/ohmyserial-ui"
+link = "/tmp/serialhub-ui"
 can_write = true
 can_read = true
 ```
 
-Abre `/tmp/ohmyserial-ui` en minicom, screen, Serial Studio, etc.
+Abre `/tmp/serialhub-ui` en minicom, screen, Serial Studio, etc.
 
 > El baud real lo controla la sección `[real]` del hub. Algunas apps fallan en ioctls de baud sobre PTY; el flujo de datos suele seguir funcionando.
 
@@ -561,12 +562,12 @@ Abre `/tmp/ohmyserial-ui` en minicom, screen, Serial Studio, etc.
 ## Estructura del proyecto
 
 ```text
-oh_myserial/
+serialhub/
 ├── README.md           # English (por defecto)
 ├── README.zh-CN.md     # 简体中文
 ├── README.es.md        # Español
 ├── POSITIONING.md
-├── ohmyserial.example.toml
+├── serialhub.example.toml
 ├── web/README.md       # guía de la consola web embebida
 ├── src/ ...
 └── tests/
@@ -578,7 +579,7 @@ oh_myserial/
 
 ```bash
 cargo test
-cargo run -- run -c ohmyserial.example.toml
+cargo run -- run -c serialhub.example.toml
 cargo fmt
 cargo clippy
 ```
@@ -618,7 +619,7 @@ No.
 
 ## Contribuir
 
-Issues y PRs: https://github.com/tianrking/oh_myserial  
+Issues y PRs: https://github.com/tianrking/serialhub
 
 Alinea los cambios con [`POSITIONING.md`](./POSITIONING.md).
 
@@ -626,13 +627,13 @@ Alinea los cambios con [`POSITIONING.md`](./POSITIONING.md).
 
 ## Licencia
 
-[MIT](./LICENSE) © contribuidores de ohmyserial
+[MIT](./LICENSE) © contribuidores de serialhub
 
 ---
 
 ## Etiquetas técnicas
 
-`serial` · `uart` · `puerto-com` · `tty` · `serial-hub` · `multiplexor` · `compartir-puerto` · `embebido` · `depuración` · `agente-ia` · `websocket` · `http-api` · `tcp` · `pty` · `tokio` · `axum` · `rust` · `multiplataforma` · `macos` · `linux` · `windows` · `toml` · `mit` · `ohmyserial`
+`serial` · `uart` · `puerto-com` · `tty` · `serial-hub` · `multiplexor` · `compartir-puerto` · `embebido` · `depuración` · `agente-ia` · `websocket` · `http-api` · `tcp` · `pty` · `tokio` · `axum` · `rust` · `multiplataforma` · `macos` · `linux` · `windows` · `toml` · `mit` · `serialhub`
 
 ---
 

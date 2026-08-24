@@ -1,4 +1,4 @@
-//! oh_myserial library surface (used by integration tests and embedding).
+//! SerialHub library surface (used by integration tests and embedding).
 
 pub mod bridge;
 pub mod broker;

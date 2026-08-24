@@ -8,5 +8,5 @@ npm run build
 cd "$ROOT"
 cargo build --release "$@"
 echo ""
-echo "OK: $ROOT/target/release/ohmyserial"
-echo "Try: ./target/release/ohmyserial share mock:demo --ui"
+echo "OK: $ROOT/target/release/serialhub"
+echo "Try: ./target/release/serialhub share mock:demo --ui"

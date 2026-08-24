@@ -1,4 +1,4 @@
-/** ohmyserial hub API 型別（對應 PROTOCOL.zh-TW.md） */
+/** serialhub hub API 型別（對應 PROTOCOL.zh-TW.md） */
 
 export type EndpointKind = "http" | "websocket" | "tcp" | "pty" | string;
 

@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use ohmyserial::ledger::{
+use serialhub::ledger::{
     ControlPayload, EventEnvelope, EventPayload, GapCertainty, GapPayload, GapScope, Ledger,
     LedgerStatus, MemoryOptions,
 };
-use ohmyserial::workflow::{
+use serialhub::workflow::{
     ByteValue, EvidenceCursor, LeaseReceipt, SendReceipt, WorkflowAuthorization,
     WorkflowDefinition, WorkflowError, WorkflowFuture, WorkflowPortState, WorkflowRunner,
     WorkflowRuntime, WorkflowStep,
@@ -305,7 +305,7 @@ async fn capability_cancellation_and_request_id_are_fail_closed() {
         id: "success".into(),
         name: None,
         steps: vec![WorkflowStep::Assert {
-            assertion: ohmyserial::workflow::WorkflowAssertion::PortConnected,
+            assertion: serialhub::workflow::WorkflowAssertion::PortConnected,
         }],
     };
     let first = runner

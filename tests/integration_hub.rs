@@ -2,8 +2,8 @@
 
 use std::time::Duration;
 
-use ohmyserial::config::{ClientConfig, Config};
-use ohmyserial::hub;
+use serialhub::config::{ClientConfig, Config};
+use serialhub::hub;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -267,7 +267,7 @@ async fn embedded_console_and_static_assets_are_served_by_the_api() {
         .and_then(|value| value.split('"').next())
         .expect("embedded script asset");
     let script = http_get(&format!("http://127.0.0.1:{api_port}/{asset}")).await;
-    assert!(script.contains("ohmyserial") || script.contains("useState"));
+    assert!(script.contains("serialhub") || script.contains("useState"));
 
     handle.shutdown();
 }
@@ -463,7 +463,7 @@ async fn pty_prepare_failure_aborts_startup_before_serial_open() {
     let mut cfg = test_config(api_port, tcp_port);
     cfg.log.file = Some(log_path.clone());
     cfg.log.mirror_console = false;
-    cfg.clients.push(ohmyserial::config::ClientConfig::Pty {
+    cfg.clients.push(serialhub::config::ClientConfig::Pty {
         name: "broken-pty".into(),
         link: link.clone(),
         can_write: true,

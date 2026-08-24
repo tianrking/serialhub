@@ -5,12 +5,12 @@ use std::path::Path;
 use std::time::Duration;
 
 use bytes::Bytes;
-use ohmyserial::broker::{Broker, DeviceWrite, PortStatus};
-use ohmyserial::config::Config;
-use ohmyserial::hub;
-use ohmyserial::observe::SessionLog;
-use ohmyserial::policy::{Policy, SlowClientPolicy, TxMode};
 use serde_json::{json, Value};
+use serialhub::broker::{Broker, DeviceWrite, PortStatus};
+use serialhub::config::Config;
+use serialhub::hub;
+use serialhub::observe::SessionLog;
+use serialhub::policy::{Policy, SlowClientPolicy, TxMode};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;

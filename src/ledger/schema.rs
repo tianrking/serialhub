@@ -5,6 +5,8 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+// This is a versioned, persistent wire identifier. Keep the historical name
+// until a separately documented schema migration exists.
 pub const EVENT_SCHEMA: &str = "ohmyserial.event";
 pub const EVENT_VERSION: u16 = 1;
 pub const DEFAULT_PORT_ID: &str = "default";

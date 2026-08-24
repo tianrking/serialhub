@@ -1,6 +1,6 @@
 use std::{fs, path::Path, time::Duration};
 
-use ohmyserial::{
+use serialhub::{
     ledger::{EventEnvelope, EventPayload, Ledger, LedgerOptions, MemoryOptions, StoreOptions},
     replay::{
         ReplayError, ReplayMode, ReplayOptions, ReplaySession, MAX_REPLAY_SPEED, MIN_REPLAY_SPEED,

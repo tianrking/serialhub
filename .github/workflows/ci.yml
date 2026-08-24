@@ -41,28 +41,28 @@ jobs:
           - name: linux-x64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            bin: ohmyserial
+            bin: serialhub
           - name: linux-arm64
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            bin: ohmyserial
+            bin: serialhub
           - name: macos-arm64
             os: macos-latest
             target: aarch64-apple-darwin
-            bin: ohmyserial
+            bin: serialhub
           - name: macos-x64
             # Cross-compile Intel target on Apple Silicon runners
             os: macos-latest
             target: x86_64-apple-darwin
-            bin: ohmyserial
+            bin: serialhub
           - name: windows-x64
             os: windows-latest
             target: x86_64-pc-windows-msvc
-            bin: ohmyserial.exe
+            bin: serialhub.exe
           - name: windows-arm64
             os: windows-11-arm
             target: aarch64-pc-windows-msvc
-            bin: ohmyserial.exe
+            bin: serialhub.exe
 
     steps:
       - uses: actions/checkout@v4
@@ -97,17 +97,19 @@ jobs:
         run: cargo test --all-targets --target ${{ matrix.target }}
 
       - name: Release build
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
 
       - name: Package artifact
         shell: bash
         run: |
           set -euo pipefail
-          STAGE="ohmyserial-${{ matrix.target }}"
+          STAGE="serialhub-${{ matrix.target }}"
           mkdir -p "dist/${STAGE}"
           BIN="target/${{ matrix.target }}/release/${{ matrix.bin }}"
           cp "$BIN" "dist/${STAGE}/"
-          cp README.md LICENSE ohmyserial.example.toml "dist/${STAGE}/" 2>/dev/null || true
+          LEGACY_BIN="${BIN/serialhub/ohmyserial}"
+          test -f "$LEGACY_BIN" && cp "$LEGACY_BIN" "dist/${STAGE}/"
+          cp README.md LICENSE MIGRATION.md serialhub.example.toml "dist/${STAGE}/" 2>/dev/null || true
           cp web/PROTOCOL.zh-TW.md "dist/${STAGE}/" 2>/dev/null || true
           cd dist
           if [[ "${{ runner.os }}" == "Windows" ]]; then
@@ -120,7 +122,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ohmyserial-${{ matrix.target }}
+          name: serialhub-${{ matrix.target }}
           path: |
             dist/*.tar.gz
             dist/*.zip

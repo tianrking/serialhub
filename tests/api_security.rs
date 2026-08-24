@@ -6,9 +6,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use futures_util::{SinkExt, StreamExt};
-use ohmyserial::config::Config;
-use ohmyserial::hub;
 use serde_json::{json, Value};
+use serialhub::config::Config;
+use serialhub::hub;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::connect_async;
@@ -53,7 +53,7 @@ fn authenticated_config(api: SocketAddr, cors_origins: &[&str]) -> Config {
     static ENV_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
     let env_name = format!(
-        "OHMYSERIAL_API_SECURITY_TEST_TOKEN_{}_{}",
+        "SERIALHUB_API_SECURITY_TEST_TOKEN_{}_{}",
         std::process::id(),
         ENV_SEQUENCE.fetch_add(1, Ordering::Relaxed)
     );

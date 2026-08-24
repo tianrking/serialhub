@@ -89,7 +89,7 @@ async fn handle_conn(
                 }
                 if !can_write {
                     writer
-                        .write_all(b"!ohmyserial tx denied: client is read-only\n")
+                        .write_all(b"!serialhub tx denied: client is read-only\n")
                         .await?;
                     continue;
                 }
@@ -105,7 +105,7 @@ async fn handle_conn(
                 if let Err(e) = result {
                     tracing::warn!("tcp tx denied: {e}");
                     writer
-                        .write_all(format!("!ohmyserial tx denied: {e}\n").as_bytes())
+                        .write_all(format!("!serialhub tx denied: {e}\n").as_bytes())
                         .await?;
                 }
             }

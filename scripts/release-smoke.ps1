@@ -18,7 +18,7 @@ function Get-FreeLoopbackPort {
 
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
 if ([string]::IsNullOrWhiteSpace($BinaryPath)) {
-    $BinaryPath = Join-Path $repoRoot "target\release\ohmyserial.exe"
+    $BinaryPath = Join-Path $repoRoot "target\release\serialhub.exe"
 }
 if (-not (Test-Path -LiteralPath $BinaryPath -PathType Leaf)) {
     throw "Release binary was not found: $BinaryPath"

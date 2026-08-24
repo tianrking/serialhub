@@ -28,32 +28,32 @@ jobs:
           - name: linux-x64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            bin: ohmyserial
+            bin: serialhub
             asset_ext: tar.gz
           - name: linux-arm64
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            bin: ohmyserial
+            bin: serialhub
             asset_ext: tar.gz
           - name: macos-arm64
             os: macos-latest
             target: aarch64-apple-darwin
-            bin: ohmyserial
+            bin: serialhub
             asset_ext: tar.gz
           - name: macos-x64
             os: macos-latest
             target: x86_64-apple-darwin
-            bin: ohmyserial
+            bin: serialhub
             asset_ext: tar.gz
           - name: windows-x64
             os: windows-latest
             target: x86_64-pc-windows-msvc
-            bin: ohmyserial.exe
+            bin: serialhub.exe
             asset_ext: zip
           - name: windows-arm64
             os: windows-11-arm
             target: aarch64-pc-windows-msvc
-            bin: ohmyserial.exe
+            bin: serialhub.exe
             asset_ext: zip
 
     steps:
@@ -86,7 +86,7 @@ jobs:
           npm run build
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
 
       - name: Package
         shell: bash
@@ -96,10 +96,13 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             TAG="${{ inputs.tag }}"
           fi
-          STAGE="ohmyserial-${TAG}-${{ matrix.target }}"
+          STAGE="serialhub-${TAG}-${{ matrix.target }}"
           mkdir -p "pkg/${STAGE}"
-          cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "pkg/${STAGE}/"
-          cp README.md LICENSE ohmyserial.example.toml "pkg/${STAGE}/" || true
+          BIN="target/${{ matrix.target }}/release/${{ matrix.bin }}"
+          cp "$BIN" "pkg/${STAGE}/"
+          LEGACY_BIN="${BIN/serialhub/ohmyserial}"
+          test -f "$LEGACY_BIN" && cp "$LEGACY_BIN" "pkg/${STAGE}/"
+          cp README.md LICENSE MIGRATION.md serialhub.example.toml "pkg/${STAGE}/" || true
           cp web/PROTOCOL.zh-TW.md "pkg/${STAGE}/" || true
           cd pkg
           if [[ "${{ matrix.asset_ext }}" == "zip" ]]; then
@@ -141,7 +144,7 @@ jobs:
           name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           generate_release_notes: true
           body: |
-            ## ohmyserial ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+            ## SerialHub ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
             Cross-platform serial hub for humans and agents.
 
@@ -154,13 +157,14 @@ jobs:
             ### Quick start
             ```bash
             # extract, then:
-            ./ohmyserial share mock:demo --ui
+            ./serialhub share mock:demo --ui
             # open http://127.0.0.1:8787/
             ```
 
             ### Notes
             - Ubuntu/Debian build requires `libudev` at runtime for real serial ports.
             - Embedded web console is included in the binary.
+            - `ohmyserial` is included as a 0.x compatibility executable; use `serialhub` for new automation.
           files: |
             release-assets/**
         env:

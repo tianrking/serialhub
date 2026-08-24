@@ -2,8 +2,8 @@
 
 use std::time::Duration;
 
-use ohmyserial::config::Config;
-use ohmyserial::hub;
+use serialhub::config::Config;
+use serialhub::hub;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 

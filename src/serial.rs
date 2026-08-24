@@ -72,7 +72,7 @@ impl SerialHub {
         // receiver. Keeping the original bounded queue all the way to the device
         // prevents an async-to-std bridge from silently becoming unbounded.
         let join = std::thread::Builder::new()
-            .name("ohmyserial-serial".into())
+            .name("serialhub-serial".into())
             .spawn(move || serial_thread(cfg_r, broker_r, to_device, control_rx, stop_r))?;
 
         Ok(Self {
@@ -836,7 +836,7 @@ mod tests {
             path: if cfg!(windows) {
                 "COM255".into()
             } else {
-                "/dev/ohmyserial-port-that-does-not-exist".into()
+                "/dev/serialhub-port-that-does-not-exist".into()
             },
             usb: None,
             baud: 115_200,

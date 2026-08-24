@@ -1,6 +1,6 @@
 # Reliability test matrix
 
-This document is the release gate for `ohmyserial`. It records the scenarios that
+This document is the release gate for `serialhub`. It records the scenarios that
 are covered by deterministic tests, the commands that reproduce them, and the
 limits that can only be proven with physical serial hardware and its driver.
 
@@ -87,7 +87,7 @@ run a hardware smoke pass for each supported OS and adapter family:
    signals. DSR/DTR electrical semantics are adapter/driver dependent.
 5. If a legacy Windows program requires a COM name, validate the externally
    installed and signed virtual-COM provider (for example com0com) separately;
-   ohmyserial's `bridge-com` is a user-mode bridge and does not install a kernel
+   serialhub's `bridge-com` is a user-mode bridge and does not install a kernel
    driver.
 6. Repeat with a real VOFA+, PuTTY, and SSCOM client, checking text/HEX, auto
    send, logs, and the selected protocol analyzer.

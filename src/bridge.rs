@@ -2,7 +2,7 @@
 //!
 //! A Windows COM application can only open a COM device exposed by the OS.
 //! `bridge-com` therefore connects an already-created COM endpoint (for
-//! example one side of a com0com pair) to an ohmyserial raw TCP endpoint. It
+//! example one side of a com0com pair) to a SerialHub raw TCP endpoint. It
 //! does not install or pretend to be a kernel virtual-COM driver.
 
 use std::io::{ErrorKind, Read, Write};
@@ -48,7 +48,7 @@ pub fn run_com_bridge(options: ComBridgeOptions) -> anyhow::Result<()> {
     let serial_stop = stopping.clone();
     let mut tcp_writer = tcp.try_clone()?;
     let serial_thread = thread::Builder::new()
-        .name("ohmyserial-com-to-tcp".into())
+        .name("serialhub-com-to-tcp".into())
         .spawn(move || {
             let mut buffer = [0u8; BUFFER_SIZE];
             loop {
@@ -87,7 +87,7 @@ pub fn run_com_bridge(options: ComBridgeOptions) -> anyhow::Result<()> {
     let tcp_stop = stopping.clone();
     let mut tcp_reader = tcp_to_serial;
     let tcp_thread = thread::Builder::new()
-        .name("ohmyserial-tcp-to-com".into())
+        .name("serialhub-tcp-to-com".into())
         .spawn(move || {
             let mut buffer = [0u8; BUFFER_SIZE];
             loop {

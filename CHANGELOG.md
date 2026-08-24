@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### SerialHub branding and safe configuration preflight
+
+- Renamed the project, canonical Cargo package, GitHub repository, and primary
+  executable from `ohmyserial` to `serialhub` (display name: **SerialHub**).
+- Added `serialhub check -c profile.toml`, which validates TOML and the final
+  loopback-only listener policy without opening a serial device or binding a
+  port.
+- Kept the 0.x `ohmyserial` executable, `ohmyserial.*` ledger schemas,
+  `ohmyserial_*` Prometheus metrics, and browser storage keys as documented
+  compatibility identifiers.
+- Updated release packaging to ship both executables, and documented the
+  migration in `MIGRATION.md`.
+
 ### Web serial-console workflow
 
 - Added explicit text line endings (`none`, `LF`, `CR`, `CRLF`) and Ctrl/⌘+Enter send.

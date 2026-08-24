@@ -349,7 +349,7 @@ pub async fn run_hub(cfg: Config) -> anyhow::Result<HubHandle> {
     log.event("hub_ready");
     let _ = broker.record_control(None, "hub_ready", None);
     tracing::info!(
-        "ohmyserial hub ready (real={} → {} fan-out endpoints)",
+        "serialhub ready (real={} → {} fan-out endpoints)",
         cfg.real.path,
         cfg.endpoint_catalog().len()
     );

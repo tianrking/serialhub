@@ -1,4 +1,4 @@
-//! TOML configuration schema for oh_myserial.
+//! TOML configuration schema for SerialHub.
 
 use std::path::PathBuf;
 
@@ -232,7 +232,7 @@ pub enum ClientConfig {
     #[serde(rename = "pty")]
     Pty {
         name: String,
-        /// Symlink path presented to host tools, e.g. `/tmp/ohmyserial-ui`.
+        /// Symlink path presented to host tools, e.g. `/tmp/serialhub-ui`.
         link: PathBuf,
         #[serde(default = "default_true")]
         can_write: bool,
@@ -598,7 +598,7 @@ impl Config {
         let mut lines = Vec::new();
         lines.push(String::new());
         lines.push("┌─────────────────────────────────────────────────────────────┐".into());
-        lines.push("│  ohmyserial — how to connect (same live data everywhere)   │".into());
+        lines.push("│  SerialHub — how to connect (same live data everywhere)    │".into());
         lines.push("├─────────────────────────────────────────────────────────────┤".into());
         lines.push(format!(
             "│  REAL   {path:<52}│",
@@ -1139,7 +1139,7 @@ fn default_ledger_rotate_bytes() -> u64 {
     64 * 1024 * 1024
 }
 fn default_pty_link_prefix() -> String {
-    "/tmp/ohmyserial-v".into()
+    "/tmp/serialhub-v".into()
 }
 fn default_pty_name_prefix() -> String {
     "v".into()
@@ -1362,7 +1362,7 @@ tcp_name_prefix = "m"
         let error = cfg.validate().unwrap_err().to_string();
         assert!(error.contains("SSH tunnel"), "error={error}");
 
-        cfg.api.token_env = Some("OHMYSERIAL_API_TOKEN".into());
+        cfg.api.token_env = Some("SERIALHUB_API_TOKEN".into());
         let error = cfg.validate().unwrap_err().to_string();
         assert!(error.contains("TLS reverse proxy"), "error={error}");
     }
@@ -1380,7 +1380,7 @@ tcp_name_prefix = "m"
         let error = cfg.validate().unwrap_err().to_string();
         assert!(error.contains("SSH tunnel"), "error={error}");
 
-        cfg.api.token_env = Some("OHMYSERIAL_API_TOKEN".into());
+        cfg.api.token_env = Some("SERIALHUB_API_TOKEN".into());
         let error = cfg.validate().unwrap_err().to_string();
         assert!(error.contains("TLS reverse proxy"), "error={error}");
     }

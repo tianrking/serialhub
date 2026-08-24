@@ -7,13 +7,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "ohmyserial Windows COM bridge setup"
+Write-Host "serialhub Windows COM bridge setup"
 Write-Host "This helper does not install a kernel driver. Install a signed com0com build first."
-Write-Host "The legacy application will use $PortA; ohmyserial bridge-com will use $PortB."
+Write-Host "The legacy application will use $PortA; serialhub bridge-com will use $PortB."
 
 if ([string]::IsNullOrWhiteSpace($SetupC)) {
     Write-Host "Create the pair with your installed com0com tool, then run:"
-    Write-Host "  ohmyserial.exe bridge-com $PortB --tcp 127.0.0.1:8788"
+    Write-Host "  serialhub.exe bridge-com $PortB --tcp 127.0.0.1:8788"
     exit 0
 }
 
@@ -29,6 +29,6 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Pair created. Verify it in Device Manager and with:"
-Write-Host "  ohmyserial.exe list-ports"
+Write-Host "  serialhub.exe list-ports"
 Write-Host "Then start:"
-Write-Host "  ohmyserial.exe bridge-com $PortB --tcp 127.0.0.1:8788"
+Write-Host "  serialhub.exe bridge-com $PortB --tcp 127.0.0.1:8788"

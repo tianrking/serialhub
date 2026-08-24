@@ -1,6 +1,6 @@
 # Event ledger and safe replay
 
-ohmyserial maintains a canonical, versioned event ledger alongside its human-readable session log. The ledger is intended for byte-exact investigation, agent evidence, and deterministic offline replay. It does not turn a serial connection into a cryptographically attested or lossless hardware trace.
+serialhub maintains a canonical, versioned event ledger alongside its human-readable session log. The ledger is intended for byte-exact investigation, agent evidence, and deterministic offline replay. It does not turn a serial connection into a cryptographically attested or lossless hardware trace.
 
 This document specifies the v1 envelope, retention and persistence behavior, event APIs, and the isolated replay command.
 
@@ -13,7 +13,7 @@ The bounded in-memory ledger is always enabled. Disk persistence is opt-in:
 memory_events = 16384
 memory_bytes = 33554432
 stream_capacity = 1024
-# directory = "./ohmyserial-ledger"
+# directory = "./serialhub-ledger"
 rotate_bytes = 67108864
 fsync_each_event = false
 ```
@@ -32,7 +32,7 @@ When `api.token_env` is configured, add `Authorization: Bearer <token>` to these
 
 The ledger records what the running hub can prove:
 
-- An `rx` event means the ohmyserial process successfully received those bytes from its serial read call.
+- An `rx` event means the serialhub process successfully received those bytes from its serial read call.
 - A `tx` event is created only after the serial-owner thread completed host-side `write_all` and `flush` for those bytes.
 - A `gap` event states a known evidence or delivery limitation without inventing missing bytes.
 - Connection and control events record relevant hub state transitions and actions.
@@ -97,7 +97,7 @@ This is RFC 4648 standard Base64, not the URL-safe alphabet. Readers must decode
 
 ### `rx`
 
-Bytes successfully returned to ohmyserial by the serial read path:
+Bytes successfully returned to serialhub by the serial read path:
 
 ```json
 {
@@ -258,7 +258,7 @@ Recovery is conservative and does not silently repair invented data.
 
 ### Retention is operator-owned
 
-ohmyserial does **not** automatically delete old sessions or sealed segments. `rotate_bytes` limits individual segment size; it is not a total-disk quota. Monitor the persistence directory and archive or remove old, inactive sessions according to your own retention policy. Do not modify files belonging to an active locked session.
+serialhub does **not** automatically delete old sessions or sealed segments. `rotate_bytes` limits individual segment size; it is not a total-disk quota. Monitor the persistence directory and archive or remove old, inactive sessions according to your own retention policy. Do not modify files belonging to an active locked session.
 
 If persistence fails during a live session, the ledger becomes `degraded`. New canonical events continue in the bounded memory ring and live stream, and the first failure also creates an in-memory persistence `gap`. Because a physical TX may already have succeeded when its evidence write fails, callers receive an explicit error and must not blindly retry.
 
@@ -352,13 +352,13 @@ Replay loads and verifies sealed ledger data before emitting any event:
 
 ```bash
 # One verified segment
-ohmyserial replay ./ohmyserial-ledger/session-<uuid>-segment-00000000000000000000.omslog
+serialhub replay ./serialhub-ledger/session-<uuid>-segment-00000000000000000000.omslog
 
 # A directory containing sealed segments for exactly one session
-ohmyserial replay ./one-session-directory --mode original --speed 2
+serialhub replay ./one-session-directory --mode original --speed 2
 
 # Human-controlled batches
-ohmyserial replay ./one-session-directory --mode manual --step 10
+serialhub replay ./one-session-directory --mode manual --step 10
 ```
 
 If a persistence root contains more than one session, copy or select only the desired session's sealed `.omslog` files into a separate read-only directory before replaying the complete session.

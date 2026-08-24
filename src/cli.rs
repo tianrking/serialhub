@@ -1,0 +1,609 @@
+//! SerialHub — cross-platform serial hub for humans and agents.
+
+use std::path::PathBuf;
+
+use clap::{Parser, Subcommand};
+use tracing_subscriber::EnvFilter;
+
+use serialhub::config::{Config, QuickShare, SerialSettings};
+use serialhub::replay::{ReplayMode, ReplayOptions, ReplaySession};
+use serialhub::{bridge, hub, serial, supervisor};
+
+#[derive(Parser, Debug)]
+#[command(
+    name = "serialhub",
+    version,
+    about = "Share one serial port with many apps and AI agents",
+    long_about = "serialhub opens a real UART once, then fans out to virtual serial ports (Unix), \
+TCP streams, and WebSocket/HTTP for agents.\n\n\
+Quick start (no config file):\n  \
+  serialhub share /dev/cu.usbmodem14101 --pty 3\n  \
+  serialhub share COM3 --tcp 2\n  \
+  serialhub share mock:demo"
+)]
+struct Cli {
+    #[command(subcommand)]
+    cmd: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Easiest: share a serial port with multi PTY / TCP / WebSocket (no TOML needed).
+    Share {
+        /// Real device path, e.g. /dev/cu.usbmodem*, /dev/ttyUSB0, COM3, or mock:demo
+        device: String,
+        /// Baud rate
+        #[arg(short, long, default_value_t = 115_200)]
+        baud: u32,
+        /// Data bits (5, 6, 7, or 8)
+        #[arg(long = "data-bits", default_value_t = 8, value_parser = clap::value_parser!(u8).range(5..=8))]
+        data_bits: u8,
+        /// Parity: none, odd, or even
+        #[arg(long, default_value = "none", value_parser = ["none", "odd", "even"])]
+        parity: String,
+        /// Stop bits (1 or 2)
+        #[arg(long = "stop-bits", default_value_t = 1, value_parser = clap::value_parser!(u8).range(1..=2))]
+        stop_bits: u8,
+        /// Flow control: none, software (XON/XOFF), or hardware (RTS/CTS)
+        #[arg(long = "flow-control", alias = "flow", default_value = "none", value_parser = ["none", "software", "hardware"])]
+        flow: String,
+        /// Number of virtual serial ports (macOS/Linux PTY). Default: 2 on Unix, 0 on Windows.
+        #[arg(long, default_value_t = default_pty_cli())]
+        pty: u32,
+        /// Number of TCP fan-out ports (each accepts many clients). Default: 1
+        #[arg(long, default_value_t = 1)]
+        tcp: u32,
+        /// Preserve each TCP read as an atomic TX unit for binary bridges.
+        #[arg(long, default_value_t = false)]
+        tcp_raw: bool,
+        /// First TCP port (then +1, +2, …)
+        #[arg(long, default_value_t = 8788)]
+        tcp_base: u16,
+        /// HTTP + WebSocket API bind
+        #[arg(long, default_value = "127.0.0.1:8787")]
+        api: String,
+        /// Quiet session log mirror on console
+        #[arg(long, default_value_t = false)]
+        quiet: bool,
+        /// Open the embedded web console in the default browser
+        #[arg(long, default_value_t = false)]
+        ui: bool,
+        /// Enable the loopback RFC2217 Telnet serial server
+        #[arg(long, default_value_t = false)]
+        rfc2217: bool,
+        /// RFC2217 listen address
+        #[arg(long, default_value = "127.0.0.1:7000")]
+        rfc2217_bind: String,
+        /// Permit RFC2217 line-setting and DTR/RTS control negotiation
+        #[arg(long, default_value_t = false)]
+        rfc2217_control: bool,
+    },
+    /// Connect an existing COM/tty endpoint to a SerialHub raw TCP endpoint.
+    /// On Windows this is intended for one side of a com0com pair.
+    BridgeCom {
+        /// Existing serial endpoint (for example COM12 or /dev/ttyUSB1).
+        device: String,
+        /// Raw TCP endpoint exposed by `share`/`run`.
+        #[arg(long, default_value = "127.0.0.1:8788")]
+        tcp: String,
+        /// Baud rate.
+        #[arg(short, long, default_value_t = 115_200)]
+        baud: u32,
+        /// Data bits (5, 6, 7, or 8).
+        #[arg(long = "data-bits", default_value_t = 8, value_parser = clap::value_parser!(u8).range(5..=8))]
+        data_bits: u8,
+        /// Parity: none, odd, or even.
+        #[arg(long, default_value = "none", value_parser = ["none", "odd", "even"])]
+        parity: String,
+        /// Stop bits (1 or 2).
+        #[arg(long = "stop-bits", default_value_t = 1, value_parser = clap::value_parser!(u8).range(1..=2))]
+        stop_bits: u8,
+        /// Flow control: none, software, or hardware.
+        #[arg(long = "flow-control", alias = "flow", default_value = "none", value_parser = ["none", "software", "hardware"])]
+        flow: String,
+    },
+    /// Run from a TOML config file (advanced).
+    Run {
+        /// Path to config TOML.
+        #[arg(short, long, default_value = "serialhub.toml")]
+        config: PathBuf,
+        /// Optional: override real.port path without editing the file
+        #[arg(short = 'd', long)]
+        device: Option<String>,
+        /// Optional: override baud
+        #[arg(short, long)]
+        baud: Option<u32>,
+        /// Optional: override data bits
+        #[arg(long = "data-bits", value_parser = clap::value_parser!(u8).range(5..=8))]
+        data_bits: Option<u8>,
+        /// Optional: override parity
+        #[arg(long, value_parser = ["none", "odd", "even"])]
+        parity: Option<String>,
+        /// Optional: override stop bits
+        #[arg(long = "stop-bits", value_parser = clap::value_parser!(u8).range(1..=2))]
+        stop_bits: Option<u8>,
+        /// Optional: override flow control
+        #[arg(long = "flow-control", alias = "flow", value_parser = ["none", "software", "hardware"])]
+        flow: Option<String>,
+        /// Optional: override fanout.pty_count
+        #[arg(long)]
+        pty: Option<u32>,
+        /// Optional: override fanout.tcp_count
+        #[arg(long)]
+        tcp: Option<u32>,
+        /// Open the embedded web console in the default browser
+        #[arg(long, default_value_t = false)]
+        ui: bool,
+    },
+    /// Validate a TOML profile and print its final safe endpoint catalog without opening a serial port.
+    Check {
+        /// Path to config TOML.
+        #[arg(short, long, default_value = "serialhub.toml")]
+        config: PathBuf,
+    },
+    /// Run multiple independent TOML profiles in one process.
+    Supervise {
+        /// Profile paths; repeat `-c` for every real serial device.
+        #[arg(short = 'c', long = "config", required = true, num_args = 1..)]
+        configs: Vec<PathBuf>,
+    },
+    /// Write a friendly sample config (platform-aware defaults).
+    Init {
+        /// Write to file instead of stdout.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// List serial ports visible on this machine.
+    ListPorts,
+    /// Print status / endpoints of a running hub.
+    Status {
+        #[arg(long, default_value = "http://127.0.0.1:8787")]
+        api: String,
+        /// Show only fan-out endpoints
+        #[arg(long, default_value_t = false)]
+        endpoints: bool,
+    },
+    /// Replay a verified event-ledger capture without opening a serial device.
+    Replay {
+        /// A sealed .omslog segment or a directory containing one session.
+        source: PathBuf,
+        /// immediate, original (recorded timing), or manual (press Enter to step).
+        #[arg(long, default_value = "immediate", value_parser = ["immediate", "original", "manual"])]
+        mode: String,
+        /// Timing multiplier for original mode (0.01 through 100).
+        #[arg(long, default_value_t = 1.0)]
+        speed: f64,
+        /// Events emitted per Enter keypress in manual mode.
+        #[arg(long, default_value_t = 1)]
+        step: usize,
+    },
+}
+
+fn default_pty_cli() -> u32 {
+    #[cfg(unix)]
+    {
+        2
+    }
+    #[cfg(not(unix))]
+    {
+        0
+    }
+}
+
+pub async fn run() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .with_target(false)
+        .init();
+
+    let cli = Cli::parse();
+    match cli.cmd {
+        Commands::Share {
+            device,
+            baud,
+            data_bits,
+            parity,
+            stop_bits,
+            flow,
+            pty,
+            tcp,
+            tcp_raw,
+            tcp_base,
+            api,
+            quiet,
+            ui,
+            rfc2217,
+            rfc2217_bind,
+            rfc2217_control,
+        } => {
+            eprintln!("serialhub share");
+            eprintln!("  device = {device}");
+            eprintln!("  serial = {baud}-{data_bits}-{parity}-{stop_bits} ({flow})");
+            eprintln!("  pty    = {pty} virtual serial(s)  (Unix PTY)");
+            eprintln!("  tcp    = {tcp} port(s) from {tcp_base} (raw={tcp_raw})");
+            eprintln!("  api/ws = {api}");
+            eprintln!(
+                "  rfc2217 = {}",
+                if rfc2217 {
+                    rfc2217_bind.as_str()
+                } else {
+                    "disabled"
+                }
+            );
+            eprintln!("  ui     = http://{api}/");
+            eprintln!();
+
+            let cfg = Config::from_quick(QuickShare {
+                device,
+                baud,
+                databits: data_bits,
+                parity,
+                stopbits: stop_bits,
+                flow,
+                pty_count: pty,
+                tcp_count: tcp,
+                tcp_raw,
+                tcp_base_port: tcp_base,
+                api_bind: api.clone(),
+                mirror_console: !quiet,
+                rfc2217,
+                rfc2217_bind,
+                rfc2217_can_control: rfc2217_control,
+            })?;
+            run_until_ctrl_c(cfg, ui, Some(api)).await
+        }
+        Commands::BridgeCom {
+            device,
+            tcp,
+            baud,
+            data_bits,
+            parity,
+            stop_bits,
+            flow,
+        } => {
+            eprintln!("serialhub bridge-com");
+            eprintln!("  serial = {device} ({baud}-{data_bits}-{parity}-{stop_bits}, {flow})");
+            eprintln!("  tcp    = {tcp}");
+            bridge::run_com_bridge(bridge::ComBridgeOptions {
+                device,
+                tcp,
+                settings: SerialSettings {
+                    baud,
+                    databits: data_bits,
+                    parity,
+                    stopbits: stop_bits,
+                    flow,
+                },
+            })
+        }
+        Commands::Run {
+            config,
+            device,
+            baud,
+            data_bits,
+            parity,
+            stop_bits,
+            flow,
+            pty,
+            tcp,
+            ui,
+        } => {
+            // Reload from disk so fanout overrides re-expand cleanly.
+            let text = std::fs::read_to_string(&config)?;
+            let mut cfg: Config = toml::from_str(&text)?;
+            if let Some(d) = device {
+                cfg.real.path = d;
+            }
+            if let Some(b) = baud {
+                cfg.real.baud = b;
+            }
+            if let Some(bits) = data_bits {
+                cfg.real.databits = bits;
+            }
+            if let Some(value) = parity {
+                cfg.real.parity = value;
+            }
+            if let Some(bits) = stop_bits {
+                cfg.real.stopbits = bits;
+            }
+            if let Some(value) = flow {
+                cfg.real.flow = value;
+            }
+            if let Some(p) = pty {
+                cfg.fanout.pty_count = p;
+            }
+            if let Some(t) = tcp {
+                cfg.fanout.tcp_count = t;
+            }
+            cfg.expand_fanout()?;
+            cfg.validate()?;
+            let api_bind = cfg.api.bind.clone();
+            tracing::info!("loaded config {}", config.display());
+            run_until_ctrl_c(cfg, ui, Some(api_bind)).await
+        }
+        Commands::Check { config } => {
+            let cfg = Config::load(&config)?;
+            print_config_check(&config, &cfg);
+            Ok(())
+        }
+        Commands::Supervise { configs } => {
+            let profiles = supervisor::load_profiles(&configs)?;
+            eprintln!("starting {} independent serial profile(s)", profiles.len());
+            let handle = supervisor::Supervisor::start(profiles).await?;
+            tracing::info!(profiles = handle.len(), "multi-profile supervisor ready");
+            tracing::info!("press Ctrl+C to stop all profiles");
+            tokio::signal::ctrl_c().await?;
+            tracing::info!("shutting down all profiles");
+            handle.shutdown_gracefully().await;
+            Ok(())
+        }
+        Commands::Init { output } => {
+            let sample = sample_config();
+            if let Some(path) = output {
+                std::fs::write(&path, &sample)?;
+                eprintln!("wrote {}", path.display());
+                eprintln!();
+                eprintln!("Next:");
+                eprintln!("  1) edit real.path  (or use: serialhub share <device> --pty 3)");
+                eprintln!("  2) serialhub run -c {}", path.display());
+            } else {
+                print!("{sample}");
+            }
+            Ok(())
+        }
+        Commands::ListPorts => {
+            let ports = serial::list_ports()?;
+            if ports.is_empty() {
+                eprintln!("(no serial ports found)");
+            } else {
+                eprintln!("Available serial ports:\n");
+                for p in &ports {
+                    println!("  {p}");
+                }
+                eprintln!();
+                eprintln!("Share one with:");
+                eprintln!("  serialhub share <DEVICE> --pty 3 --tcp 1");
+                eprintln!("Example:");
+                if let Some(first) = ports.first() {
+                    // port lines look like: "/dev/cu.xxx (UsbPort)" — take first token
+                    let dev = first.split_whitespace().next().unwrap_or(first);
+                    eprintln!("  serialhub share {dev} --baud 115200");
+                }
+            }
+            Ok(())
+        }
+        Commands::Status { api, endpoints } => {
+            let path = if endpoints {
+                "/v1/endpoints"
+            } else {
+                "/v1/status"
+            };
+            let url = format!("{}{}", api.trim_end_matches('/'), path);
+            let body = simple_http_get(&url).await?;
+            println!("{body}");
+            Ok(())
+        }
+        Commands::Replay {
+            source,
+            mode,
+            speed,
+            step,
+        } => replay_capture(source, &mode, speed, step).await,
+    }
+}
+
+fn print_config_check(path: &std::path::Path, cfg: &Config) {
+    println!("configuration valid: {}", path.display());
+    println!("real serial: {} @ {} baud", cfg.real.path, cfg.real.baud);
+    match (cfg.api.enabled, cfg.api.token_env.as_deref()) {
+        (true, Some(name)) => println!(
+            "HTTP/WS: {} (bearer token from {name} at startup)",
+            cfg.api.bind
+        ),
+        (true, None) => println!(
+            "HTTP/WS: {} (loopback only; no bearer token configured)",
+            cfg.api.bind
+        ),
+        (false, _) => println!("HTTP/WS: disabled"),
+    }
+    println!("endpoints:");
+    for endpoint in cfg.endpoint_catalog() {
+        let access = match (endpoint.can_read, endpoint.can_write) {
+            (true, true) => "read/write",
+            (true, false) => "read-only",
+            (false, true) => "write-only",
+            (false, false) => "disabled",
+        };
+        println!(
+            "  {} {} {} ({access})",
+            endpoint.kind, endpoint.name, endpoint.address
+        );
+    }
+    println!("note: check validates configuration only; it does not open the serial device or reserve listener ports.");
+}
+
+async fn replay_capture(
+    source: PathBuf,
+    mode: &str,
+    speed: f64,
+    step: usize,
+) -> anyhow::Result<()> {
+    let mode = mode.parse::<ReplayMode>()?;
+    let options = ReplayOptions { mode, speed }.validate()?;
+    let session = ReplaySession::load(&source)?;
+    eprintln!(
+        "verified replay session={} events={} seq={}..{} mode={} speed={}x",
+        session.session_id(),
+        session.len(),
+        session.first_seq(),
+        session.last_seq(),
+        mode,
+        speed
+    );
+
+    if mode == ReplayMode::Manual {
+        anyhow::ensure!(step > 0, "--step must be greater than zero");
+        let mut cursor = session.manual_cursor();
+        let stdin = std::io::stdin();
+        let mut input = String::new();
+        while !cursor.is_finished() {
+            eprint!(
+                "press Enter for up to {step} event(s), or q then Enter to stop [{} remaining]: ",
+                cursor.remaining()
+            );
+            use std::io::Write as _;
+            std::io::stderr().flush()?;
+            input.clear();
+            if stdin.read_line(&mut input)? == 0 || input.trim().eq_ignore_ascii_case("q") {
+                break;
+            }
+            for event in cursor.step(step)? {
+                println!("{}", serde_json::to_string(&event)?);
+            }
+        }
+        return Ok(());
+    }
+
+    session
+        .play(options, |event| {
+            // EventEnvelope is emitted unchanged as one JSON object per line.
+            println!(
+                "{}",
+                serde_json::to_string(&event).expect("validated event must serialize")
+            );
+        })
+        .await?;
+    Ok(())
+}
+
+async fn run_until_ctrl_c(
+    cfg: Config,
+    open_ui: bool,
+    api_bind: Option<String>,
+) -> anyhow::Result<()> {
+    let ui_url = api_bind
+        .as_ref()
+        .map(|b| format!("http://{b}/"))
+        .unwrap_or_else(|| "http://127.0.0.1:8787/".into());
+
+    let handle = hub::run_hub(cfg).await?;
+
+    if serialhub::client::ui_embedded() {
+        eprintln!("Web UI: {ui_url}");
+        if open_ui {
+            match opener::open(&ui_url) {
+                Ok(()) => eprintln!("opened browser"),
+                Err(e) => eprintln!("could not open browser: {e} (open {ui_url} manually)"),
+            }
+        } else {
+            eprintln!("tip: re-run with --ui to open the console automatically");
+        }
+    } else {
+        eprintln!("Web UI not embedded (build web/dist then rebuild serialhub)");
+    }
+
+    tracing::info!("press Ctrl+C to stop");
+    tokio::signal::ctrl_c().await?;
+    tracing::info!("shutting down");
+    handle.shutdown_gracefully().await;
+    Ok(())
+}
+
+async fn simple_http_get(url: &str) -> anyhow::Result<String> {
+    let url = url
+        .strip_prefix("http://")
+        .ok_or_else(|| anyhow::anyhow!("only http:// supported"))?;
+    let (host_port, path) = url
+        .split_once('/')
+        .map(|(h, p)| (h, format!("/{p}")))
+        .unwrap_or((url, "/".into()));
+    let stream = tokio::net::TcpStream::connect(host_port).await?;
+    let mut stream = stream;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let req = format!("GET {path} HTTP/1.1\r\nHost: {host_port}\r\nConnection: close\r\n\r\n");
+    stream.write_all(req.as_bytes()).await?;
+    let mut buf = Vec::new();
+    stream.read_to_end(&mut buf).await?;
+    let text = String::from_utf8_lossy(&buf);
+    if let Some(idx) = text.find("\r\n\r\n") {
+        Ok(text[idx + 4..].to_string())
+    } else {
+        Ok(text.into_owned())
+    }
+}
+
+fn sample_config() -> String {
+    let pty_default = default_pty_cli();
+    let pty_hint = if cfg!(unix) {
+        "# macOS/Linux: 2 virtual serials ready for two serial apps"
+    } else {
+        "# Windows: PTY not available — use TCP + WebSocket (set pty_count = 0)"
+    };
+    format!(
+        r#"# SerialHub — friendly sample
+# Tip: you often don't need this file:
+#   serialhub share /dev/cu.usbmodemXXXX --pty 3
+#   serialhub share COM3 --tcp 2
+
+[real]
+path = "mock:demo"
+# For exact USB identity instead, leave path as a display fallback and add:
+# usb = {{ vid = 0x10c4, pid = 0xea60, serial_number = "board-01" }}
+baud = 115200
+databits = 8
+parity = "none"
+stopbits = 1
+flow = "none"
+reconnect = true
+reconnect_ms = 1000
+
+[tx]
+mode = "queue_by_line"
+primary = "ui"
+write_lock_ms = 3000
+slow_client = "drop_oldest"
+
+[api]
+bind = "127.0.0.1:8787"
+enabled = true
+
+# Optional loopback RFC2217 server for legacy network serial tools.
+[rfc2217]
+enabled = false
+bind = "127.0.0.1:7000"
+can_read = true
+can_write = true
+can_control = false
+
+[fanout]
+{pty_hint}
+pty_count = {pty_default}
+pty_link_prefix = "/tmp/serialhub-v"
+pty_name_prefix = "v"
+pty_can_write = true
+pty_can_read = true
+
+# TCP: one port is enough for many concurrent programs
+tcp_count = 1
+tcp_host = "127.0.0.1"
+tcp_base_port = 8788
+tcp_name_prefix = "tcp"
+tcp_can_write = true
+tcp_can_read = true
+tcp_raw = false # true for binary COM bridge clients
+
+[ledger]
+# Always-on bounded memory evidence; uncomment directory for hashed NDJSON capture.
+memory_events = 16384
+memory_bytes = 33554432
+# directory = "./serialhub-ledger"
+rotate_bytes = 67108864
+
+[log]
+mirror_console = true
+format = "hex+text"
+"#
+    )
+}

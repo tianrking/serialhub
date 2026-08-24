@@ -1,4 +1,4 @@
-# oh_myserial — 产品定位与完整架构
+# SerialHub — 产品定位与完整架构
 
 > 本文档冻结产品方向与架构边界，作为设计与实现的单一事实来源（SSOT）。  
 > 实现细节可演进；未经讨论，不轻易改动本文中的原则与 ADR。
@@ -71,7 +71,7 @@ Serial Hub = 真串口独占 + 多客户端共享 + 写仲裁 + 双形态接入 
 对内能力公式：
 
 ```text
-oh_myserial = RealPort Exclusive
+serialhub = RealPort Exclusive
             + RX Fan-out
             + TX Arbitration
             + Client Adapters (PTY/COM-like, TCP, WebSocket, HTTP)
@@ -95,7 +95,7 @@ oh_myserial = RealPort Exclusive
 | Agent API | WebSocket 字节流 + HTTP 写命令/查状态 |
 | 会话日志 | 文件 raw/hex、控制台 mirror |
 | 断线重连 | 真口掉线可配置自动重开 |
-| CLI + TOML 配置 | `ohmyserial run -c config.toml` |
+| CLI + TOML 配置 | `serialhub run -c config.toml` |
 | 跨平台构建 | Windows / Linux / macOS，x64 / aarch64 |
 
 ### 6.2 v1.x（差异化增强）
@@ -141,7 +141,7 @@ oh_myserial = RealPort Exclusive
 | 层级 | 做法 | 定位 |
 |------|------|------|
 | **L0 默认（跨平台统一）** | TCP raw + WebSocket + HTTP | 所有平台行为一致；Agent 首选 |
-| **L1 Unix 原生** | PTY + symlink | 上位机直接选 `/tmp/ohmyserial-ui` |
+| **L1 Unix 原生** | PTY + symlink | 上位机直接选 `/tmp/serialhub-ui` |
 | **L2 Windows 兼容** | 文档化对接 com0com/hub4com，或后续可选驱动/桥 | 传统只认 COM 的上位机 |
 
 架构保证：
@@ -223,7 +223,7 @@ Client TX ──► Broker.admit(tx_policy) ──► queue/lock ──► Seria
 ## 9. 核心模块划分
 
 ```text
-ohmyserial/
+serialhub/
 ├── cli/                 # 命令行入口、子命令
 ├── config/              # TOML schema、校验、默认值
 ├── serial/              # 真串口生命周期、参数、重连
@@ -357,7 +357,7 @@ slow_block_ms = 1000
 [[clients]]
 name = "ui"
 type = "pty"
-link = "/tmp/ohmyserial-ui"
+link = "/tmp/serialhub-ui"
 can_write = true
 
 [[clients]]
@@ -372,7 +372,7 @@ bind = "127.0.0.1:8787"
 enabled = true
 can_read = true
 can_write = true
-# token_env = "OHMYSERIAL_API_TOKEN"
+# token_env = "SERIALHUB_API_TOKEN"
 # cors_origins = ["https://serial-console.example.com"]
 
 [log]
@@ -421,9 +421,9 @@ format = "hex+text"               # text | hex | hex+text
 | 形态 | 说明 |
 |------|------|
 | 前台 CLI | 开发调试默认 |
-| 单二进制 | `ohmyserial` |
+| 单二进制 | `serialhub` |
 | 可选系统服务 | 后置：systemd / launchd / Windows Service |
-| 多 profile | `ohmyserial run -c a.toml` 可多开进程；或单进程多 real（v1.x） |
+| 多 profile | `serialhub run -c a.toml` 可多开进程；或单进程多 real（v1.x） |
 
 资源目标：
 
@@ -494,8 +494,8 @@ format = "hex+text"               # text | hex | hex+text
 
 | 项 | 建议 |
 |----|------|
-| 仓库/项目 | `oh_myserial` / `ohmyserial` |
-| 二进制 | `ohmyserial` |
+| 仓库/项目 | `serialhub` / `serialhub` |
+| 二进制 | `serialhub` |
 | 角色隐喻 | Hub / Broker / Switch（避免叫 Driver，以免被当成内核驱动） |
 | Tagline | One port. Many clients. Zero fights. |
 

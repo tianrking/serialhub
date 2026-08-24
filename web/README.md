@@ -1,4 +1,4 @@
-# ohmyserial Web Console
+# serialhub Web Console
 
 The `web/` directory contains the React + Vite + TypeScript console embedded
 into the Rust binary as `web/dist`. It connects to the hub's HTTP and
@@ -15,7 +15,7 @@ npm ci
 npm run build
 cd ..
 cargo build --release
-./target/release/ohmyserial share mock:demo --ui
+./target/release/serialhub share mock:demo --ui
 ```
 
 Open `http://127.0.0.1:8787/`. For a real device, replace `mock:demo` with a
@@ -23,7 +23,7 @@ serial path such as `/dev/ttyUSB0`, `/dev/cu.usbmodemXXXX`, or `COM3` and set
 the line parameters before opening the device:
 
 ```bash
-ohmyserial share COM3 --baud 115200 --data-bits 8 --parity none \
+serialhub share COM3 --baud 115200 --data-bits 8 --parity none \
   --stop-bits 1 --flow-control none --ui
 ```
 

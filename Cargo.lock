@@ -841,39 +841,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ohmyserial"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "axum",
- "base64",
- "bytes",
- "chrono",
- "clap",
- "fs2",
- "futures-util",
- "mime_guess",
- "nix 0.29.0",
- "opener",
- "parking_lot",
- "rust-embed",
- "serde",
- "serde_json",
- "serialport",
- "sha2 0.10.9",
- "tempfile",
- "thiserror",
- "tokio",
- "tokio-tungstenite 0.26.2",
- "tokio-util",
- "toml",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1181,6 +1148,39 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serialhub"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64",
+ "bytes",
+ "chrono",
+ "clap",
+ "fs2",
+ "futures-util",
+ "mime_guess",
+ "nix 0.29.0",
+ "opener",
+ "parking_lot",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "serialport",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite 0.26.2",
+ "tokio-util",
+ "toml",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

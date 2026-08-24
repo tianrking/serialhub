@@ -6,13 +6,13 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use futures_util::StreamExt;
-use ohmyserial::broker::{Broker, DeviceWrite, PortStatus};
-use ohmyserial::client::{spawn_api_server_owned, ApiServerHandle, ApiState};
-use ohmyserial::ledger::{Ledger, LedgerOptions, MemoryOptions, StoreOptions};
-use ohmyserial::observe::SessionLog;
-use ohmyserial::policy::{Policy, SlowClientPolicy, TxMode};
-use ohmyserial::workflow::{WorkflowLimits, WorkflowRunner};
 use serde_json::{json, Value};
+use serialhub::broker::{Broker, DeviceWrite, PortStatus};
+use serialhub::client::{spawn_api_server_owned, ApiServerHandle, ApiState};
+use serialhub::ledger::{Ledger, LedgerOptions, MemoryOptions, StoreOptions};
+use serialhub::observe::SessionLog;
+use serialhub::policy::{Policy, SlowClientPolicy, TxMode};
+use serialhub::workflow::{WorkflowLimits, WorkflowRunner};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
@@ -698,8 +698,8 @@ async fn control_api_requires_capability_lease_and_owner_ack() {
     };
     let command = control_rx.recv().await.expect("owner control command");
     let acknowledgement = match command {
-        ohmyserial::broker::SerialControl::Command {
-            command: ohmyserial::broker::ControlCommand::Dtr(true),
+        serialhub::broker::SerialControl::Command {
+            command: serialhub::broker::ControlCommand::Dtr(true),
             acknowledgement,
         } => acknowledgement,
         _ => panic!("unexpected control command"),
@@ -753,7 +753,7 @@ async fn handoff_api_returns_one_time_token_without_leaking_it_to_status_or_even
         })
     };
     let begin_ack = match control_rx.recv().await.expect("handoff command") {
-        ohmyserial::broker::SerialControl::BeginHandoff {
+        serialhub::broker::SerialControl::BeginHandoff {
             acknowledgement, ..
         } => acknowledgement,
         _ => panic!("unexpected control command"),
@@ -785,7 +785,7 @@ async fn handoff_api_returns_one_time_token_without_leaking_it_to_status_or_even
         })
     };
     let resume_ack = match control_rx.recv().await.expect("resume command") {
-        ohmyserial::broker::SerialControl::ResumeHandoff { acknowledgement } => acknowledgement,
+        serialhub::broker::SerialControl::ResumeHandoff { acknowledgement } => acknowledgement,
         _ => panic!("unexpected control command"),
     };
     resume_ack.send(Ok(())).unwrap();

@@ -472,7 +472,7 @@ export default function App() {
       setError(e instanceof Error ? e.message : String(e));
       pushLog({
         kind: "err",
-        text: `連線失敗：${e instanceof Error ? e.message : String(e)}。請先在本機執行 ohmyserial share ...`,
+        text: `連線失敗：${e instanceof Error ? e.message : String(e)}。請先在本機執行 serialhub share ...`,
       });
     } finally {
       setBusy(false);
@@ -639,7 +639,7 @@ export default function App() {
     const text = logs
       .map((line) => `${line.ts}\t${line.kind.toUpperCase()}\t${line.text}${line.hex ? `\t${line.hex}` : ""}`)
       .join("\n");
-    downloadTextFile(`ohmyserial-${new Date().toISOString().replace(/[:.]/g, "-")}.log`, text);
+    downloadTextFile(`serialhub-${new Date().toISOString().replace(/[:.]/g, "-")}.log`, text);
     pushLog({ kind: "sys", text: `已导出 ${logs.length} 条页面日志` });
   };
 
@@ -647,7 +647,7 @@ export default function App() {
     try {
       const ndjson = await hubApi.eventsExport(conn, apiBearerToken);
       downloadTextFile(
-        `ohmyserial-events-${new Date().toISOString().replace(/[:.]/g, "-")}.ndjson`,
+        `serialhub-events-${new Date().toISOString().replace(/[:.]/g, "-")}.ndjson`,
         ndjson,
         "application/x-ndjson;charset=utf-8",
       );
@@ -659,7 +659,7 @@ export default function App() {
 
   const exportMetrics = () => {
     downloadTextFile(
-      `ohmyserial-metrics-${new Date().toISOString().replace(/[:.]/g, "-")}.prom`,
+      `serialhub-metrics-${new Date().toISOString().replace(/[:.]/g, "-")}.prom`,
       metricsText,
       "text/plain;charset=utf-8",
     );
@@ -765,7 +765,7 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div>
-          <h1>ohmyserial 控制台</h1>
+          <h1>SerialHub 控制台</h1>
           <p className="sub">
             本機串口共享中樞 · 即時監控 · 繁體中文 · 協定見{" "}
             <code>web/PROTOCOL.zh-TW.md</code>
@@ -845,7 +845,7 @@ export default function App() {
         </div>
         <p className="hint">
           請先在本機執行：
-          <code>ohmyserial share mock:demo</code> 或真實裝置。 HTTP：
+          <code>serialhub share mock:demo</code> 或真實裝置。 HTTP：
           <code>{httpBase(conn)}</code> · WS：
           <code>{wsUrl(conn)}</code>
         </p>
@@ -1418,7 +1418,7 @@ export default function App() {
       )}
 
       <footer className="footer">
-        ohmyserial · CLI + 本機 HTTP/WS · 可選網頁監控 · MIT
+        SerialHub · CLI + 本機 HTTP/WS · 可選網頁監控 · MIT
       </footer>
     </div>
   );

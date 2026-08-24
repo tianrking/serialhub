@@ -1,6 +1,6 @@
-# ohmyserial Web 控制台（繁體中文）
+# serialhub Web 控制台（繁體中文）
 
-本目錄為 **React + Vite + TypeScript** 前端，連線本機 **ohmyserial hub** 的 HTTP / WebSocket。
+本目錄為 **React + Vite + TypeScript** 前端，連線本機 **serialhub hub** 的 HTTP / WebSocket。
 
 ## 功能清單（完整）
 
@@ -46,7 +46,7 @@
 例如 Windows 可直接使用：
 
 ```bash
-ohmyserial share COM3 --baud 115200 --data-bits 8 --parity none --stop-bits 1 --flow-control none
+serialhub share COM3 --baud 115200 --data-bits 8 --parity none --stop-bits 1 --flow-control none
 ```
 
 ## 推薦用法：嵌在 hub 裡（同源，最穩）
@@ -58,9 +58,9 @@ cd web && npm install && npm run build && cd ..
 cargo build --release
 
 # 一鍵共享並開啟瀏覽器控制台
-./target/release/ohmyserial share mock:demo --ui
+./target/release/serialhub share mock:demo --ui
 # 或真實裝置
-./target/release/ohmyserial share /dev/cu.usbmodemXXXX --pty 2 --ui
+./target/release/serialhub share /dev/cu.usbmodemXXXX --pty 2 --ui
 ```
 
 瀏覽器開啟：**http://127.0.0.1:8787/**（與 API/WS 同源，無混合內容問題）。  
@@ -107,6 +107,6 @@ web/
 
 | 方式 | 用途 |
 |------|------|
-| `ohmyserial share ...` | 本機高效能 hub（必須） |
+| `serialhub share ...` | 本機高效能 hub（必須） |
 | 本 React 頁 | 可選人機監控 / 除錯面板 |
 | Agent | 同一套 WS/HTTP 協定 |

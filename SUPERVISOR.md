@@ -3,7 +3,7 @@
 Run one process with independent serial hubs:
 
 ```bash
-ohmyserial supervise -c board-a.toml -c board-b.toml
+serialhub supervise -c board-a.toml -c board-b.toml
 ```
 
 Each profile retains its own real serial owner, listeners, clients, policy, and

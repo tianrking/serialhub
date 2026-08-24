@@ -1,11 +1,13 @@
 [package]
-name = "ohmyserial"
+name = "serialhub"
 version = "0.0.1"
 edition = "2021"
+default-run = "serialhub"
+autobins = false
 description = "Cross-platform open-source serial hub for humans and agents"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/tianrking/oh_myserial"
+repository = "https://github.com/tianrking/serialhub"
 keywords = [
     "serial",
     "uart",
@@ -19,6 +21,16 @@ keywords = [
     "cross-platform",
 ]
 categories = ["command-line-utilities", "network-programming", "asynchronous"]
+
+[[bin]]
+name = "serialhub"
+path = "src/main.rs"
+
+# Compatibility executable retained during the 0.x branding migration. It
+# deliberately runs the same CLI implementation as `serialhub`.
+[[bin]]
+name = "ohmyserial"
+path = "src/bin/ohmyserial.rs"
 
 [dependencies]
 anyhow = "1"

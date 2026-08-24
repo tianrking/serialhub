@@ -1,6 +1,6 @@
-# ohmyserial 本機協定說明（繁體中文）
+# serialhub 本機協定說明（繁體中文）
 
-本文件描述 **ohmyserial hub** 對外提供的 **HTTP REST** 與 **WebSocket** 協定。  
+本文件描述 **SerialHub** 對外提供的 **HTTP REST** 與 **WebSocket** 協定。
 React 控制台（`web/`）與 AI Agent 皆應遵守此規格。
 
 > 預設位址：`http://127.0.0.1:8787` · WebSocket：`ws://127.0.0.1:8787/v1/stream`  
@@ -12,7 +12,7 @@ React 控制台（`web/`）與 AI Agent 皆應遵守此規格。
 
 ```text
 ┌──────────────┐   HTTP JSON    ┌─────────────────────┐
-│  React 網頁  │ ─────────────► │  ohmyserial hub     │
+│  React 網頁  │ ─────────────► │  serialhub hub     │
 │  / Agent     │ ◄──── WS 位元組 │  (獨佔真實串口)      │
 └──────────────┘                └──────────┬──────────┘
                                            │
@@ -40,7 +40,7 @@ React 控制台（`web/`）與 AI Agent 皆應遵守此規格。
 
 ### 2.2 建議連線流程
 
-1. 本機執行：`ohmyserial share <裝置> --pty 2`（或 `mock:demo`）  
+1. 本機執行：`serialhub share <裝置> --pty 2`（或 `mock:demo`）
 2. 開啟 React 頁（`npm run dev` 或部署後的靜態站）  
 3. 點「連線」→ `GET /v1/health`  
 4. 成功後訂閱 `WS /v1/stream`，並輪詢 `/v1/status`、`/v1/endpoints`  
@@ -80,7 +80,7 @@ API Bearer 用於存取 hub；下文的 `lease_token` 用於獨占 TX，兩者�
 **回應示例：**
 
 ```json
-{ "ok": true, "service": "ohmyserial" }
+{ "ok": true, "service": "serialhub" }
 ```
 
 ---
@@ -142,7 +142,7 @@ ledger retained/evicted/newest sequence。
     {
       "kind": "pty",
       "name": "v0",
-      "address": "/tmp/ohmyserial-v0",
+      "address": "/tmp/serialhub-v0",
       "can_read": true,
       "can_write": true,
       "note": "..."
@@ -446,4 +446,4 @@ curl -s -X DELETE http://127.0.0.1:8787/v1/lock \
 
 ---
 
-*版本對應：ohmyserial hub MVP + fan-out · 與 `web/` React 控制台同步*
+*版本對應：serialhub hub MVP + fan-out · 與 `web/` React 控制台同步*

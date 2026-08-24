@@ -353,7 +353,7 @@ fn permission_denied(permission: &str) -> Response {
 }
 
 async fn health() -> impl IntoResponse {
-    Json(serde_json::json!({ "ok": true, "service": "ohmyserial" }))
+    Json(serde_json::json!({ "ok": true, "service": "serialhub" }))
 }
 
 async fn status(State(st): State<Arc<ApiState>>) -> Response {
@@ -376,6 +376,8 @@ async fn metrics(State(st): State<Arc<ApiState>>) -> Response {
     let ledger = st.broker.ledger().status();
     let connected = u8::from(snapshot.port.connected);
     let handoff = u8::from(snapshot.handoff.is_some());
+    // Existing dashboards scrape this historical metric namespace. A rename
+    // needs a versioned dual-publish migration, not an implicit breaking edit.
     let body = format!(
         concat!(
             "# HELP ohmyserial_port_connected Whether the real serial port is open.\n",

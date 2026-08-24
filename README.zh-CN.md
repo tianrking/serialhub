@@ -1,7 +1,7 @@
-# ohmyserial
+# SerialHub
 
 <p align="center">
-  <img alt="ohmyserial" src="https://img.shields.io/badge/ohmyserial-串口共享中枢-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
+  <img alt="serialhub" src="https://img.shields.io/badge/serialhub-串口共享中枢-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
 </p>
 
 <p align="center">
@@ -23,12 +23,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tianrking/oh_myserial/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/oh_myserial/ci.yml?branch=main&style=flat-square&label=CI" /></a>
+  <a href="https://github.com/tianrking/serialhub/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/serialhub/ci.yml?branch=main&style=flat-square&label=CI" /></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
   <img alt="Status" src="https://img.shields.io/badge/status-MVP-22c55e?style=flat-square" />
-  <a href="https://github.com/tianrking/oh_myserial"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Foh__myserial-181717?style=flat-square&logo=github" /></a>
+  <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
 <p align="center">
@@ -65,6 +65,7 @@
 - [Unix 虚拟串口（PTY）](#unix-虚拟串口pty)
 - [Windows 说明](#windows-说明)
 - [安全](#安全)
+- [名称与兼容迁移](./MIGRATION.md)
 - [目录结构](#目录结构)
 - [开发](#开发)
 - [路线图](#路线图)
@@ -77,7 +78,7 @@
 
 ## 项目是什么？
 
-**ohmyserial** 是用 Rust 编写的轻量、开源 **串口共享中枢（Serial Hub）**。
+**SerialHub** 是用 Rust 编写的轻量、开源 **串口共享中枢（Serial Hub）**。
 
 它会：
 
@@ -90,12 +91,16 @@
 
 | 项 | 内容 |
 |----|------|
-| 二进制名 | `ohmyserial` |
-| 仓库 | [github.com/tianrking/oh_myserial](https://github.com/tianrking/oh_myserial) |
+| 二进制名 | `serialhub` |
+| 仓库 | [github.com/tianrking/serialhub](https://github.com/tianrking/serialhub) |
 | 语言 | Rust（edition 2021） |
 | 许可证 | MIT |
 | 文档 | [English](./README.md)（默认）· **简体中文** · [Español](./README.es.md) |
 | 产品/架构详述 | [`POSITIONING.md`](./POSITIONING.md) |
+
+> **项目已由 ohmyserial 更名为 SerialHub。** `serialhub` 是正式命令和包名；
+> 0.x 发布包仍提供兼容可执行文件，版本化账本 schema、Prometheus 指标和浏览器
+> 已保存设置不会被改名破坏。升级自动化前请先看 [MIGRATION.md](./MIGRATION.md)。
 
 ---
 
@@ -114,7 +119,7 @@
         │
         ▼
    ┌──────────┐
-   │ ohmyserial│  ← 唯一打开真串口的进程
+   │ serialhub│  ← 唯一打开真串口的进程
    └────┬─────┘
         │
    ┌────┴─────────────────────────────┐
@@ -145,8 +150,9 @@
 | Web 串口控制台 | 会话配置、行尾、快捷指令、定时发送、校验和、协议分析、波形、证据筛选/导出、指标、DTR/RTS/BREAK | ✅ |
 | 事件账本 | 版本化 RX/TX/连接/控制/gap 证据；有界内存 + 可选哈希 NDJSON | ✅ |
 | 安全回放 | 校验后只读的 `immediate` / `original` / `manual` 回放 | ✅ |
+| 配置预检 | `serialhub check -c profile.toml` 验证 TOML 与安全端点策略，不会打开真实串口 | ✅ |
 | Mock 口 | `mock:demo` 无硬件回环 | ✅ |
-| TOML + CLI | `share` / `run` / `init` / `list-ports` / `status` / `supervise` | ✅ |
+| TOML + CLI | `share` / `run` / `check` / `init` / `list-ports` / `status` / `supervise` | ✅ |
 | 单进程多真口 | `supervise` 多 profile | ✅ |
 | RFC2217 | 网络串口控制 | ✅ |
 | Windows COM 桥接 | `bridge-com` + 已安装的 com0com/虚拟 COM 对 | ✅ |
@@ -155,7 +161,7 @@
 快速启动时也可以直接指定完整串口参数：
 
 ```bash
-ohmyserial share COM3 --baud 115200 --data-bits 8 --parity none --stop-bits 1 --flow-control none
+serialhub share COM3 --baud 115200 --data-bits 8 --parity none --stop-bits 1 --flow-control none
 ```
 
 `--parity` 支持 `none/odd/even`，`--flow-control` 支持
@@ -227,8 +233,8 @@ COM-only 老软件可以使用内置用户态桥接命令（先用 com0com 等�
 成对 COM 端点）：
 
 ```powershell
-ohmyserial.exe share COM3 --tcp 1 --tcp-raw --tcp-base 8788
-ohmyserial.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
+serialhub.exe share COM3 --tcp 1 --tcp-raw --tcp-base 8788
+serialhub.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
 ```
 
 完整创建、验证与安全边界见 [`WINDOWS_COM_BRIDGE.md`](./WINDOWS_COM_BRIDGE.md)。
@@ -251,19 +257,19 @@ ohmyserial.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
 ### 源码编译
 
 ```bash
-git clone https://github.com/tianrking/oh_myserial.git
-cd oh_myserial
+git clone https://github.com/tianrking/serialhub.git
+cd serialhub
 cargo build --release
 ```
 
 | 系统 | 二进制 |
 |------|--------|
-| Unix | `./target/release/ohmyserial` |
-| Windows | `.\target\release\ohmyserial.exe` |
+| Unix | `./target/release/serialhub` |
+| Windows | `.\target\release\serialhub.exe` |
 
 ```bash
 cargo test
-./target/release/ohmyserial --help
+./target/release/serialhub --help
 ```
 
 完整的发布前测试矩阵、跨平台检查命令以及真实串口硬件在环边界见
@@ -277,19 +283,19 @@ cargo test
 
 ```bash
 # 1) 看本机有哪些串口
-./target/release/ohmyserial list-ports
+./target/release/serialhub list-ports
 
 # 2) 共享（macOS/Linux 默认并联 2 个虚拟串口 + TCP + WebSocket）
-./target/release/ohmyserial share /dev/cu.usbmodem14101 --baud 115200
+./target/release/serialhub share /dev/cu.usbmodem14101 --baud 115200
 
 # 要 3 个虚拟串口给 3 个上位机
-./target/release/ohmyserial share /dev/ttyUSB0 --pty 3
+./target/release/serialhub share /dev/ttyUSB0 --pty 3
 
 # Windows：没有 PTY，用多 TCP + 多 WS
-./target/release/ohmyserial share COM3 --tcp 2
+./target/release/serialhub share COM3 --tcp 2
 
 # 无硬件演示
-./target/release/ohmyserial share mock:demo
+./target/release/serialhub share mock:demo
 ```
 
 启动后终端会打印 **连接卡片**（SERIAL / TCP / WS 地址）。
@@ -343,8 +349,8 @@ http://127.0.0.1:8787/
 ### 核心：一个真串口 → 并联多个监控/交互端
 
 ```text
-                 ┌─ PTY /tmp/ohmyserial-v0  → 串口上位机 #1
-                 ├─ PTY /tmp/ohmyserial-v1  → 串口上位机 #2 / Agent 读虚拟串口
+                 ┌─ PTY /tmp/serialhub-v0  → 串口上位机 #1
+                 ├─ PTY /tmp/serialhub-v1  → 串口上位机 #2 / Agent 读虚拟串口
  真串口 ──► hub ─┼─ TCP :8788            → 多个脚本同时连
                  ├─ TCP :8789            → 更多工具
                  └─ WS  /v1/stream        → 多个 Agent 同时连
@@ -363,7 +369,7 @@ curl -s http://127.0.0.1:8787/v1/endpoints
 ```toml
 [fanout]
 pty_count = 2
-pty_link_prefix = "/tmp/ohmyserial-v"
+pty_link_prefix = "/tmp/serialhub-v"
 tcp_count = 1
 tcp_base_port = 8788
 ```
@@ -407,7 +413,12 @@ curl -s -X DELETE http://127.0.0.1:8787/v1/lock \
 
 ## 配置说明
 
-完整示例：[`ohmyserial.example.toml`](./ohmyserial.example.toml)
+完整示例：[`serialhub.example.toml`](./serialhub.example.toml)
+
+```powershell
+serialhub check -c serialhub.toml  # 只做配置与安全预检，不打开串口
+serialhub run -c serialhub.toml --ui
+```
 
 ```toml
 [real]
@@ -439,7 +450,7 @@ can_read = true
 can_write = true
 # 物理 DTR/RTS/BREAK 控制；每次请求仍必须带写租约
 can_control = false
-# token_env = "OHMYSERIAL_API_TOKEN"
+# token_env = "SERIALHUB_API_TOKEN"
 # cors_origins = ["https://serial-console.example.com"]
 
 [[clients]]
@@ -456,13 +467,13 @@ history_bytes = 65536
 # [[clients]]
 # type = "pty"
 # name = "ui"
-# link = "/tmp/ohmyserial-ui"
+# link = "/tmp/serialhub-ui"
 
 [ledger]
 memory_events = 16384
 memory_bytes = 33554432
 stream_capacity = 1024
-# directory = "./ohmyserial-ledger"  # 开启哈希 NDJSON 持久化
+# directory = "./serialhub-ledger"  # 开启哈希 NDJSON 持久化
 rotate_bytes = 67108864
 fsync_each_event = false
 
@@ -479,7 +490,7 @@ format = "hex+text"
 多串口可由同一进程独立监督：
 
 ```bash
-ohmyserial supervise -c board-a.toml -c board-b.toml
+serialhub supervise -c board-a.toml -c board-b.toml
 ```
 
 启动前会检查 API/TCP/WS 监听、PTY 链接、真实设备路径、USB selector 和账本
@@ -508,16 +519,17 @@ ohmyserial supervise -c board-a.toml -c board-b.toml
 ## 命令行
 
 ```bash
-ohmyserial share <device> [串口/端点选项]  # 零配置启动 hub
-ohmyserial run -c ohmyserial.toml    # 启动 hub
-ohmyserial supervise -c board-a.toml -c board-b.toml  # 单进程多真口
-ohmyserial init [-o file]           # 生成示例配置
-ohmyserial list-ports               # 列出串口
-ohmyserial status [--api URL]       # 查询运行状态
-ohmyserial bridge-com COM13 --tcp 127.0.0.1:8788  # 现有 COM 对 -> TCP
-ohmyserial replay <source>          # 校验并输出封存的账本捕获
-ohmyserial replay <source> --mode original --speed 2
-ohmyserial replay <source> --mode manual --step 10
+serialhub share <device> [串口/端点选项]  # 零配置启动 hub
+serialhub run -c serialhub.toml    # 启动 hub
+serialhub check -c serialhub.toml  # 验证 TOML、权限与监听安全约束，不打开真实串口
+serialhub supervise -c board-a.toml -c board-b.toml  # 单进程多真口
+serialhub init [-o file]           # 生成示例配置
+serialhub list-ports               # 列出串口
+serialhub status [--api URL]       # 查询运行状态
+serialhub bridge-com COM13 --tcp 127.0.0.1:8788  # 现有 COM 对 -> TCP
+serialhub replay <source>          # 校验并输出封存的账本捕获
+serialhub replay <source> --mode original --speed 2
+serialhub replay <source> --mode manual --step 10
 ```
 
 当 TCP 端点连接二进制协议或 `bridge-com` 时，`share` 请增加 `--tcp-raw`；
@@ -525,10 +537,10 @@ ohmyserial replay <source> --mode manual --step 10
 
 `share` 和 `run` 支持 `--baud`、`--data-bits`、`--parity`、`--stop-bits`、
 `--flow-control`；`run` 的这些选项只临时覆盖 TOML，不会改写配置文件。完整
-参数以 `ohmyserial share --help` / `ohmyserial run --help` 为准。
+参数以 `serialhub share --help` / `serialhub run --help` 为准。
 
 ```bash
-RUST_LOG=debug ohmyserial run -c ohmyserial.toml
+RUST_LOG=debug serialhub run -c serialhub.toml
 ```
 
 ---
@@ -631,7 +643,7 @@ print(urllib.request.urlopen(req).read().decode())
 curl -s 'http://127.0.0.1:8787/v1/events?after_seq=0&limit=100&type=rx,tx'
 
 # 回放一个封存分段，或只包含一个会话的目录。
-ohmyserial replay ./one-session-directory --mode original --speed 2
+serialhub replay ./one-session-directory --mode original --speed 2
 ```
 
 原始 `/v1/stream` WebSocket 承载双向串口字节；`/v1/events/stream` 是另一条只读通道，发送 JSON 文本事件并支持游标/过滤器。回放只会校验并输出原始事件，不会打开设备，也不会把历史 TX 重新送进实时 Broker。
@@ -674,12 +686,12 @@ ohmyserial replay ./one-session-directory --mode original --speed 2
 [[clients]]
 type = "pty"
 name = "ui"
-link = "/tmp/ohmyserial-ui"
+link = "/tmp/serialhub-ui"
 can_write = true
 can_read = true
 ```
 
-在 minicom / screen / Serial Studio 等中打开 `/tmp/ohmyserial-ui`。
+在 minicom / screen / Serial Studio 等中打开 `/tmp/serialhub-ui`。
 
 > 真实波特率由 hub 的 `[real]` 决定。部分软件对 PTY 的波特率 ioctl 可能失败，数据通道通常仍可用。
 
@@ -710,14 +722,14 @@ can_read = true
 ## 目录结构
 
 ```text
-oh_myserial/
+serialhub/
 ├── README.md           # English（默认）
 ├── README.zh-CN.md     # 简体中文
 ├── README.es.md        # Español
 ├── POSITIONING.md
 ├── EVENTS.md           # 规范事件账本、持久化、API、回放
 ├── WORKFLOWS.md        # 有界线性 Agent 工作流契约
-├── ohmyserial.example.toml
+├── serialhub.example.toml
 ├── src/ ...
 └── tests/
 ```
@@ -728,7 +740,7 @@ oh_myserial/
 
 ```bash
 cargo test
-cargo run -- run -c ohmyserial.example.toml
+cargo run -- run -c serialhub.example.toml
 cargo fmt
 cargo clippy
 ```
@@ -770,7 +782,7 @@ CI：Ubuntu · macOS · Windows。
 
 ## 贡献
 
-Issue / PR：https://github.com/tianrking/oh_myserial  
+Issue / PR：https://github.com/tianrking/serialhub
 
 请与 [`POSITIONING.md`](./POSITIONING.md) 对齐。
 
@@ -778,13 +790,13 @@ Issue / PR：https://github.com/tianrking/oh_myserial
 
 ## 许可证
 
-[MIT](./LICENSE) © ohmyserial contributors
+[MIT](./LICENSE) © serialhub contributors
 
 ---
 
 ## 技术标签
 
-`串口` · `UART` · `COM` · `tty` · `串口共享` · `串口复用` · `嵌入式` · `调试` · `AI Agent` · `WebSocket` · `HTTP API` · `TCP` · `PTY` · `Tokio` · `Axum` · `Rust` · `跨平台` · `macOS` · `Linux` · `Windows` · `TOML` · `MIT` · `ohmyserial`
+`串口` · `UART` · `COM` · `tty` · `串口共享` · `串口复用` · `嵌入式` · `调试` · `AI Agent` · `WebSocket` · `HTTP API` · `TCP` · `PTY` · `Tokio` · `Axum` · `Rust` · `跨平台` · `macOS` · `Linux` · `Windows` · `TOML` · `MIT` · `serialhub`
 
 ---
 
