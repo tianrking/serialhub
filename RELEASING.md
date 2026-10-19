@@ -16,8 +16,8 @@ Users do not need Node.js or Rust to run these packages.
 3. Create and push an annotated tag matching that exact version, for example:
 
    ```bash
-   git tag -a v0.1.0 -m "SerialHub v0.1.0"
-   git push origin v0.1.0
+   git tag -a v0.2.0 -m "SerialHub v0.2.0"
+   git push origin v0.2.0
    ```
 
 4. Follow the **Release** workflow through publication. A successful tag push
@@ -33,7 +33,7 @@ CI checks both Node.js 22 and 24, translation coverage, frontend tests, lint,
 committed production assets, release-validator tests, Rust formatting and clippy.
 All six native runners execute applicable Rust tests, build with `--locked`,
 validate executable architecture, and extract and run the actual archive.
-Package smoke checks cover both executable versions, the embedded English UI
+Package smoke checks cover all three executable versions and the macOS app launcher, the embedded English UI
 and local JS/CSS/language assets, shared binary RX and token-protected TX.
 Linux x86_64 also runs the browser suite against the release binary.
 
@@ -51,8 +51,8 @@ On Linux:
 
 ```bash
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf serialhub-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
-cd serialhub-v0.1.0-x86_64-unknown-linux-gnu
+tar -xzf serialhub-v0.2.0-x86_64-unknown-linux-gnu.tar.gz
+cd serialhub-v0.2.0-x86_64-unknown-linux-gnu
 ./serialhub --version
 ./serialhub share mock:demo --pty 0 --ui
 ```

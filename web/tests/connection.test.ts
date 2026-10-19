@@ -48,3 +48,13 @@ test("write timeouts explicitly leave device outcome uncertain and never retry",
   await assert.rejects(hubApi.writeHex({ host: "localhost", port: 8787 }, "41"), /设备可能已执行/);
   assert.equal(calls, 1);
 });
+
+test("managed session URLs preserve API isolation and reject arbitrary base paths", () => {
+  const basePath = "/sessions/12345678-1234-1234-1234-123456789abc";
+  const cfg = validateConnection({host:"192.168.1.2",port:8787,basePath});
+  assert.equal(httpBase(cfg),`http://192.168.1.2:8787${basePath}`);
+  assert.equal(wsUrl(cfg),`ws://192.168.1.2:8787${basePath}/v1/stream`);
+  for(const invalid of ["https://other.example/", "/sessions/../v1", "/v1", `${basePath}?token=secret`, `${basePath}/other`]) {
+    assert.throws(()=>validateConnection({host:"localhost",port:8787,basePath:invalid}));
+  }
+});

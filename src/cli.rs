@@ -23,11 +23,18 @@ Quick start (no config file):\n  \
 )]
 struct Cli {
     #[command(subcommand)]
-    cmd: Commands,
+    cmd: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Launch the device manager (also the default when double-clicked).
+    Desktop {
+        #[arg(long, default_value = "127.0.0.1:8787")]
+        bind: std::net::SocketAddr,
+        #[arg(long)]
+        no_browser: bool,
+    },
     /// Easiest: share a serial port with multi PTY / TCP / WebSocket (no TOML needed).
     Share {
         /// Real device path, e.g. /dev/cu.usbmodem*, /dev/ttyUSB0, COM3, or mock:demo
@@ -199,7 +206,36 @@ pub async fn run() -> anyhow::Result<()> {
         .init();
 
     let cli = Cli::parse();
-    match cli.cmd {
+    let command = cli.cmd.unwrap_or(Commands::Desktop {
+        bind: "127.0.0.1:8787".parse().expect("constant address"),
+        no_browser: false,
+    });
+    match command {
+        Commands::Desktop { bind, no_browser } => {
+            if serialhub::desktop::existing_manager(bind).await {
+                let url = format!("http://{bind}/");
+                eprintln!("SerialHub is already running: {url}");
+                if !no_browser {
+                    opener::open(&url)?;
+                }
+                return Ok(());
+            }
+            let signal = shutdown_signal()?;
+            let desktop = serialhub::desktop::Desktop::start(bind).await?;
+            let url = format!("http://{}/", desktop.address());
+            eprintln!("SerialHub device manager: {url}");
+            if !no_browser {
+                if let Err(error) = opener::open(&url) {
+                    eprintln!("Open {url} in your browser ({error})");
+                }
+            }
+            tokio::select! {
+                result = signal => { result?; }
+                () = desktop.stopped() => {}
+            }
+            desktop.shutdown().await;
+            Ok(())
+        }
         Commands::Share {
             device,
             baud,

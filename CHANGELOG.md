@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-19
+
+- Added no-argument startup, an automatic browser launch, a Windows GUI launcher
+  and a portable macOS app bundle; existing CLI commands remain available.
+- Added a localized device manager with serial scan/settings, mock demos,
+  dynamic open/close, isolated concurrent sessions, optional local TCP and Unix PTYs.
+- Added opt-in IPv4 LAN sharing with pairing links, HttpOnly cookies, host/origin
+  checks and immediate remote stream revocation without closing local devices.
+- Preserved live browser connections and drafts while switching device tabs;
+  each device retains its own broker, write leases, workflow runner and ledger.
+- Extended native package checks and browser/transport tests for the desktop flow.
+
 ## [0.1.0] — 2026-10-19
 
 ### Debugging and signal analysis

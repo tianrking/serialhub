@@ -117,11 +117,11 @@ function downloadTextFile(filename: string, content: string, mime = "text/plain;
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export default function App() {
+export default function App({ managedConnection }: { managedConnection?: ConnectionConfig } = {}) {
   const locale = useLocale();
   const [tab, setTab] = useState<Tab>("monitor");
   const [dockTab, setDockTab] = useState("device");
-  const [conn, setConn] = useState<ConnectionConfig>(loadConn);
+  const [conn, setConn] = useState<ConnectionConfig>(() => managedConnection ?? loadConn());
   const [hostInput, setHostInput] = useState(conn.host);
   const [portInput, setPortInput] = useState(String(conn.port));
   const [protocolInput, setProtocolInput] = useState<"http" | "https">(conn.protocol ?? "http");
@@ -137,6 +137,8 @@ export default function App() {
     connect: startConnection, disconnect: stopConnection, refreshMeta,
     activeSession, isCurrent } = useHubConnection();
   const apiBearerToken = activeSession()?.bearerToken;
+  const endpointAddress = (address: string) => address.startsWith("/sessions/")
+    ? new URL(address, httpBase(conn)).href.replace(/^http/, "ws") : address;
   const canWrite = online && phase === "connected" && status?.port.connected === true;
 
   const [ledgerStatus, setLedgerStatus] = useState<LedgerStatus | null>(null);
@@ -431,7 +433,7 @@ export default function App() {
 
   const connect = useCallback(async () => {
     disconnect();
-    const cfg: ConnectionConfig = {
+    const cfg: ConnectionConfig = managedConnection ?? {
       host: hostInput.trim(), port: Number(portInput), protocol: protocolInput,
     };
     trafficRef.current = { rx: 0, tx: 0 };
@@ -472,9 +474,17 @@ export default function App() {
     });
     if (!connected) return;
     setConn(cfg);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch { /* Memory-only still works. */ }
-  }, [disconnect, hostInput, portInput, protocolInput, inputBearerToken, startConnection,
+    try { if (!managedConnection) localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch { /* Memory-only still works. */ }
+  }, [managedConnection, disconnect, hostInput, portInput, protocolInput, inputBearerToken, startConnection,
     consumeProtocolBytes, pushLog, resetStreamParsers, capture, signalStore]);
+
+  const managedConnect = useRef(connect);
+  managedConnect.current = connect;
+  useEffect(() => {
+    if (!managedConnection) return;
+    void managedConnect.current();
+    return disconnect;
+  }, [managedConnection, disconnect]);
 
   useEffect(() => {
     if (!canWrite) {
@@ -847,7 +857,7 @@ export default function App() {
             onClick={() => setTab(id)}><Icon name={icon} /><span title={label}>{label}</span><small>{number}</small></button>)}
         </nav>
         <div className="sidebar-note"><Icon name="shield" /><strong>{t("One port, coordinated access")}</strong><p>{t("Manage device access centrally,")} <br /> {t("with a record of every operation.")}</p><span>{t("OPEN SOURCE · MIT")}</span></div>
-        <div className="sidebar-footer"><span className="version-dot" />SerialHub <code>v0.0.2</code></div>
+        <div className="sidebar-footer"><span className="version-dot" />SerialHub <code>v{__APP_VERSION__}</code></div>
       </aside>
       <header className="header">
         <div><div className="eyebrow">{t("WORKSPACE")} <span>/</span> {tab === "signals" ? "SIGNAL STUDIO" : tab === "monitor" ? "LIVE CONSOLE" : tab === "events" ? "EVENT EVIDENCE" : tab === "endpoints" ? "CONNECTIONS" : "GUIDE"}</div>
@@ -857,7 +867,8 @@ export default function App() {
         <div className="header-status"><LanguageSelector /><span className="local-badge"><Icon name="shield" size={14} /> {t("Single device owner")}</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>
       </header>
       <main id="main-content">
-      <section className="panel connect">
+      {managedConnection && error && <div className="managed-error" role="alert">{error}<button onClick={() => void connect()}>{t("Reconnect")}</button></div>}
+      <section className={`panel connect${managedConnection ? " managed-connect" : ""}`}>
         <div className="connection-heading"><h2><Icon name="layers" size={16} /> {t("Connection profiles")}</h2><span>{online ? (status?.port.path.startsWith("mock:") ? t("Mock device · no hardware required") : t("Device session")) : t("Local Hub or HTTPS reverse proxy")}</span></div>
         <div className="row">
           <label>{t("Host")} <input
@@ -1356,7 +1367,7 @@ export default function App() {
                   </td>
                   <td>{ep.name}</td>
                   <td>
-                    <code>{ep.address}</code>
+                    <code>{endpointAddress(ep.address)}</code>
                   </td>
                   <td>
                     {ep.can_read ? "R" : "-"}/{ep.can_write ? "W" : "-"}
@@ -1366,7 +1377,7 @@ export default function App() {
                     <button
                       type="button"
                       className="ghost small"
-                      onClick={() => void copy(ep.address)}
+                      onClick={() => void copy(endpointAddress(ep.address))}
                     >{t("Copy")}</button>
                   </td>
                 </tr>

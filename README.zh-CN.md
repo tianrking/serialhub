@@ -85,6 +85,12 @@ Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉�
 
 ---
 
+## 不输入命令即可使用
+
+v0.2.0 起，下载并解压对应平台包：Windows 双击 `serialhub-desktop.exe`，macOS 打开 `SerialHub.app`，Linux 将 `serialhub-desktop` 作为程序运行。
+浏览器会自动打开设备管理首页；扫描、选择串口、设置参数并打开工作区。可同时运行多个独立串口会话，并在首页启用带配对链接的 IPv4 局域网访问。
+无需安装 Node.js 或 Rust。下载包未签名，系统可能要求确认；串口驱动和权限仍需配置。完整说明见 [使用与验收](./GETTING_STARTED.zh-CN.md) 和 [桌面架构](./DESKTOP.md)。
+
 ## 项目是什么？
 
 **SerialHub** 是用 Rust 编写的轻量、开源 **串口共享中枢（Serial Hub）**。

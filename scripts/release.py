@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import io
+import plistlib
 import json
 from pathlib import Path, PurePosixPath
 import re
@@ -24,7 +25,8 @@ DOCS = (
     "CHANGELOG.md", "RELEASE_NOTES.md", "GETTING_STARTED.zh-CN.md", "OPERATIONS.md", "I18N.md",
     "SSCOM_PARITY.zh-CN.md", "VOFA_PARITY.zh-CN.md", "WINDOWS_COM_BRIDGE.md",
     "RELEASING.md", "serialhub.example.toml", "web/PROTOCOL.zh-TW.md",
-    "scripts/smoke-sharing.py",
+    "scripts/smoke-sharing.py", "scripts/smoke-manager.py", "DESKTOP.md",
+    "POSITIONING.md", "RELIABILITY_TEST_MATRIX.md",
 )
 MANIFEST = "release-manifest.json"
 
@@ -53,7 +55,26 @@ def version():
 def binary_names(target):
     require(target in TARGETS, f"Unsupported target: {target}")
     suffix = ".exe" if "windows" in target else ""
-    return ["serialhub" + suffix, "ohmyserial" + suffix]
+    return ["serialhub" + suffix, "ohmyserial" + suffix, "serialhub-desktop" + suffix]
+
+
+MAC_EXECUTABLE = "SerialHub.app/Contents/MacOS/SerialHub"
+MAC_PLIST = "SerialHub.app/Contents/Info.plist"
+
+
+def extra_files(target, release_version):
+    if "darwin" not in target:
+        return {}
+    return {MAC_PLIST: plistlib.dumps({
+        "CFBundleExecutable": "SerialHub", "CFBundleIdentifier": "io.serialhub.desktop",
+        "CFBundleName": "SerialHub", "CFBundlePackageType": "APPL",
+        "CFBundleShortVersionString": release_version, "CFBundleVersion": release_version,
+        "LSUIElement": True, "NSHighResolutionCapable": True,
+    })}
+
+
+def executable_paths(target):
+    return binary_names(target) + ([MAC_EXECUTABLE] if "darwin" in target else [])
 
 
 def check_architecture(data, target):
@@ -83,6 +104,9 @@ def package(target, binary_dir, output, release_version, commit, root=ROOT):
     for name in binary_names(target):
         files[name] = (binary_dir / name).read_bytes()
         check_architecture(files[name], target)
+    files.update(extra_files(target, release_version))
+    if "darwin" in target:
+        files[MAC_EXECUTABLE] = files["serialhub-desktop"]
     manifest = {"format": "serialhub.release.v1", "version": release_version,
                 "target": target, "commit": commit,
                 "files": {name: {"sha256": digest(data), "size": len(data)}
@@ -100,7 +124,7 @@ def package(target, binary_dir, output, release_version, commit, root=ROOT):
             for name, data in sorted(files.items()):
                 info = tarfile.TarInfo(stage + "/" + name)
                 info.size = len(data)
-                info.mode = 0o755 if name in binary_names(target) else 0o644
+                info.mode = 0o755 if name in executable_paths(target) else 0o644
                 bundle.addfile(info, io.BytesIO(data))
     verify_archive(archive, release_version, commit)
     return archive
@@ -143,7 +167,7 @@ def verify_archive(archive, release_version, commit):
     stage = f"serialhub-v{release_version}-{target}"
     extension = ".zip" if "windows" in target else ".tar.gz"
     require(archive.name == stage + extension, "Archive filename does not match its manifest")
-    expected = set(DOCS) | set(binary_names(target))
+    expected = set(DOCS) | set(executable_paths(target)) | set(extra_files(target, release_version))
     require(set(manifest["files"]) == expected, "Missing or unexpected packaged files")
     require(set(entries) == {stage + "/" + name for name in expected | {MANIFEST}},
             "Archive contents do not match manifest")
@@ -151,8 +175,13 @@ def verify_archive(archive, release_version, commit):
         data = entries[stage + "/" + name]
         require(len(data) == metadata["size"] and digest(data) == metadata["sha256"],
                 f"Checksum mismatch: {name}")
-    for name in binary_names(target):
+    for name in executable_paths(target):
         check_architecture(entries[stage + "/" + name], target)
+    for name, data in extra_files(target, release_version).items():
+        require(entries[stage + "/" + name] == data, f"Invalid launcher metadata: {name}")
+    if "darwin" in target:
+        require(entries[stage + "/" + MAC_EXECUTABLE] == entries[stage + "/serialhub-desktop"],
+                "Mac app executable differs from desktop launcher")
     return manifest, entries
 
 
@@ -183,13 +212,16 @@ def test_package(archive, release_version, commit):
             file = destination / name
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_bytes(data)
-        for name in binary_names(manifest["target"]):
+        for name in executable_paths(manifest["target"]):
             binary = destination / stage / name
             binary.chmod(0o755)
             result = subprocess.check_output([str(binary), "--version"], text=True, timeout=15).strip()
             require(result == f"serialhub {release_version}", f"Wrong executable version: {result}")
         subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-sharing.py"),
                         "--binary", str(destination / stage / binary_names(manifest["target"])[0])],
+                       check=True, timeout=60)
+        subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-manager.py"),
+                        "--binary", str(destination / stage / binary_names(manifest["target"])[2])],
                        check=True, timeout=60)
     print("PACKAGE_SMOKE_OK", archive.name)
 

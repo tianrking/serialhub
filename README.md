@@ -31,7 +31,7 @@ See [localization and deployment controls](./I18N.md).
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.1.0"><img alt="Version" src="https://img.shields.io/badge/version-v0.1.0-0ea5e9?style=flat-square" /></a>
+  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.2.0"><img alt="Version" src="https://img.shields.io/badge/version-v0.2.0-0ea5e9?style=flat-square" /></a>
   <img alt="Status" src="https://img.shields.io/badge/status-active-22c55e?style=flat-square" />
   <a href="https://github.com/tianrking/serialhub/releases"><img alt="Release" src="https://img.shields.io/badge/release-watch%20releases-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
@@ -102,12 +102,49 @@ Ideal for embedded debug when **a human terminal and an AI agent/script must sha
 | License | MIT |
 | Default docs | **English** · [中文](./README.zh-CN.md) · [Español](./README.es.md) |
 | Architecture deep-dive | [`POSITIONING.md`](./POSITIONING.md) |
-| Current release | [v0.1.0](https://github.com/tianrking/serialhub/releases/tag/v0.1.0) |
+| Current release | [v0.2.0](https://github.com/tianrking/serialhub/releases/tag/v0.2.0) |
 
 > **Renamed from ohmyserial.** `serialhub` is the canonical command and
 > package name. The 0.x release keeps a compatibility executable; versioned
 > event schemas, metric names, and saved browser settings remain stable. See
 > [MIGRATION.md](./MIGRATION.md) before upgrading automation.
+
+---
+
+## Start without a terminal
+
+Download your platform archive from [Releases](https://github.com/tianrking/serialhub/releases/latest), extract it, and launch:
+
+| Platform | Open |
+| --- | --- |
+| Windows x64 / ARM64 | `serialhub-desktop.exe` (no console window) |
+| macOS Intel / Apple Silicon | `SerialHub.app` |
+| Linux x64 / ARM64 | `serialhub-desktop` (file manager: **Run as program**) |
+
+The launcher opens your browser automatically. Choose a detected port, set its parameters,
+and click **Open workspace**. Use **Try demo** for a mock loopback without hardware.
+The CLI binary also opens the manager when run without arguments; all existing commands remain available.
+No Rust, Node.js, Python, browser extension or cloud account is needed to use the downloaded app.
+Unsigned downloads can require OS confirmation; Linux files must be executable. Hardware drivers
+and serial-port permissions still belong to the device host.
+
+Open more ports from **All devices**. Up to 16 independent sessions run concurrently;
+switching tabs preserves live browser connections and drafts. Closing a browser does not
+close hardware sessions; use **Close session** or **Quit SerialHub** explicitly.
+
+**Enable LAN sharing** on the host and copy its pairing link to another browser on your trusted
+IPv4 LAN. The paired browser can manage sessions and use the same tools. Disabling sharing
+revokes the link and disconnects remote streams while local sessions continue. LAN sharing is
+opt-in, uses HTTP, and gives link holders device access. Allow the app through the host firewall;
+on multi-interface hosts, replace the link's IP with the appropriate host IPv4 address.
+
+Each device has one physical owner, its own broker, write lease, event ledger and signal workspace.
+Many browsers share a session's HTTP/WebSocket API. **External tools (optional)** can add a loopback
+TCP listener, or up to four Unix PTYs per session; the workspace **Connections** tab lists them.
+TCP ports must be unused. Windows programs requiring a virtual COM device still need a separately
+installed COM driver/bridge; the browser workflow needs none.
+
+See [DESKTOP.md](./DESKTOP.md) for architecture, API routes, tests and operating limits.
 
 ---
 
@@ -570,7 +607,9 @@ RUST_LOG=debug serialhub run -c serialhub.toml
 
 **Base:** `http://127.0.0.1:8787` (default)
 
-The plaintext API and dedicated WebSocket listeners are loopback-only. If `api.token_env` is configured, every `/v1/*` route except `/v1/health` requires `Authorization: Bearer <token>`. The secret is read from that environment variable and must not be placed in TOML or URLs. A token does not make cleartext `http://` or `ws://` safe on a network, so non-loopback binds are rejected even when a token exists. Use an SSH tunnel, or place a TLS reverse proxy in front of the loopback listener.
+In the CLI/TOML deployment mode, the plaintext API and dedicated WebSocket listeners are loopback-only. If `api.token_env` is configured, every `/v1/*` route except `/v1/health` requires `Authorization: Bearer <token>`. The secret is read from that environment variable and must not be placed in TOML or URLs. A token does not make cleartext `http://` or `ws://` safe on a network, so non-loopback binds are rejected even when a token exists. Use an SSH tunnel, or place a TLS reverse proxy in front of the loopback listener.
+
+The desktop manager has a separate opt-in, paired LAN listener; it does not change the CLI/TOML bind policy.
 
 Browser access is same-origin by default. Requests must also carry a Host authority valid for the actual loopback listener, which blocks DNS-rebinding aliases. `api.cors_origins` enables only the exact listed origins; wildcard CORS is rejected. WebSocket upgrades independently require a same-host or listed `Origin`. A browser supplies its bearer as `new WebSocket(url, ["bearer", token])`; query-string tokens are not supported. Non-browser clients may omit `Origin`, but still need the bearer when authentication is enabled.
 
@@ -749,7 +788,7 @@ Open `/tmp/serialhub-ui` in minicom, screen, Serial Studio, etc.
 
 - Default binds are **localhost only** (`127.0.0.1`)  
 - Serial TX can reset boards / send dangerous commands — treat as privileged  
-- Plaintext API, WebSocket, and raw TCP listeners are loopback-only; use SSH or a TLS reverse proxy for remote access
+- CLI/TOML plaintext listeners are loopback-only; use SSH/TLS for remote deployments. Desktop mode additionally supports opt-in paired IPv4 LAN HTTP/WS; see [DESKTOP.md](./DESKTOP.md)
 - Human logs, event segments, and exports may contain secrets from the device stream
 - Segment hashes detect corruption; they do not authenticate who produced or modified a capture
 
@@ -820,12 +859,12 @@ CI: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) — Ubuntu, macOS, 
 
 ## Current release scope
 
-v0.1.0 is the current public baseline. It includes the hub, trusted TX and
+v0.2.0 is the current public baseline. It includes the hub, trusted TX and
 leases, Unix PTY, TCP, HTTP/WebSocket, RFC2217, multi-profile supervision,
 event ledger and safe replay, device identity, bounded maintenance handoff,
-Prometheus metrics, and the embedded Web console. Version 0.1.0 also adds the
-single-screen debugging workspace, signal studio and configurable six-language
-interface. See [release verification and packages](./RELEASING.md).
+Prometheus metrics, the single-screen debugging workspace, signal studio and
+configurable six-language interface. Version 0.2.0 adds no-command startup, a
+device manager with concurrent independent sessions, and opt-in paired LAN access. See [release verification and packages](./RELEASING.md).
 
 It deliberately does **not** claim a kernel virtual-COM driver for Windows,
 UDP transport, a full terminal-emulation mode, a programmable scripting

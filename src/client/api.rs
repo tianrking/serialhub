@@ -128,37 +128,7 @@ pub async fn spawn_api_server_owned(
     let state = Arc::new(state);
     let shutdown = CancellationToken::new();
 
-    let mut app = Router::new()
-        .route("/v1/health", get(health))
-        .route("/v1/status", get(status))
-        .route("/v1/metrics", get(metrics))
-        .route("/v1/clients", get(clients))
-        .route("/v1/endpoints", get(endpoints))
-        .route("/v1/events/status", get(events_status))
-        .route("/v1/events", get(events_query))
-        .route("/v1/events/export", get(events_export))
-        .route("/v1/events/stream", get(events_stream))
-        .route("/v1/workflows/run", post(workflow_run))
-        .route("/v1/control", post(control))
-        .route(
-            "/v1/serial/settings",
-            get(serial_settings).post(configure_serial),
-        )
-        .route("/v1/serial/ports", get(serial_ports))
-        .route("/v1/handoff", post(begin_handoff))
-        .route("/v1/handoff/resume", post(resume_handoff))
-        .route("/v1/write", post(write))
-        .route("/v1/lock", post(lock).delete(unlock))
-        // Unlimited concurrent agents/monitors share the same stream path.
-        .route("/v1/stream", get(ws_stream))
-        // React console embedded from web/dist (same origin as API).
-        .fallback(static_handler)
-        // Authentication applies to every /v1 route except health. Static UI
-        // assets remain public and receive no bearer credential handling.
-        .layer(middleware::from_fn_with_state(state.clone(), authorize_v1))
-        .layer(TraceLayer::new_for_http())
-        .layer(Extension(shutdown.clone()))
-        .with_state(state);
+    let mut app = api_router_shared(state, shutdown.clone());
 
     // With no configured origins there is no CORS layer at all: browser calls
     // are same-origin only. WebSocket Origin is checked separately below.
@@ -193,6 +163,46 @@ pub async fn spawn_api_server_owned(
         shutdown,
         task: Some(task),
     })
+}
+
+/// The session API without a listener-level Host gate. Embedders must enforce
+/// their own authority and authentication boundary before dispatching here.
+pub fn session_router(state: ApiState, shutdown: CancellationToken) -> Router {
+    api_router_shared(Arc::new(state), shutdown)
+}
+
+fn api_router_shared(state: Arc<ApiState>, shutdown: CancellationToken) -> Router {
+    Router::new()
+        .route("/v1/health", get(health))
+        .route("/v1/status", get(status))
+        .route("/v1/metrics", get(metrics))
+        .route("/v1/clients", get(clients))
+        .route("/v1/endpoints", get(endpoints))
+        .route("/v1/events/status", get(events_status))
+        .route("/v1/events", get(events_query))
+        .route("/v1/events/export", get(events_export))
+        .route("/v1/events/stream", get(events_stream))
+        .route("/v1/workflows/run", post(workflow_run))
+        .route("/v1/control", post(control))
+        .route(
+            "/v1/serial/settings",
+            get(serial_settings).post(configure_serial),
+        )
+        .route("/v1/serial/ports", get(serial_ports))
+        .route("/v1/handoff", post(begin_handoff))
+        .route("/v1/handoff/resume", post(resume_handoff))
+        .route("/v1/write", post(write))
+        .route("/v1/lock", post(lock).delete(unlock))
+        // Unlimited concurrent agents/monitors share the same stream path.
+        .route("/v1/stream", get(ws_stream))
+        // React console embedded from web/dist (same origin as API).
+        .fallback(static_handler)
+        // Authentication applies to every /v1 route except health. Static UI
+        // assets remain public and receive no bearer credential handling.
+        .layer(middleware::from_fn_with_state(state.clone(), authorize_v1))
+        .layer(TraceLayer::new_for_http())
+        .layer(Extension(shutdown.clone()))
+        .with_state(state)
 }
 
 async fn enforce_safe_host(

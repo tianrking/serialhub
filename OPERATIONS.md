@@ -1,5 +1,11 @@
 # Operating SerialHub
 
+For no-command startup, launch `serialhub-desktop` (Windows: `.exe`; macOS: `SerialHub.app`).
+The device manager opens in your browser. See [DESKTOP.md](./DESKTOP.md) for
+concurrent device sessions, optional TCP/PTY endpoints and paired IPv4 LAN sharing.
+The configuration below describes the existing advanced CLI deployment mode.
+
+
 SerialHub is a local device service. Use a dedicated OS account with permission
 to open the intended serial device, keep its listeners on loopback, and let one
 Hub own each physical port. Test the intended OS/adapter/device combination
@@ -24,7 +30,7 @@ cd ..
 cargo fmt --all -- --check
 cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked --all-targets
-cargo build --locked --release --bin serialhub --bin ohmyserial
+cargo build --locked --release --bins
 ```
 
 Build the web assets before the release binary. Keep the previous binary and

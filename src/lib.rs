@@ -12,3 +12,5 @@ pub mod replay;
 pub mod serial;
 pub mod supervisor;
 pub mod workflow;
+
+pub mod desktop;

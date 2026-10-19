@@ -142,8 +142,8 @@ jobs:
           path: web/dist/
       - name: Run native Rust tests
         run: python scripts/ci-run.py --log cargo-test.log -- cargo test --locked --all-targets --target ${{ matrix.target }}
-      - name: Build both release executables from the lockfile
-        run: python scripts/ci-run.py --log cargo-build.log -- cargo build --locked --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
+      - name: Build CLI, compatibility and desktop executables from the lockfile
+        run: python scripts/ci-run.py --log cargo-build.log -- cargo build --locked --release --target ${{ matrix.target }} --bins
       - name: Package executables, local documentation and provenance
         run: python scripts/release.py package --target ${{ matrix.target }} --binary-dir target/${{ matrix.target }}/release --output dist
       - name: Extract and run the actual native package

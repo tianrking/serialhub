@@ -8,9 +8,11 @@ mod tcp;
 #[cfg(unix)]
 mod pty;
 
-pub use api::{spawn_api_server, spawn_api_server_owned, ApiServerHandle, ApiState};
+pub use api::{
+    session_router, spawn_api_server, spawn_api_server_owned, ApiServerHandle, ApiState,
+};
 pub use rfc2217::spawn_rfc2217_listener;
-pub use static_ui::ui_embedded;
+pub use static_ui::{static_handler, ui_embedded};
 pub use tcp::spawn_tcp_listener;
 
 #[cfg(unix)]

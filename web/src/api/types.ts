@@ -180,6 +180,7 @@ export interface ConnectionConfig {
   host: string;
   port: number;
   protocol?: "http" | "https";
+  basePath?: string;
 }
 
 export function validateConnection(value: ConnectionConfig): ConnectionConfig {
@@ -197,12 +198,15 @@ export function validateConnection(value: ConnectionConfig): ConnectionConfig {
   } catch {
     throw new Error(t("Invalid hostname or IP address"));
   }
-  return { host, port: value.port, protocol: value.protocol ?? "http" };
+  if (value.basePath !== undefined && !/^\/sessions\/[0-9a-f-]{36}$/.test(value.basePath)) {
+    throw new Error("Invalid device session path");
+  }
+  return { host, port: value.port, protocol: value.protocol ?? "http", ...(value.basePath ? { basePath: value.basePath } : {}) };
 }
 
 export function httpBase(cfg: ConnectionConfig): string {
   const host = cfg.host.includes(":") && !cfg.host.startsWith("[") ? `[${cfg.host}]` : cfg.host;
-  return `${cfg.protocol ?? "http"}://${host}:${cfg.port}`;
+  return `${cfg.protocol ?? "http"}://${host}:${cfg.port}${cfg.basePath ?? ""}`;
 }
 
 export function wsUrl(cfg: ConnectionConfig): string {

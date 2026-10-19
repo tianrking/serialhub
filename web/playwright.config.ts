@@ -15,7 +15,7 @@ export default defineConfig({
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {},
   },
-  webServer: {
+  webServer: [{
     command: process.env.SERIALHUB_E2E_PROFILE === "release"
       ? "cargo run --locked --release --bin serialhub -- run -c web/e2e/hub.toml"
       : "cargo run --locked -- run -c web/e2e/hub.toml",
@@ -23,5 +23,13 @@ export default defineConfig({
     url: "http://127.0.0.1:18887/v1/health",
     timeout: 180000,
     reuseExistingServer: !process.env.CI,
-  },
+  }, {
+    command: process.env.SERIALHUB_E2E_PROFILE === "release"
+      ? "cargo run --locked --release --bin serialhub -- desktop --bind 127.0.0.1:18889 --no-browser"
+      : "cargo run --locked --bin serialhub -- desktop --bind 127.0.0.1:18889 --no-browser",
+    cwd: "..",
+    url: "http://127.0.0.1:18889/manager/info",
+    timeout: 180000,
+    reuseExistingServer: !process.env.CI,
+  }],
 });

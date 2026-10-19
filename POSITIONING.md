@@ -1,6 +1,6 @@
-# SerialHub 产品定义与架构（v0.1.0）
+# SerialHub 产品定义与架构（v0.2.0）
 
-> **当前发布基线：** [SerialHub v0.1.0](https://github.com/tianrking/serialhub/releases/tag/v0.1.0)<br>
+> **当前发布基线：** [SerialHub v0.2.0](https://github.com/tianrking/serialhub/releases/tag/v0.2.0)<br>
 > **产品名 / 主命令 / Rust 包：** `SerialHub` / `serialhub` / `serialhub`<br>
 > **许可证：** MIT<br>
 > **适用范围：** 本文定义已发布产品的定位、能力边界、平台承诺和运维原则；不保留预研阶段、待决策事项或过时的 MVP 规划。
@@ -37,23 +37,25 @@
 | 自动化 / CI | 用 HTTP 确认主机侧写入、用事件账本留存证据、用有界工作流执行有限步骤 |
 | 多个上位机观察同一设备 | Unix PTY、TCP、WebSocket 并联接入，RX 不必抢占真口 |
 | Windows 传统 COM 软件 | Hub 持有真实 `COMx`；需要虚拟 COM 时，用现有驱动提供的 COM 对配合 `bridge-com` |
-| 远程协作 | 本机仍保持回环监听；通过 SSH 隧道或带 TLS / 认证的反向代理访问 |
+| 远程协作 | 桌面模式可显式启用带配对凭证的 IPv4 局域网访问；高级部署使用 SSH / TLS 代理 |
 
-以下能力**不是 v0.1.0 的承诺**，不应据此采购、部署或宣传：
+以下能力**不是 v0.2.0 的承诺**，不应据此采购、部署或宣传：
 
 - 自研、内核级 Windows 虚拟 COM 驱动；
 - UDP 传输、完整终端仿真器或通用可编程脚本引擎；
-- 云账号、多租户 SaaS 或把明文串口接口直接暴露到 LAN / Internet；
+- 云账号、多租户 SaaS、未认证的局域网串口接口或直接面向 Internet 的部署；
 - 对每一种 USB-UART 芯片、驱动、接线或设备协议的通用硬件认证。
 
 ---
 
-## 3. v0.1.0 已交付能力
+## 3. v0.2.0 已交付能力
 
 | 能力域 | 已交付内容 | 关键约束 |
 | --- | --- | --- |
+| 零命令设备管理 | Windows GUI 启动器、macOS app、浏览器扫描与动态开关、最多 16 个独立会话 | 本地执行；不自动恢复硬件会话；切换已访问工作区保留浏览器状态 |
+| 局域网配对 | 临时 IPv4 监听、随机配对链接、HttpOnly cookie、撤销远端流 | 默认关闭、可信局域网 HTTP；链接持有者可管理设备；只有主机可改共享设置和退出 |
 | 真实串口所有权 | 串口参数、自动重连、精确 USB VID/PID/序列号选择 | 每个真实端口只由一个 Hub owner 打开；模糊 USB 匹配会 fail-closed |
-| 多端接入 | Unix PTY、原始 TCP、HTTP、WebSocket、可选 RFC2217 | 所有明文监听保持 loopback；每个读客户端都有有界队列 |
+| 多端接入 | Unix PTY、原始 TCP、HTTP、WebSocket、可选 RFC2217 | CLI/TOML 监听保持 loopback；桌面模式可显式启用已配对的 LAN HTTP/WS；每个读客户端都有有界队列 |
 | TX 安全 | `queue_by_line`、`queue_by_frame`、`exclusive`、`primary_wins` | 不允许静默字节交错；原子 HTTP / WS 二进制写受大小和超时限制 |
 | 写租约 | 随机、不透明 `lease_token` 的获取、续租、释放和失效 | `owner` 只是显示/审计信息，不是凭证；token 不进入状态或事件账本 |
 | 控制与维护 | DTR / RTS / BREAK、有界 handoff、单进程多 profile `supervise` | 控制线默认关闭；需要显式 capability 和有效租约 |
@@ -72,7 +74,7 @@
 | macOS x64 / Apple Silicon | 已实现 | 已实现 | 已实现 | 不适用 |
 | Windows x64 / ARM64 | 已实现（`COMx`） | 不支持 | 已实现 | `bridge-com` + 已安装的虚拟 COM 提供方 |
 
-v0.1.0 Release 提供上述六个目标的二进制资产。CI、单元 / 集成测试、mock 传输和跨平台编译证明的是可重复的代码与协议行为；它们**不等同于**对某一 USB 转串口适配器、OS 驱动、RS-232/RS-485 电气层或业务设备命令的实机认证。
+v0.2.0 Release 提供上述六个目标的二进制资产。CI、单元 / 集成测试、mock 传输和跨平台编译证明的是可重复的代码与协议行为；它们**不等同于**对某一 USB 转串口适配器、OS 驱动、RS-232/RS-485 电气层或业务设备命令的实机认证。
 
 在面向生产的设备 / 适配器组合上线前，必须按 [`RELIABILITY_TEST_MATRIX.md`](./RELIABILITY_TEST_MATRIX.md) 做硬件在环验证：端口枚举、串口参数、拔插重连、控制线、真实上位机和实际协议命令都应留存证据。
 
@@ -95,6 +97,15 @@ v0.1.0 Release 提供上述六个目标的二进制资产。CI、单元 / 集成
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### 桌面管理层
+
+`serialhub-desktop` 或无参数 `serialhub` 启动管理器，自动打开内嵌网页。
+每个动态会话包含独立的 `HubHandle`、串口 owner、broker、写租约、workflow runner 和内存账本；
+管理器把会话 API 挂载到 `/sessions/{id}/v1/*`，不额外开放每设备 HTTP 端口。
+设备注册/关闭串行协调，数据收发沿各自 broker 执行。可选本地 TCP 与 PTY 在打开硬件前准备，失败回滚。
+已有 CLI/TOML 模式继续提供持久化账本、RFC2217、定制策略、USB 身份选择等部署配置。
+详情、接口与验收见 [DESKTOP.md](./DESKTOP.md)。
+
 ### 数据面
 
 - **RX：** Hub 实际从系统驱动读到的字节按读取权限 fan-out；慢客户端采用可配置、有限的丢弃或断开策略，不能无限阻塞真口读循环。
@@ -111,7 +122,7 @@ v0.1.0 Release 提供上述六个目标的二进制资产。CI、单元 / 集成
 
 ### 安全与部署
 
-1. HTTP、WebSocket、原始 TCP 和 RFC2217 的明文监听只允许回环地址。
+1. CLI/TOML 的 HTTP、WebSocket、原始 TCP 和 RFC2217 明文监听只允许回环地址。桌面模式使用独立、默认关闭的 IPv4 LAN 监听，必须配对，检查 Host/Origin，支持撤销；该模式没有互联网部署或多租户承诺。
 2. `api.token_env` 从环境变量读取 Bearer；不得放进 TOML、URL、提交记录或日志。
 3. HTTP Host、WebSocket Origin 与 CORS 使用精确匹配；拒绝通配 CORS 与查询串 token。
 4. 写租约、读写 capability、控制 capability 和大小 / 超时上限共同形成最小权限边界。
