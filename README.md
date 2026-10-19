@@ -137,6 +137,8 @@ Device (UART/COM)
 
 ## Features
 
+The embedded workspace includes binary file TX, bounded raw RX recording, ordered multi-command sending, GBK/UTF-8 tools, runtime line settings, and configuration migration. See the [SSCOM 5.13 capability matrix and remaining gaps](./SSCOM_PARITY.zh-CN.md) and [operating guide](./OPERATIONS.md).
+
 ### Functional features
 
 | Feature | Description | Status |

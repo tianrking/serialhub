@@ -23,6 +23,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::broker::{Broker, ControlCommand, WriteLockView};
 use crate::client::static_ui::{static_handler, ui_embedded};
+use crate::config::SerialSettings;
 use crate::ledger::{EventFilter, EventQuery, EventType, QueryPage};
 use crate::workflow::{
     BrokerWorkflowRuntime, WorkflowAuthorization, WorkflowDefinition, WorkflowError, WorkflowRunner,
@@ -139,6 +140,11 @@ pub async fn spawn_api_server_owned(
         .route("/v1/events/stream", get(events_stream))
         .route("/v1/workflows/run", post(workflow_run))
         .route("/v1/control", post(control))
+        .route(
+            "/v1/serial/settings",
+            get(serial_settings).post(configure_serial),
+        )
+        .route("/v1/serial/ports", get(serial_ports))
         .route("/v1/handoff", post(begin_handoff))
         .route("/v1/handoff/resume", post(resume_handoff))
         .route("/v1/write", post(write))
@@ -1072,6 +1078,73 @@ async fn control(State(st): State<Arc<ApiState>>, Json(body): Json<ControlBody>)
     }
 }
 
+async fn serial_settings(State(st): State<Arc<ApiState>>) -> Response {
+    if !st.can_read {
+        return permission_denied("serial settings read access");
+    }
+    Json(serde_json::json!({ "settings": st.broker.serial_settings() })).into_response()
+}
+
+async fn serial_ports(State(st): State<Arc<ApiState>>) -> Response {
+    if !st.can_read {
+        return permission_denied("serial port inventory access");
+    }
+    match tokio::task::spawn_blocking(serialport::available_ports).await {
+        Ok(Ok(ports)) => Json(serde_json::json!({ "ports": ports.into_iter().map(|port|
+            serde_json::json!({ "path": port.port_name, "kind": format!("{:?}", port.port_type) })
+        ).collect::<Vec<_>>() }))
+        .into_response(),
+        error => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({
+                "ok": false, "error": format!("serial port enumeration failed: {error:?}")
+            })),
+        )
+            .into_response(),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct ConfigureSerialBody {
+    settings: SerialSettings,
+    as_client: Option<String>,
+    lease_token: Option<String>,
+}
+
+async fn configure_serial(
+    State(st): State<Arc<ApiState>>,
+    Json(body): Json<ConfigureSerialBody>,
+) -> Response {
+    if !st.can_control {
+        return permission_denied("serial configuration access");
+    }
+    if let Err(error) = body.settings.validate() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "ok": false, "error": error })),
+        )
+            .into_response();
+    }
+    let actor = body.as_client.as_deref().unwrap_or(&st.default_writer);
+    match st
+        .broker
+        .serial_configure(actor, body.lease_token.as_deref(), body.settings)
+        .await
+    {
+        Ok(()) => Json(serde_json::json!({ "ok": true, "settings": st.broker.serial_settings() }))
+            .into_response(),
+        Err(error) => (
+            if error.contains("lease") {
+                StatusCode::FORBIDDEN
+            } else {
+                StatusCode::SERVICE_UNAVAILABLE
+            },
+            Json(serde_json::json!({ "ok": false, "error": error })),
+        )
+            .into_response(),
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct HandoffBody {
     #[serde(default = "default_handoff_duration_ms")]
@@ -1187,10 +1260,17 @@ async fn unlock(State(st): State<Arc<ApiState>>, body: Option<Json<LockBody>>) -
     }
 }
 
+#[derive(Debug, Default, Deserialize)]
+struct StreamOptions {
+    #[serde(default)]
+    live: bool,
+}
+
 async fn ws_stream(
     ws: WebSocketUpgrade,
     State(st): State<Arc<ApiState>>,
     Extension(shutdown): Extension<CancellationToken>,
+    Query(options): Query<StreamOptions>,
     headers: HeaderMap,
 ) -> Response {
     if !st.ws_can_read && !st.ws_can_write {
@@ -1212,7 +1292,7 @@ async fn ws_stream(
         ws
     };
     upgrade
-        .on_upgrade(move |socket| handle_ws(socket, st, shutdown))
+        .on_upgrade(move |socket| handle_ws(socket, st, shutdown, options.live))
         .into_response()
 }
 
@@ -1247,7 +1327,12 @@ fn origin_authority(origin: &str) -> Option<&str> {
     Some(authority)
 }
 
-async fn handle_ws(socket: WebSocket, st: Arc<ApiState>, shutdown: CancellationToken) {
+async fn handle_ws(
+    socket: WebSocket,
+    st: Arc<ApiState>,
+    shutdown: CancellationToken,
+    live_only: bool,
+) {
     let (mut sink, mut stream) = socket.split();
     // Each WebSocket connection is an independent fan-out subscriber.
     let conn_kind = format!("websocket@{}", uuid::Uuid::new_v4());
@@ -1260,8 +1345,21 @@ async fn handle_ws(socket: WebSocket, st: Arc<ApiState>, shutdown: CancellationT
     );
     let _registration = st.broker.client_registration(id);
 
-    // Send history first (binary).
-    if st.ws_can_read && st.history_on_ws_connect > 0 {
+    // Opt-in acknowledgement distinguishes a live-only stream from legacy
+    // servers that ignore unknown query parameters. Preserve default clients.
+    if live_only {
+        let info = Message::Text(r#"{"type":"serialhub.stream","live_only":true}"#.into());
+        let sent = tokio::select! {
+            biased;
+            _ = shutdown.cancelled() => false,
+            result = sink.send(info) => result.is_ok(),
+        };
+        if !sent {
+            return;
+        }
+    }
+    // Send history first (binary) only for the legacy/default stream.
+    if !live_only && st.ws_can_read && st.history_on_ws_connect > 0 {
         let hist = st.broker.history_bytes();
         if !hist.is_empty() {
             let take = hist.len().min(st.history_on_ws_connect);

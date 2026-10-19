@@ -1065,3 +1065,86 @@ summary > span { color: #98a2b3; margin-left: 8px; font-size: 9px; }
   .skip-link { left: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* Serial toolkit */
+.traffic-counters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: -12px 0 24px; padding: 0 3px; color: #7c8aa0; font-size: 10px; }
+.traffic-counters strong { color: #49617f; font: 10px ui-monospace, monospace; }
+.traffic-counters strong b { color: #29466d; }
+.traffic-counters small { font-size: 9px; color: #91a0b4; margin-right: 10px; }
+.traffic-counters button { min-height: 25px; padding: 2px 8px; }
+.traffic-counters .hint { margin-left: auto; font-size: 9px; }
+.job-status { position: sticky; top: 10px; z-index: 6; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid #b6d2f3; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; background: #edf5ff; box-shadow: 0 4px 20px #243a5a12; font-size: 11px; }
+.job-status strong { color: #284f84; overflow-wrap: anywhere; }
+.job-status button { margin-left: auto; background: #c04551; }
+.job-status small { color: #6983a4; font-size: 10px; }
+.grid .serial-tools-panel { grid-column: 1 / -1; grid-row: 3; }
+.grid .quick-panel { grid-row: 4; }
+.grid .protocol-inspector { grid-row: 5; }
+.tool-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.tool-heading .eyebrow { font-size: 8px; color: #8b9db7; margin-bottom: 5px; }
+.tool-heading h2 { margin-bottom: 17px; }
+.tool-tabs { display: flex; gap: 24px; margin-bottom: 20px; border-bottom: 1px solid #e6ecf4; }
+.tool-tabs button { background: transparent; color: #8190a5; padding: 0 1px 11px; min-height: 32px; border-radius: 0; border-bottom: 2px solid transparent; font-size: 11px; }
+.tool-tabs button.active { color: #386ac4; border-bottom-color: #487bd6; }
+.tool-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+.tool-card + .tool-card { border-left: 1px solid #e9eef5; padding-left: 26px; }
+.serial-tools-panel h3 { margin: 0 0 9px; color: #425773; font-size: 12px; }
+.serial-tools-panel h3 > span { margin-left: 8px; font: 9px ui-monospace, monospace; color: #90a1b8; }
+.serial-tools-panel h3 > span.recording { color: #d94e61; }
+.serial-tools-panel .hint { font-size: 10px; line-height: 1.8; }
+.serial-tools-panel label { font-size: 10px; }
+.serial-tools-panel label input[type="number"] { width: 108px; }
+.serial-tools-panel textarea { width: 100%; font-family: ui-monospace, monospace; resize: vertical; }
+.file-picker { display: flex; gap: 8px; margin-block: 12px; color: #7486a1; }
+.file-picker input { width: 100%; font-size: 11px; border: 1px dashed #cdd9ea; background: #f7f9fd; padding: 9px; }
+.file-picker input::file-selector-button { color: #4270b8; background: #e7effb; border: 0; border-radius: 4px; padding: 5px 9px; margin-right: 10px; cursor: pointer; }
+.file-info { font: 10px ui-monospace, monospace; color: #6a7f9d; overflow-wrap: anywhere; }
+.serial-tools-panel progress { width: 100%; height: 5px; accent-color: #4c7fe0; margin: 16px 0 5px; }
+.capture-size { font: 600 28px ui-monospace, monospace; color: #35577e; margin: 23px 0 7px; letter-spacing: -1px; }
+.capture-size small { color: #98a7bc; font-size: 10px; font-weight: normal; letter-spacing: 0; }
+.capture-reason { color: #8496af; font-size: 10px; margin-bottom: 17px; }
+.sequence-toolbar { margin-bottom: 16px; }
+.sequence-toolbar .hint { margin-left: auto; }
+.sequence-list { max-height: 400px; overflow: auto; }
+.sequence-row { display: flex; gap: 15px; align-items: center; border-top: 1px solid #edf1f6; padding: 12px 0; }
+.sequence-row .check { color: #9aaac1; font: 11px ui-monospace, monospace; }
+.sequence-command { flex: 1; min-width: 0; }
+.sequence-command strong { display: block; font-size: 11px; color: #4a6281; }
+.sequence-command code { display: block; margin-top: 5px; color: #8e9cb1; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sequence-row > label:not(.check) { font-size: 9px; }
+.sequence-row button { min-height: 29px; padding-inline: 9px; }
+.import-preview { border: 1px solid #d6e4f7; background: #f4f8fe; padding: 14px; border-radius: 7px; margin-top: 10px; font-size: 11px; }
+.serial-settings-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-block: 12px; }
+.serial-settings-form input, .serial-settings-form select { width: 100%; }
+.serial-settings-form label { font-size: 10px; }
+.serial-settings > button { margin-top: 12px; }
+.serial-settings .hint { font-size: 9px; overflow-wrap: anywhere; }
+.port-inventory { padding-left: 16px; max-height: 160px; overflow-y: auto; }
+.port-inventory li { margin-bottom: 8px; font-size: 10px; }
+.port-inventory small { display: block; color: #91a0b5; font-size: 9px; overflow-wrap: anywhere; }
+@media (max-width: 1050px) {
+  .grid .serial-tools-panel, .grid .quick-panel, .grid .protocol-inspector { grid-row: auto; grid-column: 1; }
+  .grid .serial-tools-panel { order: 2; }
+  .grid .quick-panel { order: 3; }
+  .grid .protocol-inspector { order: 4; }
+}
+@media (max-width: 760px) {
+  .traffic-counters { gap: 7px; }
+  .traffic-counters .hint { flex-basis: 100%; margin: 0; }
+  .tool-heading > .tag { display: none; }
+  .tool-tabs { gap: 0; justify-content: space-between; }
+  .tool-tabs button { font-size: 10px; }
+  .tool-columns { grid-template-columns: 1fr; gap: 20px; }
+  .tool-card + .tool-card { border: 0; border-top: 1px solid #e9eef5; padding: 20px 0 0; }
+  .sequence-row { flex-wrap: wrap; gap: 8px; }
+  .sequence-command { flex-basis: 65%; }
+  .sequence-toolbar .hint { margin-left: 0; }
+  .job-status small { flex-basis: 100%; }
+  .job-status > span:not(.stream-dot) { display: none; }
+}
+.checksum-range { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.checksum-range label { flex: 1; font-size: 9px; }
+.checksum-range input { width: 100%; }
+.checksum-range small { color: #93a1b4; font-size: 9px; width: 100%; }
+.send-history { margin-bottom: 13px; font-size: 9px; color: #8697af; }
+.send-history select { width: 100%; font-size: 10px; min-height: 29px; color: #6a82a3; }

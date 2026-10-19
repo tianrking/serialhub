@@ -170,7 +170,7 @@ export function useHubConnection() {
           onBytes: (data, meta) => {
             if (isCurrent(session) && socket === ws) handlers.onBytes?.(data, meta);
           },
-        }, bearerToken);
+        }, bearerToken, true);
         socket = ws;
         openTimer = setTimeout(retry, 8000);
       } catch (failure) {

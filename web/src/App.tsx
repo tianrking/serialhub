@@ -25,6 +25,10 @@ import MetricsPanel from "./MetricsPanel";
 import ProtocolInspectorPanel from "./ProtocolInspectorPanel";
 import WaveformPanel from "./WaveformPanel";
 import Icon from "./Icon";
+import SerialToolsPanel from "./SerialToolsPanel";
+import SerialSettingsPanel from "./SerialSettingsPanel";
+import TrafficCounters from "./TrafficCounters";
+import { RawCapture, abortableDelay, commandBytes, fullHex, type RunSerialJob, type TextEncoding } from "./serialTools";
 import { LogBuffer } from "./logBuffer";
 import { useHubConnection, type HubSession } from "./useHubConnection";
 import {
@@ -148,10 +152,21 @@ export default function App() {
   const logBoxRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
 
+  const [capture] = useState(() => new RawCapture());
+  const trafficRef = useRef({ rx: 0, tx: 0 });
+  const jobRef = useRef<AbortController | null>(null);
+  const [jobLabel, setJobLabel] = useState("");
+  const [textEncoding, setTextEncoding] = useState<TextEncoding>("utf-8");
+  const [receiveEncoding, setReceiveEncoding] = useState("utf-8");
+  const receiveEncodingRef = useRef(receiveEncoding);
+  receiveEncodingRef.current = receiveEncoding;
   const [sendText, setSendText] = useState("");
+  const [sendHistory, setSendHistory] = useState<{ mode: CommandMode; payload: string; ending: LineEnding; checksum: HexChecksum; encoding: TextEncoding; start: number; end: number }[]>([]);
   const [sendMode, setSendMode] = useState<CommandMode>("text");
   const [sendHex, setSendHex] = useState("");
   const [hexChecksum, setHexChecksum] = useState<HexChecksum>("none");
+  const [checksumStart, setChecksumStart] = useState(1);
+  const [checksumEnd, setChecksumEnd] = useState(0);
   const [lineEnding, setLineEnding] = useState<LineEnding>("lf");
   const [autoSend, setAutoSend] = useState(false);
   const [autoIntervalMs, setAutoIntervalMs] = useState(1000);
@@ -221,12 +236,20 @@ export default function App() {
       id: ++logId.current,
       ts: line.ts ?? nowTs(),
       kind: line.kind,
-      text: line.text,
-      hex: line.hex,
+      text: line.text.length > 4096 ? `${line.text.slice(0, 4096)} … [显示已截断]` : line.text,
+      hex: line.hex && line.hex.length > 512 ? `${line.hex.slice(0, 512)} …` : line.hex,
     });
   }, [logBuffer]);
 
   useEffect(() => () => logBuffer.clear(), [logBuffer]);
+
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (jobRef.current || capture.active) { event.preventDefault(); event.returnValue = ""; }
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [capture]);
 
   const saveConnectionProfile = () => {
     const name = profileName.trim();
@@ -400,6 +423,8 @@ export default function App() {
 
   const disconnect = useCallback(() => {
     if (operationRef.current) pushLog({ kind: "err", text: "会话已结束，进行中的操作可能已被设备执行。请核对事件记录后再决定是否重试。" });
+    jobRef.current?.abort(new Error("会话已断开"));
+    capture.stop("会话已断开，录制已停止");
     stopConnection();
     operationRef.current = null;
     setBusy(false);
@@ -416,27 +441,40 @@ export default function App() {
     setMetricsText("");
     setMetricsError(null);
     setMetricsLoading(false);
-  }, [stopConnection, pushLog]);
+  }, [stopConnection, pushLog, capture]);
 
   const connect = useCallback(async () => {
     disconnect();
     const cfg: ConnectionConfig = {
       host: hostInput.trim(), port: Number(portInput), protocol: protocolInput,
     };
-    let textDecoder = new TextDecoder();
+    trafficRef.current = { rx: 0, tx: 0 };
+    let decoderEncoding = receiveEncodingRef.current;
+    let textDecoder = new TextDecoder(decoderEncoding);
     const connected = await startConnection(cfg, inputBearerToken, {
       onOpen: () => {
-        textDecoder = new TextDecoder();
+        decoderEncoding = receiveEncodingRef.current;
+        textDecoder = new TextDecoder(decoderEncoding);
         resetStreamParsers();
         setWaveSamples([]);
         setProtocolFrames([]);
         pushLog({ kind: "sys", text: `实时流已连接 ${wsUrl(cfg)}` });
       },
-      onClose: () => pushLog({ kind: "err", text: "实时流已中断，正在重连；自动发送已停止。重连首包可能包含历史数据。" }),
+      onClose: () => {
+        jobRef.current?.abort(new Error("实时流已中断"));
+        capture.stop("实时流中断，录制已停止");
+        pushLog({ kind: "err", text: "实时流已中断，正在重连；自动发送已停止。重连首包可能包含历史数据。" });
+      },
       onServerError: (message) => pushLog({ kind: "err", text: `Hub：${message}` }),
       onBytes: (data, meta) => {
+        trafficRef.current.rx += data.byteLength;
+        capture.add(data, meta.isHistoryHint);
+        if (decoderEncoding !== receiveEncodingRef.current) {
+          decoderEncoding = receiveEncodingRef.current;
+          textDecoder = new TextDecoder(decoderEncoding);
+        }
         if (pausedRef.current) {
-          textDecoder = new TextDecoder();
+          textDecoder = new TextDecoder(receiveEncodingRef.current);
           resetStreamParsers();
           return;
         }
@@ -451,20 +489,26 @@ export default function App() {
     void refreshLedger(cfg, inputBearerToken);
     void refreshMetrics(cfg, inputBearerToken);
   }, [disconnect, hostInput, portInput, protocolInput, inputBearerToken, startConnection,
-    consumeWaveBytes, consumeProtocolBytes, pushLog, refreshLedger, refreshMetrics, resetStreamParsers]);
+    consumeWaveBytes, consumeProtocolBytes, pushLog, refreshLedger, refreshMetrics, resetStreamParsers, capture]);
 
   useEffect(() => {
-    if (!canWrite) setAutoSend(false);
+    if (!canWrite) {
+      setAutoSend(false);
+      jobRef.current?.abort(new Error("设备或实时流已离线"));
+      capture.stop("设备或实时流已离线，录制已停止");
+    }
     if (!online || phase === "reconnecting" || !status?.port.connected) {
       setLeaseToken(null);
       setLeaseExpiresAt(0);
     }
-  }, [canWrite, online, phase, status?.port.connected]);
+  }, [canWrite, online, phase, status?.port.connected, capture]);
 
   useEffect(() => {
     setLeaseToken(null);
     setLeaseExpiresAt(0);
-  }, [status?.port.epoch]);
+    jobRef.current?.abort(new Error("设备连接代次已改变"));
+    capture.stop("设备连接已更换，录制已停止");
+  }, [status?.port.epoch, capture]);
 
   useEffect(() => {
     if (!leaseToken) { setLeaseRemaining(0); return; }
@@ -502,8 +546,10 @@ export default function App() {
     () => () => {
       ledgerAbortRef.current?.abort();
       metricsAbortRef.current?.abort();
+      jobRef.current?.abort(new Error("页面已关闭"));
+      capture.stop("页面已关闭");
     },
-    [],
+    [capture],
   );
 
   const transmit = useCallback(async (
@@ -513,15 +559,18 @@ export default function App() {
     const session = beginOperation();
     if (!session) return false;
     try {
-      const wire = mode === "text" ? appendLineEnding(payload, ending) : appendHexChecksum(payload, checksum);
-      const options = { as_client: CLIENT_NAME, lease_token: leaseToken ?? undefined,
-        bearer_token: session.bearerToken, signal: session.signal, newline: false };
-      const response = mode === "text"
-        ? await hubApi.writeText(session.cfg, wire, options)
-        : await hubApi.writeHex(session.cfg, wire, options);
+      const bytes = commandBytes({ id: "current", name: "当前指令", mode, payload, lineEnding: ending }, textEncoding, checksum, { start: checksumStart - 1, end: checksumEnd || undefined });
+      if (bytes.length > 65536) throw new Error("单条命令最多 65,536 bytes，请使用文件发送");
+      const wire = fullHex(bytes);
+      const response = await hubApi.writeHex(session.cfg, wire, { as_client: CLIENT_NAME, lease_token: leaseToken ?? undefined,
+        bearer_token: session.bearerToken, signal: session.signal });
       if (!isCurrent(session)) return false;
-      if (!response.ok) throw new Error(response.error || "写入失败");
-      pushLog({ kind: "tx", text: `主机已确认 ${response.bytes} bytes · ${wire.replace(/\r/g, "\\r").replace(/\n/g, "\\n")}${checksum !== "none" ? ` · ${checksumLabel(checksum)}` : ""}` });
+      if (!response.ok || response.bytes !== bytes.length) throw new Error(response.error || "写入长度未完全确认，停止发送");
+      trafficRef.current.tx += response.bytes;
+      setSendHistory(previous => [{ mode, payload, ending, checksum, encoding: textEncoding, start: checksumStart, end: checksumEnd },
+        ...previous.filter(item => item.mode !== mode || item.payload !== payload || item.ending !== ending || item.checksum !== checksum || item.encoding !== textEncoding)].slice(0, 20));
+      const display = mode === "text" ? appendLineEnding(payload, ending) : wire;
+      pushLog({ kind: "tx", text: `主机已确认 ${response.bytes} bytes · ${display.replace(/\r/g, "\\r").replace(/\n/g, "\\n")}${checksum !== "none" ? ` · ${checksumLabel(checksum)}` : ""}` });
       return true;
     } catch (failure) {
       if (isCurrent(session)) {
@@ -530,7 +579,86 @@ export default function App() {
       }
       return false;
     } finally { endOperation(session); }
-  }, [beginOperation, endOperation, isCurrent, leaseToken, pushLog]);
+  }, [beginOperation, endOperation, isCurrent, leaseToken, pushLog, textEncoding, checksumStart, checksumEnd]);
+
+  const runJob: RunSerialJob = async (name, task) => {
+    const session = beginOperation();
+    if (!session) return;
+    const controller = new AbortController();
+    const signal = AbortSignal.any([controller.signal, session.signal]);
+    jobRef.current = controller;
+    setAutoSend(false); setJobLabel(name);
+    // Freeze the lease and connection for the entire job. Never retry a chunk.
+    const lease = leaseToken ?? undefined;
+    let renewAt = 0;
+    const maintainLease = async () => {
+      signal.throwIfAborted();
+      if (!lease || Date.now() < renewAt) return;
+      const response = await hubApi.lock(session.cfg, CLIENT_NAME, lease, session.bearerToken, session.signal);
+      signal.throwIfAborted();
+      if (!isCurrent(session) || !response.ok || !response.lock || response.lock.lease_token !== lease) {
+        throw new Error(response.error || "原有写入租约续期失败");
+      }
+      renewAt = Date.now() + Math.max(1, response.lock.expires_ms / 2);
+      setLeaseToken(lease);
+      setLeaseExpiresAt(Date.now() + response.lock.expires_ms);
+    };
+    try {
+      await task({ signal,
+        pause: async ms => {
+          const until = performance.now() + ms;
+          do {
+            await maintainLease();
+            const remaining = Math.max(0, until - performance.now());
+            await abortableDelay(Math.min(remaining, lease ? Math.max(1, renewAt - Date.now()) : remaining), signal);
+          } while (performance.now() < until);
+        },
+        write: async bytes => {
+          await maintainLease();
+          signal.throwIfAborted();
+          if (!isCurrent(session) || !session.streamOpen || !session.deviceConnected) throw new Error("设备或实时流已离线");
+          if (!bytes.length || bytes.length > 65536) throw new Error("发送块长度必须在 1–65,536 bytes 之间");
+          // A user stop waits for this ACK: aborting HTTP does not undo serial TX.
+          const response = await hubApi.writeHex(session.cfg, fullHex(bytes), { as_client: CLIENT_NAME,
+            lease_token: lease, bearer_token: session.bearerToken, signal: session.signal });
+          if (!response.ok || response.bytes !== bytes.length) throw new Error(response.error || "写入长度未完全确认");
+          if (isCurrent(session)) trafficRef.current.tx += response.bytes;
+        },
+      });
+      if (isCurrent(session)) pushLog({ kind: "sys", text: `${name} · 已完成` });
+    } catch (failure) {
+      if (isCurrent(session)) pushLog({ kind: "err", text: `${name} · 已停止：${failure instanceof Error ? failure.message : String(failure)}。已确认的字节不会撤销；未确认的写入请核对事件账本。` });
+    } finally {
+      if (jobRef.current === controller) { jobRef.current = null; setJobLabel(""); }
+      endOperation(session);
+    }
+  };
+
+  const inspectSerial = async () => {
+    const session = activeSession();
+    if (!session) return null;
+    const [settings, ports] = await Promise.all([
+      hubApi.serialSettings(session.cfg, session.bearerToken, session.signal),
+      hubApi.serialPorts(session.cfg, session.bearerToken, session.signal),
+    ]);
+    return isCurrent(session) ? { settings: settings.settings, ports: ports.ports } : null;
+  };
+  const applySerial = async (settings: import("./api/types").SerialSettings) => {
+    const session = beginOperation();
+    if (!session) return false;
+    try {
+      if (!leaseToken) throw new Error("请先获取写入租约");
+      const response = await hubApi.configureSerial(session.cfg, settings, CLIENT_NAME, leaseToken, session.bearerToken, session.signal);
+      if (!response.ok) throw new Error(response.error || "串口参数未确认");
+      if (!isCurrent(session)) return false;
+      pushLog({ kind: "sys", text: `串口参数已确认：${settings.baud} / ${settings.databits} / ${settings.parity} / ${settings.stopbits} / ${settings.flow}` });
+      await refreshMeta();
+      return true;
+    } catch (failure) {
+      if (isCurrent(session)) pushLog({ kind: "err", text: `参数调整失败：${failure instanceof Error ? failure.message : String(failure)}` });
+      return false;
+    } finally { endOperation(session); }
+  };
 
   const onSendText = () => void transmit("text", sendText, lineEnding);
 
@@ -539,11 +667,11 @@ export default function App() {
   const hexPreview = useMemo(() => {
     if (!sendHex.trim()) return "";
     try {
-      return appendHexChecksum(sendHex, hexChecksum);
+      return appendHexChecksum(sendHex, hexChecksum, { start: checksumStart - 1, end: checksumEnd || undefined });
     } catch (e) {
       return e instanceof Error ? `错误：${e.message}` : `错误：${String(e)}`;
     }
-  }, [hexChecksum, sendHex]);
+  }, [hexChecksum, sendHex, checksumStart, checksumEnd]);
 
   useEffect(() => {
     if (!autoSend || !canWrite || autoIntervalMs < 50 || !Number.isFinite(autoIntervalMs)) return;
@@ -575,6 +703,7 @@ export default function App() {
       return;
     }
     const next: QuickCommand = {
+      ...quickCommands.find(command => command.id === editingCommandId),
       id: editingCommandId ?? newCommandId(),
       name,
       mode: quickMode,
@@ -821,9 +950,11 @@ export default function App() {
         <div><small>在线客户端</small><strong>{online ? status?.clients.length : "—"}<span>clients</span></strong></div>
         <div className={status?.stats.rx_drops ? "has-drops" : ""}><small>分发丢弃</small><strong>{online ? status?.stats.rx_drops.toLocaleString() : "—"}<span>chunks</span></strong></div>
       </section>
+      <TrafficCounters counters={trafficRef} />
+      {jobLabel && <div className="job-status" role="status"><span className="stream-dot live" /><strong>{jobLabel}</strong><span>串口发送任务进行中</span><button type="button" onClick={() => { jobRef.current?.abort(new Error("用户停止")); }}>停止发送任务</button><small>当前块确认后停止，不自动重发</small></div>}
       <div className="workspace-heading"><div><span className="section-index">{tab === "monitor" ? "01" : tab === "events" ? "02" : tab === "endpoints" ? "03" : "04"}</span><h2>{tab === "monitor" ? "实时监控" : tab === "events" ? "事件证据" : tab === "endpoints" ? "共享端点" : "协议与操作"}</h2></div><span>{online ? httpBase(conn) : "尚未建立会话"}</span></div>
-      {tab === "monitor" && (
-        <div className="grid">
+      {(
+        <div className="grid" hidden={tab !== "monitor"}>
           <section className="panel device-panel">
             <h2><Icon name="shield" size={17} /> 设备与写入权限</h2>
             {status ? (
@@ -881,6 +1012,8 @@ export default function App() {
                 刷新状态
               </button>
             </div>
+            <SerialSettingsPanel online={online} busy={busy} canApply={canWrite && !!leaseToken && !status?.port.path.startsWith("mock:")}
+              inspect={inspectSerial} apply={applySerial} sessionKey={activeSession()} />
             {leaseToken && <p className="lease-countdown" role="status">本页写入租约有效 · 剩余 {(leaseRemaining / 1000).toFixed(1)} 秒</p>}<details className="hardware-controls"><summary>硬件控制线 <span>{status?.port.path.startsWith("mock:") ? "模拟设备不支持" : "需要服务端授权与有效租约"}</span></summary><div className="row control-row">
               <button
                 type="button"
@@ -937,11 +1070,18 @@ export default function App() {
           </section>
 
           <section className="panel composer-panel">
-            <div className="composer-heading"><h2>发送命令</h2><span>主机确认写入</span></div><div className="segmented" role="group" aria-label="发送格式"><button type="button" className={sendMode === "text" ? "active" : ""} aria-pressed={sendMode === "text"} onClick={() => setSendMode("text")}>Text 文本</button><button type="button" className={sendMode === "hex" ? "active" : ""} aria-pressed={sendMode === "hex"} onClick={() => setSendMode("hex")}>HEX 字节</button></div><div hidden={sendMode !== "text"}>
+            <div className="composer-heading"><h2>发送命令</h2><span>主机确认写入</span></div>{sendHistory.length > 0 && <label className="send-history">最近发送<select aria-label="最近发送" value="" onChange={event => {
+              const item = sendHistory[Number(event.target.value)];
+              if (!item) return;
+              setSendMode(item.mode); setTextEncoding(item.encoding); setLineEnding(item.ending); setHexChecksum(item.checksum);
+              setChecksumStart(item.start); setChecksumEnd(item.end);
+              if (item.mode === "text") setSendText(item.payload); else setSendHex(item.payload);
+            }}><option value="">载入历史内容（不会自动发送）</option>{sendHistory.map((item, index) => <option key={index} value={index}>{item.mode.toUpperCase()} · {item.payload.slice(0, 35)}</option>)}</select></label>}<div className="segmented" role="group" aria-label="发送格式"><button type="button" className={sendMode === "text" ? "active" : ""} aria-pressed={sendMode === "text"} onClick={() => setSendMode("text")}>Text 文本</button><button type="button" className={sendMode === "hex" ? "active" : ""} aria-pressed={sendMode === "hex"} onClick={() => setSendMode("hex")}>HEX 字节</button></div><div hidden={sendMode !== "text"}>
             <label className="block">
               文字
               <textarea
                 rows={3}
+                maxLength={65536}
                 value={sendText}
                 onChange={(e) => setSendText(e.target.value)}
                 onKeyDown={(e) => {
@@ -954,6 +1094,7 @@ export default function App() {
               />
             </label>
             <div className="row composer-options">
+              <label>文本编码<select aria-label="发送文本编码" value={textEncoding} onChange={event => setTextEncoding(event.target.value as TextEncoding)}><option value="utf-8">UTF-8</option><option value="gbk">GBK / ANSI 中文</option><option value="ascii">ASCII（严格）</option></select></label>
               <label>
                 行尾
                 <select
@@ -975,6 +1116,7 @@ export default function App() {
               十六进制
               <input
                 value={sendHex}
+                maxLength={196608}
                 onChange={(e) => setSendHex(e.target.value)}
                 placeholder="41 54 0d 0a"
               />
@@ -988,11 +1130,14 @@ export default function App() {
                 >
                   <option value="none">不添加校验</option>
                   <option value="sum8">SUM8</option>
+                  <option value="sum16">SUM16 (Lo/Hi)</option>
+                  <option value="crc32">CRC32/ISO-HDLC (Lo/Hi)</option>
                   <option value="xor8">XOR8</option>
                   <option value="crc16-modbus">CRC16-Modbus (Lo/Hi)</option>
                   <option value="crc16-ccitt">CRC16-CCITT (Hi/Lo)</option>
                 </select>
               </label>
+              {hexChecksum !== "none" && <div className="checksum-range"><label>校验起始字节<input aria-label="校验起始字节" type="number" min={1} value={checksumStart} onChange={event => setChecksumStart(Math.max(1, Math.trunc(Number(event.target.value) || 1)))} /></label><label>结束字节（0 = 末尾）<input aria-label="校验结束字节" type="number" min={0} value={checksumEnd} onChange={event => setChecksumEnd(Math.max(0, Math.trunc(Number(event.target.value) || 0)))} /></label><small>从 1 计数，包含首尾字节</small></div>}
               {hexPreview && (
                 <span className={`hint inline-hint ${hexPreview.startsWith("错误") ? "error" : ""}`}>
                   发送预览：<code>{hexPreview}</code>
@@ -1008,7 +1153,7 @@ export default function App() {
                   type="checkbox"
                   checked={autoSend}
                   onChange={(e) => setAutoSend(e.target.checked)}
-                  disabled={!canWrite || busy}
+                  disabled={!canWrite || (busy && !autoSend)}
                 />
                 定时发送当前内容
               </label>
@@ -1035,6 +1180,14 @@ export default function App() {
             </details><p className="composer-note"><Icon name="shield" size={14} /> 经过统一写入仲裁；主机确认不等于设备应答。</p>
           </section>
 
+          <SerialToolsPanel canWrite={canWrite} busy={busy} capture={capture} runJob={runJob}
+            commands={quickCommands} profiles={connectionProfiles} encoding={textEncoding}
+            onCommandsChange={setQuickCommands} notify={(text, failure) => pushLog({ kind: failure ? "err" : "sys", text })}
+            onImport={backup => {
+              setQuickCommands(previous => [...previous, ...backup.commands.map(command => ({ ...command, id: newCommandId() }))]);
+              setConnectionProfiles(previous => [...previous, ...backup.profiles.map(profile => ({ ...profile, id: newProfileId() }))]);
+              pushLog({ kind: "sys", text: `已追加导入 ${backup.commands.length} 条指令、${backup.profiles.length} 个连接配置` });
+            }} />
           <section className="panel quick-panel">
             <div className="log-head">
               <div>
@@ -1067,6 +1220,7 @@ export default function App() {
                 内容
                 <input
                   value={quickPayload}
+                  maxLength={65536}
                   onChange={(e) => setQuickPayload(e.target.value)}
                   placeholder={quickMode === "text" ? "AT+VERSION?" : "AA 55 01 00"}
                 />
@@ -1148,6 +1302,7 @@ export default function App() {
                     <option value="hex">仅 Hex</option>
                   </select>
                 </label>
+                <label>接收编码<select aria-label="接收文本编码" value={receiveEncoding} onChange={event => setReceiveEncoding(event.target.value)}><option value="utf-8">UTF-8</option><option value="gbk">GBK</option><option value="gb18030">GB18030</option><option value="windows-1252">Western ANSI</option></select></label>
                 <label>
                   解析
                   <select
@@ -1194,7 +1349,7 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <div className="terminal-statusbar"><span>{paused ? "显示已暂停，后端采集继续" : wsOpen ? "实时流接收中" : "等待实时流"}</span><span>显示窗口最多 2,000 条 · 完整记录见事件账本</span></div>
+            <div className="terminal-statusbar"><span>{paused ? "显示已暂停，后端采集继续" : wsOpen ? "实时流接收中" : "等待实时流"}</span><span>显示最多 2,000 条 · 长包截断 · 完整记录见事件账本</span></div>
           </section>
 
           <WaveformPanel

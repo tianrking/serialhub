@@ -96,6 +96,7 @@ fn serial_thread(
     mut control_rx: mpsc::Receiver<SerialControl>,
     stop: Arc<StopSignal>,
 ) {
+    broker.set_serial_settings(cfg.serial_settings());
     if cfg.path.starts_with("mock:") {
         run_mock(&cfg, &broker, &mut write_rx, &mut control_rx, stop);
         return;
@@ -240,9 +241,28 @@ fn io_loop(
                     settings,
                     acknowledgement,
                 } => {
-                    let result = apply_serial_settings(port, &settings);
+                    let mut result = apply_serial_settings(port, &settings);
+                    let mut reopen = false;
+                    if let Err(error) = &result {
+                        // Driver setters are sequential. Restore the previous
+                        // framing if a later setter rejects the new settings.
+                        if let Err(rollback) = apply_serial_settings(port, &cfg.serial_settings()) {
+                            result = Err(format!(
+                                "{error}; rollback failed: {rollback}; closing device"
+                            ));
+                            reopen = true;
+                            let current = broker.snapshot().port;
+                            broker.set_port_status(PortStatus {
+                                path: current.path,
+                                baud: cfg.baud,
+                                connected: false,
+                                detail: "configuration rollback failed; reconnect required".into(),
+                            });
+                        }
+                    }
                     if result.is_ok() {
                         cfg.apply_serial_settings(&settings);
+                        broker.set_serial_settings(settings.clone());
                         let current = broker.snapshot().port;
                         broker.set_port_status(PortStatus {
                             path: current.path,
@@ -262,6 +282,9 @@ fn io_loop(
                     let _ = acknowledgement.send(result);
                     if stopping {
                         return IoLoopExit::Stop;
+                    }
+                    if reopen {
+                        return IoLoopExit::Reconnect;
                     }
                 }
                 SerialControl::BeginHandoff {

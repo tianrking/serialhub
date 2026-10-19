@@ -434,6 +434,7 @@ pub struct Broker {
     port_watch: watch::Sender<PortStatus>,
     /// Sender for control-line commands consumed only by the serial owner.
     serial_control: Arc<Mutex<Option<mpsc::Sender<SerialControl>>>>,
+    serial_settings: Arc<Mutex<Option<SerialSettings>>>,
 }
 
 pub struct ClientRegistration {
@@ -524,6 +525,7 @@ impl Broker {
                 log,
                 port_watch,
                 serial_control: Arc::new(Mutex::new(None)),
+                serial_settings: Arc::new(Mutex::new(None)),
             },
             serial_tx_rx,
             port_watch_rx,
@@ -532,6 +534,15 @@ impl Broker {
 
     pub fn log(&self) -> &SessionLog {
         &self.log
+    }
+
+    pub fn serial_settings(&self) -> Option<SerialSettings> {
+        self.serial_settings.lock().clone()
+    }
+
+    /// Only the serial owner publishes settings after the driver accepts them.
+    pub fn set_serial_settings(&self, settings: SerialSettings) {
+        *self.serial_settings.lock() = Some(settings);
     }
 
     pub fn ledger(&self) -> Ledger {

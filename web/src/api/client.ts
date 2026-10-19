@@ -1,5 +1,7 @@
 import type {
   ConnectionConfig,
+  SerialSettings,
+  SerialPortInfo,
   ControlResponse,
   EndpointsResponse,
   HealthResponse,
@@ -83,6 +85,13 @@ function eventQueryString(query: LedgerEventsQuery): string {
 }
 
 export const hubApi = {
+  serialSettings: (cfg: ConnectionConfig, token?: string, signal?: AbortSignal) =>
+    getJson<{ settings: SerialSettings | null }>(`${httpBase(cfg)}/v1/serial/settings`, token, signal),
+  serialPorts: (cfg: ConnectionConfig, token?: string, signal?: AbortSignal) =>
+    getJson<{ ports: SerialPortInfo[] }>(`${httpBase(cfg)}/v1/serial/ports`, token, signal),
+  configureSerial: (cfg: ConnectionConfig, settings: SerialSettings, actor: string, lease: string, token?: string, signal?: AbortSignal) =>
+    sendJson<{ ok: boolean; error?: string }>(`${httpBase(cfg)}/v1/serial/settings`, "POST",
+      { settings, as_client: actor, lease_token: lease }, token, signal),
   health: (cfg: ConnectionConfig, signal?: AbortSignal) =>
     getJson<HealthResponse>(`${httpBase(cfg)}/v1/health`, undefined, signal),
 

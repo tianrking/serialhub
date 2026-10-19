@@ -20,14 +20,16 @@ export function connectStream(
   cfg: ConnectionConfig,
   handlers: StreamHandlers,
   bearerToken?: string,
+  liveOnly = false,
 ): WebSocket {
-  const url = wsUrl(cfg);
+  const url = `${wsUrl(cfg)}${liveOnly ? "?live=true" : ""}`;
   const ws = bearerToken
     ? new WebSocket(url, ["bearer", bearerToken])
     : new WebSocket(url);
   ws.binaryType = "arraybuffer";
 
   let firstBinary = true;
+  let liveConfirmed = false;
 
   ws.onopen = () => handlers.onOpen?.();
   ws.onclose = () => handlers.onClose?.();
@@ -38,6 +40,11 @@ export function connectStream(
       let message = ev.data;
       try {
         const payload: unknown = JSON.parse(ev.data);
+        if (liveOnly && payload && typeof payload === "object" && "type" in payload
+            && payload.type === "serialhub.stream" && "live_only" in payload && payload.live_only === true) {
+          liveConfirmed = true;
+          return;
+        }
         if (payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string") {
           message = payload.error;
         }
@@ -49,7 +56,7 @@ export function connectStream(
     }
     const buf = new Uint8Array(ev.data as ArrayBuffer);
     // 協定未標記歷史幀；實務上連線後第一包 binary 常為 history
-    const isHistoryHint = firstBinary;
+    const isHistoryHint = firstBinary && !liveConfirmed;
     firstBinary = false;
     handlers.onBytes?.(buf, { isHistoryHint });
   };

@@ -16,3 +16,11 @@ test("checksum helpers fail closed on malformed or empty input", () => {
   assert.throws(() => appendHexChecksum("not-hex", "none"));
   assert.throws(() => appendHexChecksum("", "sum8"));
 });
+
+test("CRC32 matches the standard check vector and ranges include only requested bytes", () => {
+  assert.equal(appendHexChecksum("31 32 33 34 35 36 37 38 39", "crc32"), "31 32 33 34 35 36 37 38 39 26 39 f4 cb");
+  assert.equal(appendHexChecksum("aa ff ff bb", "sum16", { start: 1, end: 3 }), "aa ff ff bb fe 01");
+  assert.equal(appendHexChecksum("aa 01 02 bb", "sum8", { start: 1, end: 3 }), "aa 01 02 bb 03");
+  assert.throws(() => appendHexChecksum("01 02", "crc32", { start: 1, end: 1 }));
+  assert.throws(() => appendHexChecksum("01 02", "crc32", { start: 0, end: 3 }));
+});

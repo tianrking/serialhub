@@ -207,3 +207,12 @@ export function httpBase(cfg: ConnectionConfig): string {
 export function wsUrl(cfg: ConnectionConfig): string {
   return `${httpBase(cfg).replace(/^http/, "ws")}/v1/stream`;
 }
+
+export interface SerialSettings {
+  baud: number;
+  databits: number;
+  parity: "none" | "odd" | "even";
+  stopbits: number;
+  flow: "none" | "software" | "hardware";
+}
+export interface SerialPortInfo { path: string; kind: string }

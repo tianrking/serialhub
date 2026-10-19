@@ -7,6 +7,8 @@ export interface QuickCommand {
   mode: CommandMode;
   payload: string;
   lineEnding: LineEnding;
+  enabled?: boolean;
+  delayMs?: number;
 }
 
 export interface ConnectionProfile {
@@ -76,6 +78,8 @@ export function loadQuickCommands(): QuickCommand[] {
           mode: record.mode,
           payload: record.payload,
           lineEnding: record.lineEnding,
+          ...(typeof record.enabled === "boolean" ? { enabled: record.enabled } : {}),
+          ...(Number.isInteger(record.delayMs) && Number(record.delayMs) >= 50 && Number(record.delayMs) <= 60000 ? { delayMs: Number(record.delayMs) } : {}),
         },
       ];
     });
