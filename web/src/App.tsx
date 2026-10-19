@@ -26,6 +26,7 @@ import EventLedgerPanel from "./EventLedgerPanel";
 import MetricsPanel from "./MetricsPanel";
 import ProtocolInspectorPanel from "./ProtocolInspectorPanel";
 import WaveformPanel from "./WaveformPanel";
+import { LogBuffer } from "./logBuffer";
 import {
   appendHexChecksum,
   checksumLabel,
@@ -59,6 +60,7 @@ const STORAGE_KEY = "ohmyserial.web.conn";
 const CLIENT_NAME = "web-ui";
 const RECENT_EVENT_LIMIT = 200;
 const MAX_QUICK_COMMANDS = 200;
+const MAX_LOG_LINES = 2000;
 
 function defaultConn(): ConnectionConfig {
   // 同源：由 hub 提供 http://127.0.0.1:8787/ 時自動連同一主機埠
@@ -136,6 +138,9 @@ export default function App() {
   const metricsAbortRef = useRef<AbortController | null>(null);
 
   const [logs, setLogs] = useState<LogLine[]>([]);
+  const [logBuffer] = useState(() => new LogBuffer<LogLine>((batch) => {
+    setLogs((previous) => [...previous, ...batch].slice(-MAX_LOG_LINES));
+  }, MAX_LOG_LINES));
   const [paused, setPaused] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const logId = useRef(0);
@@ -196,19 +201,16 @@ export default function App() {
   }, [connectionProfiles]);
 
   const pushLog = useCallback((line: Omit<LogLine, "id" | "ts"> & { ts?: string }) => {
-    setLogs((prev) => {
-      const next: LogLine = {
-        id: ++logId.current,
-        ts: line.ts ?? nowTs(),
-        kind: line.kind,
-        text: line.text,
-        hex: line.hex,
-      };
-      const merged = [...prev, next];
-      // 上限避免記憶體爆
-      return merged.length > 2000 ? merged.slice(-1500) : merged;
+    logBuffer.push({
+      id: ++logId.current,
+      ts: line.ts ?? nowTs(),
+      kind: line.kind,
+      text: line.text,
+      hex: line.hex,
     });
-  }, []);
+  }, [logBuffer]);
+
+  useEffect(() => () => logBuffer.clear(), [logBuffer]);
 
   const refreshMeta = useCallback(async (cfg: ConnectionConfig, bearerToken?: string) => {
     const [st, ep] = await Promise.all([
@@ -431,6 +433,7 @@ export default function App() {
       ]);
 
       wsRef.current?.close();
+      let textDecoder = new TextDecoder();
       const ws = connectStream(
         cfg,
         {
@@ -448,9 +451,15 @@ export default function App() {
               text: "WebSocket 錯誤（若頁面為 HTTPS，瀏覽器可能封鎖 ws://127.0.0.1）",
             });
           },
+          onServerError: (message) => {
+            pushLog({ kind: "err", text: `Hub：${message}` });
+          },
           onBytes: (data, meta) => {
-            if (pausedRef.current) return;
-            const text = bytesToText(data);
+            if (pausedRef.current) {
+              textDecoder = new TextDecoder();
+              return;
+            }
+            const text = bytesToText(data, textDecoder);
             const hex = bytesToHex(data);
             consumeWaveBytes(data);
             consumeProtocolBytes(data);
@@ -1231,7 +1240,10 @@ export default function App() {
                   />
                   时间戳
                 </label>
-                <button type="button" className="ghost" onClick={() => setLogs([])}>
+                <button type="button" className="ghost" onClick={() => {
+                  logBuffer.clear();
+                  setLogs([]);
+                }}>
                   清空
                 </button>
                 <button type="button" className="ghost" onClick={exportVisibleLogs}>

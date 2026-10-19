@@ -1,0 +1,14 @@
+# Local Vite development only. No physical device or control-line access.
+[real]
+path = "mock:dev"
+
+[api]
+bind = "127.0.0.1:8787"
+cors_origins = ["http://127.0.0.1:5173", "http://localhost:5173"]
+
+[fanout]
+tcp_count = 1
+tcp_raw = true
+
+[log]
+mirror_console = false

@@ -70,13 +70,18 @@ cargo build --release
 
 ```bash
 # 終端 1：hub
-cargo run --release -- share mock:demo --pty 2
+cargo run --locked -- run -c serialhub.dev.toml
 
 # 終端 2：Vite
-cd web && npm run dev
+cd web
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-通常 `http://localhost:5173`，網頁會連 `127.0.0.1:8787`。
+開啟 `http://127.0.0.1:5173`，網頁會連 `127.0.0.1:8787`。
+開發 profile 使用 mock loopback，明確允許兩個本機 Vite origin；一般
+`share` 預設只接受同源，直接搭配 Vite 會被 CORS / WebSocket Origin 檢查拒絕。
+先停止佔用 8787 的舊 Hub；這些開發 origin 不應加入正式部署設定。
 
 ## 部署到 Vercel（可選鏡像）
 

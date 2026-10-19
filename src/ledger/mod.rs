@@ -389,14 +389,20 @@ impl Ledger {
 
         let mut events = Vec::new();
         let mut cursor = query.after_seq;
-        for retained in &state.ring {
+        // Sequence numbers are ordered even after the deque wraps/evicts.
+        // Seek directly to the requested window rather than walking the whole
+        // retained prefix while holding the same lock needed by serial RX.
+        let start = state
+            .ring
+            .partition_point(|entry| entry.event.seq <= query.after_seq);
+        let end = query.through_seq.map_or(state.ring.len(), |through| {
+            state
+                .ring
+                .partition_point(|entry| entry.event.seq <= through)
+        });
+        let mut retained = state.ring.range(start..end.max(start));
+        for retained in retained.by_ref() {
             let event = &retained.event;
-            if event.seq <= query.after_seq {
-                continue;
-            }
-            if query.through_seq.is_some_and(|through| event.seq > through) {
-                break;
-            }
             cursor = event.seq;
             if query.filter.matches(event) {
                 events.push(event.clone());
@@ -406,12 +412,7 @@ impl Ledger {
             }
         }
 
-        let upper = query.through_seq.unwrap_or(state.newest_seq);
-        let has_more = state.ring.iter().any(|entry| {
-            entry.event.seq > cursor
-                && entry.event.seq <= upper
-                && query.filter.matches(&entry.event)
-        });
+        let has_more = retained.any(|entry| query.filter.matches(&entry.event));
 
         QueryPage {
             events,
@@ -666,6 +667,88 @@ mod tests {
         });
         assert_eq!(page.events.len(), 1);
         assert_eq!(page.next_after_seq, 2);
+    }
+
+    #[test]
+    fn recent_filtered_pages_preserve_bounds_and_cursors_after_eviction() {
+        let ledger = tiny_ledger(8);
+        for seq in 1..=40 {
+            let payload = if seq % 2 == 0 {
+                EventPayload::tx("writer", b"tx")
+            } else {
+                EventPayload::rx(b"rx")
+            };
+            ledger.append(1, payload).unwrap();
+        }
+        let query = EventQuery {
+            after_seq: 34,
+            through_seq: Some(40),
+            limit: 2,
+            filter: EventFilter {
+                event_types: BTreeSet::from([EventType::Tx]),
+                ..EventFilter::default()
+            },
+        };
+        let first = ledger.query(query.clone());
+        assert_eq!(
+            first
+                .events
+                .iter()
+                .map(|event| event.seq)
+                .collect::<Vec<_>>(),
+            vec![36, 38]
+        );
+        assert_eq!(first.next_after_seq, 38);
+        assert!(first.has_more);
+        assert!(!first.incomplete);
+        assert_eq!(first.oldest_available_seq, Some(33));
+
+        let bounded = ledger.query(EventQuery {
+            through_seq: Some(39),
+            ..query.clone()
+        });
+        assert_eq!(bounded.events, first.events);
+        assert!(!bounded.has_more);
+
+        let last = ledger.query(EventQuery {
+            after_seq: first.next_after_seq,
+            ..query
+        });
+        assert_eq!(last.events.len(), 1);
+        assert_eq!(last.events[0].seq, 40);
+        assert_eq!(last.next_after_seq, 40);
+        assert!(!last.has_more);
+    }
+
+    #[test]
+    fn empty_query_windows_do_not_rewind_or_overflow_the_cursor() {
+        let ledger = tiny_ledger(3);
+        for _ in 0..10 {
+            ledger.append(1, EventPayload::rx(b"rx")).unwrap();
+        }
+        for (after_seq, through_seq) in [(9, Some(8)), (10, None), (u64::MAX, None)] {
+            let page = ledger.query(EventQuery {
+                after_seq,
+                through_seq,
+                ..EventQuery::default()
+            });
+            assert!(page.events.is_empty());
+            assert!(!page.has_more);
+            assert!(!page.incomplete);
+            assert_eq!(page.next_after_seq, after_seq);
+        }
+        let no_match = ledger.query(EventQuery {
+            after_seq: 7,
+            through_seq: Some(9),
+            filter: EventFilter {
+                event_types: BTreeSet::from([EventType::Tx]),
+                ..EventFilter::default()
+            },
+            ..EventQuery::default()
+        });
+        assert!(no_match.events.is_empty());
+        assert_eq!(no_match.next_after_seq, 9);
+        assert!(!no_match.has_more);
     }
 
     #[tokio::test]

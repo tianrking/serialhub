@@ -12,7 +12,7 @@ env:
 jobs:
   # ---------- quick checks ----------
   check-web:
-    name: web (build)
+    name: web (test, lint, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,10 +21,12 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Build React console
+      - name: Test, lint, and build React console
         working-directory: web
         run: |
           npm ci
+          npm test
+          npm run lint
           npm run build
       - name: Ensure dist present for embed
         run: test -f web/dist/index.html
@@ -94,10 +96,10 @@ jobs:
           npm run build
 
       - name: Test
-        run: cargo test --all-targets --target ${{ matrix.target }}
+        run: cargo test --locked --all-targets --target ${{ matrix.target }}
 
       - name: Release build
-        run: cargo build --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
+        run: cargo build --locked --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
 
       - name: Package artifact
         shell: bash

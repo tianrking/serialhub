@@ -8,6 +8,7 @@
 use bytes::Bytes;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::task::JoinSet;
 
 use crate::broker::{Broker, ControlCommand};
 use crate::config::SerialSettings;
@@ -56,31 +57,41 @@ pub async fn spawn_rfc2217_listener(
         broker
             .log()
             .event(&format!("rfc2217_listen name={name} bind={bind}"));
+        // Own connection tasks just like the raw TCP adapter: dropping the
+        // listener on Hub shutdown must also close its established sessions.
+        let mut connections = JoinSet::new();
         loop {
-            match listener.accept().await {
-                Ok((stream, peer)) => {
-                    let broker = broker.clone();
-                    let name = name.clone();
-                    let settings = initial_settings.clone();
-                    tokio::spawn(async move {
-                        if let Err(error) = handle_connection(
-                            broker,
-                            name,
-                            stream,
-                            can_read,
-                            can_write,
-                            can_control,
-                            settings,
-                        )
-                        .await
-                        {
-                            tracing::debug!("RFC2217 connection {peer} closed: {error}");
-                        }
-                    });
-                }
-                Err(error) => {
-                    tracing::warn!("RFC2217 accept error: {error}");
-                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            tokio::select! {
+                accepted = listener.accept() => match accepted {
+                    Ok((stream, peer)) => {
+                        let broker = broker.clone();
+                        let name = name.clone();
+                        let settings = initial_settings.clone();
+                        connections.spawn(async move {
+                            if let Err(error) = handle_connection(
+                                broker,
+                                name,
+                                stream,
+                                can_read,
+                                can_write,
+                                can_control,
+                                settings,
+                            )
+                            .await
+                            {
+                                tracing::debug!("RFC2217 connection {peer} closed: {error}");
+                            }
+                        });
+                    }
+                    Err(error) => {
+                        tracing::warn!("RFC2217 accept error: {error}");
+                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                    }
+                },
+                completed = connections.join_next(), if !connections.is_empty() => {
+                    if let Some(Err(error)) = completed {
+                        tracing::debug!("RFC2217 connection task ended: {error}");
+                    }
                 }
             }
         }

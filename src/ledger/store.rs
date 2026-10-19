@@ -1195,8 +1195,6 @@ fn discover_sessions(directory: &Path) -> Result<BTreeSet<Uuid>, LedgerReadError
 
 #[cfg(test)]
 mod tests {
-    use std::io::Write as _;
-
     use chrono::{DateTime, Utc};
     use tempfile::TempDir;
 

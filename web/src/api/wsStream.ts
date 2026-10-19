@@ -1,10 +1,12 @@
 import type { ConnectionConfig } from "./types";
-import { wsUrl } from "./types";
+import { wsUrl } from "./types.ts";
 
 export type StreamHandlers = {
   onOpen?: () => void;
   onClose?: () => void;
   onError?: (ev: Event) => void;
+  /** Hub control/error text frames are not device RX. */
+  onServerError?: (message: string) => void;
   /** 原始位元組（裝置 RX） */
   onBytes?: (data: Uint8Array, meta: { isHistoryHint: boolean }) => void;
 };
@@ -33,8 +35,16 @@ export function connectStream(
 
   ws.onmessage = (ev) => {
     if (typeof ev.data === "string") {
-      const enc = new TextEncoder();
-      handlers.onBytes?.(enc.encode(ev.data), { isHistoryHint: false });
+      let message = ev.data;
+      try {
+        const payload: unknown = JSON.parse(ev.data);
+        if (payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string") {
+          message = payload.error;
+        }
+      } catch {
+        // Preserve a non-JSON diagnostic without feeding it into RX parsers.
+      }
+      handlers.onServerError?.(message);
       return;
     }
     const buf = new Uint8Array(ev.data as ArrayBuffer);
@@ -54,9 +64,11 @@ export function bytesToHex(data: Uint8Array, max = 64): string {
   return s;
 }
 
-export function bytesToText(data: Uint8Array): string {
+export function bytesToText(data: Uint8Array, decoder?: TextDecoder): string {
   try {
-    return new TextDecoder("utf-8", { fatal: false }).decode(data);
+    return (decoder ?? new TextDecoder("utf-8", { fatal: false })).decode(data, {
+      stream: decoder !== undefined,
+    });
   } catch {
     return "";
   }

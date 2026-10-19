@@ -59,17 +59,21 @@ Run the hub and Vite separately:
 
 ```bash
 # terminal 1
-cargo run --release -- share mock:demo --pty 2
+cargo run --locked -- run -c serialhub.dev.toml
 
 # terminal 2
 cd web
 npm ci
-npm run dev
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Vite normally serves `http://localhost:5173`; the console connects to the Hub
-at `127.0.0.1:8787` by default. Use `npm run build` to validate the embedded
-asset before committing.
+The development profile uses mock loopback and explicitly allows the two local
+Vite origins on port 5173 for HTTP and WebSocket access. A plain `share` command
+uses same-origin access by default and will reject the separate Vite console.
+Stop any existing Hub on port 8787 before starting this profile. Open the Vite
+console on `127.0.0.1:5173`; it connects to the Hub at `127.0.0.1:8787`.
+Keep these origins in the development profile only. Use `npm run build` to
+validate the embedded asset before committing.
 
 ## Protocol and security references
 

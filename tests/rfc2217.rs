@@ -52,3 +52,33 @@ async fn rfc2217_negotiates_and_round_trips_raw_serial_bytes() {
 
     handle.shutdown();
 }
+
+#[tokio::test]
+async fn hub_shutdown_closes_active_rfc2217_connections() {
+    let port = free_port().await;
+    let mut cfg = Config::default();
+    cfg.real.path = "mock:rfc2217-shutdown".into();
+    cfg.api.enabled = false;
+    cfg.clients.clear();
+    cfg.log.mirror_console = false;
+    cfg.rfc2217.enabled = true;
+    cfg.rfc2217.bind = format!("127.0.0.1:{port}");
+    let handle = hub::run_hub(cfg).await.expect("hub");
+    let broker = handle.broker.clone();
+    let mut stream = TcpStream::connect(("127.0.0.1", port)).await.unwrap();
+    let mut negotiation = [0; 6];
+    read_exact_timeout(&mut stream, &mut negotiation).await;
+
+    handle.shutdown_gracefully().await;
+
+    let mut byte = [0];
+    let result = tokio::time::timeout(Duration::from_secs(2), stream.read(&mut byte))
+        .await
+        .expect("hub shutdown left an RFC2217 connection alive");
+    match result {
+        Ok(0) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::ConnectionReset => {}
+        other => panic!("expected the RFC2217 connection to close, got {other:?}"),
+    }
+    assert!(broker.snapshot().clients.is_empty());
+}
