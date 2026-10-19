@@ -5,6 +5,11 @@ to open the intended serial device, keep its listeners on loopback, and let one
 Hub own each physical port. Test the intended OS/adapter/device combination
 before using it for unattended control.
 
+For a Chinese walkthrough of product positioning, mock demos, physical device
+connections and acceptance tests, see [Getting started](./GETTING_STARTED.zh-CN.md).
+After building, `python3 scripts/smoke-sharing.py` launches an isolated mock Hub
+and verifies shared binary RX, lease rejection and TCP writes after lease release.
+
 ## Build and regression checks
 
 Use Node.js 22.18+ or 24+ and the stable Rust toolchain:
@@ -117,7 +122,8 @@ input is optional only when the Hub has no configured authentication.
   ledger and device state before deciding whether to retry. The UI does not
   promise exactly-once execution or interpret host ACK as device ACK.
 - Lease credentials expire locally, are cleared on session/epoch changes, and
-  are still enforced by the Hub. The UI never automatically renews them.
+  are still enforced by the Hub. Manual grants are not automatically renewed;
+  active file/sequence jobs renew only their existing lease and stop on failure.
 - Test unplug/replug, slow readers, disk errors/full disk, process termination,
   reconnect, and intended remote access before unattended deployment.
 
