@@ -222,6 +222,31 @@ async fn lan_pairing_is_required_revocable_and_cannot_change_host_settings() {
         .unwrap();
     let lan = SocketAddr::from(([127, 0, 0, 1], port));
     assert_eq!(
+        request(
+            lan,
+            "GET",
+            "/",
+            Value::Null,
+            "Sec-Fetch-Site: cross-site\r\n"
+        )
+        .await
+        .0,
+        200
+    );
+    assert_eq!(
+        request(
+            address,
+            "GET",
+            "/manager/info",
+            Value::Null,
+            "Sec-Fetch-Site: cross-site\r\n"
+        )
+        .await
+        .0,
+        403
+    );
+
+    assert_eq!(
         request(lan, "GET", "/manager/info", Value::Null, "")
             .await
             .0,

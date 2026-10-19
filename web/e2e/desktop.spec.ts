@@ -122,7 +122,16 @@ test("LAN link pairs another browser, retains cookie access, and revokes open so
     await expect(
       remote.getByRole("heading", { name: "Pair this browser" }),
     ).toBeVisible();
-    await remote.goto(link.href);
+    // A genuine cross-site navigation (localhost and 127.0.0.1 are different
+    // sites) must open the public UI, then pair through same-origin JSON.
+    await remote.route("http://localhost:18887/shared-link", (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<a href="${link.href}">Open shared devices</a>`,
+      }),
+    );
+    await remote.goto("http://localhost:18887/shared-link");
+    await remote.getByRole("link", { name: "Open shared devices" }).click();
     await expect(
       remote.getByRole("heading", { name: "Your devices. One workspace." }),
     ).toBeVisible();

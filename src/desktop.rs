@@ -255,14 +255,17 @@ async fn guard(State(gate): State<Gate>, request: Request, next: Next) -> Respon
             return error(StatusCode::FORBIDDEN, "Origin is not allowed");
         }
     }
-    if request
-        .headers()
-        .get("sec-fetch-site")
-        .is_some_and(|v| v == "cross-site")
+    let path = request.uri().path();
+    // A shared link may be opened from another website. Static navigation is
+    // public; cross-site requests to the device/control APIs remain forbidden.
+    if (path.starts_with("/manager/") || path.starts_with("/sessions/"))
+        && request
+            .headers()
+            .get("sec-fetch-site")
+            .is_some_and(|v| v == "cross-site")
     {
         return error(StatusCode::FORBIDDEN, "Cross-site request is not allowed");
     }
-    let path = request.uri().path();
     if let Some(secret) = &gate.secret {
         let inner = gate.manager.inner.lock().await;
         if !inner

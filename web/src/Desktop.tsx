@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import App from "./App";
 import type { SerialSettings } from "./api/types";
 import { LanguageSelector } from "./i18n/LanguageSelector";
-import { t } from "./i18n/index";
+import { getFormattingLocale, t } from "./i18n/index";
 import { useLocale } from "./i18n/useLocale";
 import "./desktop.css";
 
@@ -580,9 +580,15 @@ export default function Desktop() {
                     </span>
                   </div>
                   <div className="manager-session-stats">
-                    <span>{s.baud.toLocaleString()} baud</span>
-                    <span>RX {s.rx_bytes.toLocaleString()} B</span>
-                    <span>TX {s.tx_bytes.toLocaleString()} B</span>
+                    <span>
+                      {s.baud.toLocaleString(getFormattingLocale())} baud
+                    </span>
+                    <span>
+                      RX {s.rx_bytes.toLocaleString(getFormattingLocale())} B
+                    </span>
+                    <span>
+                      TX {s.tx_bytes.toLocaleString(getFormattingLocale())} B
+                    </span>
                     <span>
                       {s.clients} {t("clients")}
                     </span>

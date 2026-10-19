@@ -9,6 +9,8 @@ All notable changes to this project are documented in this file.
 - Isolated workspace tab/panel identifiers and SVG clipping paths per mounted
   device so hidden workspaces cannot capture keyboard focus or chart clipping.
 - Kept device startup successful if a launcher closes its diagnostic pipe.
+- Allowed pairing-link navigation from other websites while retaining cross-site
+  checks on device/control APIs.
 - Added a browser regression covering two simultaneous workspaces, unique DOM
   identifiers, keyboard navigation and plot-local clip references.
 
