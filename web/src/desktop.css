@@ -797,10 +797,23 @@
 }
 
 @media (min-width: 1280px) and (max-width: 1399px) {
+  .app-managed .sidebar {
+    gap: 8px;
+  }
+  .app-managed .sidebar-nav {
+    gap: 2px;
+  }
   .app-managed .sidebar-nav button {
-    padding-inline: 5px;
+    padding-inline: 3px;
   }
   .workspace-device-switch select {
-    width: 110px;
+    width: 96px;
+  }
+  .workspace-controls .language-selector select {
+    width: 90px;
+  }
+  .workspace-device-switch > svg,
+  .workspace-controls .language-selector > span {
+    display: none;
   }
 }

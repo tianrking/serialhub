@@ -1,4 +1,4 @@
-# SerialHub v0.2.2
+# SerialHub v0.2.3
 
 Launch the app, choose a serial port in your browser and start debugging.
 No terminal commands, Node.js or Rust installation are needed for downloaded packages.
