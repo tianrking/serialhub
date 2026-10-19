@@ -24,6 +24,8 @@ import EventLedgerPanel from "./EventLedgerPanel";
 import MetricsPanel from "./MetricsPanel";
 import ProtocolInspectorPanel from "./ProtocolInspectorPanel";
 import WaveformPanel from "./WaveformPanel";
+import SignalWorkbench from "./signals/SignalWorkbench";
+import { SignalStore } from "./signals/store";
 import Icon from "./Icon";
 import SerialToolsPanel from "./SerialToolsPanel";
 import SerialSettingsPanel from "./SerialSettingsPanel";
@@ -37,8 +39,6 @@ import {
   type HexChecksum,
 } from "./checksumUtils";
 import {
-  parseFireWater,
-  parseJustFloat,
   parseCobs,
   parseModbusRtu,
   parseNmea0183,
@@ -46,11 +46,11 @@ import {
   protocolLabel,
   type ProtocolFrame,
   type StreamProtocol,
-  type WaveSample,
 } from "./protocolUtils";
 import "./App.css";
+import "./signals/signals.css";
 
-type Tab = "monitor" | "events" | "endpoints" | "protocol";
+type Tab = "monitor" | "signals" | "events" | "endpoints" | "protocol";
 
 type LogLine = {
   id: number;
@@ -174,13 +174,9 @@ export default function App() {
   const [displayMode, setDisplayMode] = useState<"text" | "hex" | "both">("both");
   const [showTimestamp, setShowTimestamp] = useState(true);
   const [streamProtocol, setStreamProtocol] = useState<StreamProtocol>("raw");
-  const [waveSamples, setWaveSamples] = useState<WaveSample[]>([]);
+  const [signalStore] = useState(() => new SignalStore());
   const [protocolFrames, setProtocolFrames] = useState<ProtocolFrame[]>([]);
-  const [waveChannel, setWaveChannel] = useState(0);
   const streamProtocolRef = useRef<StreamProtocol>(streamProtocol);
-  const fireWaterBufferRef = useRef("");
-  const fireWaterDecoderRef = useRef(new TextDecoder());
-  const justFloatBufferRef = useRef<Uint8Array<ArrayBufferLike>>(new Uint8Array());
   const nmeaBufferRef = useRef("");
   const slipBufferRef = useRef<Uint8Array<ArrayBufferLike>>(new Uint8Array());
   const cobsBufferRef = useRef<Uint8Array<ArrayBufferLike>>(new Uint8Array());
@@ -202,9 +198,6 @@ export default function App() {
   const [logKind, setLogKind] = useState("all");
 
   const resetStreamParsers = useCallback(() => {
-    fireWaterBufferRef.current = "";
-    fireWaterDecoderRef.current = new TextDecoder();
-    justFloatBufferRef.current = new Uint8Array();
     nmeaBufferRef.current = "";
     slipBufferRef.current = new Uint8Array();
     cobsBufferRef.current = new Uint8Array();
@@ -292,27 +285,6 @@ export default function App() {
     if (profile) pushLog({ kind: "sys", text: `已删除会话配置：${profile.name}` });
   };
 
-  const consumeWaveBytes = useCallback(
-    (data: Uint8Array) => {
-      const currentProtocol = streamProtocolRef.current;
-      if (currentProtocol === "raw") return;
-      if (currentProtocol === "firewater") {
-        const parsed = parseFireWater(
-          `${fireWaterBufferRef.current}${fireWaterDecoderRef.current.decode(data, { stream: true })}`,
-        );
-        fireWaterBufferRef.current = parsed.remainder;
-        if (parsed.samples.length === 0) return;
-        setWaveSamples((previous) => [...previous, ...parsed.samples].slice(-800));
-        return;
-      }
-      const parsed = parseJustFloat(justFloatBufferRef.current, data);
-      justFloatBufferRef.current = parsed.remainder;
-      if (parsed.samples.length === 0) return;
-      setWaveSamples((previous) => [...previous, ...parsed.samples].slice(-800));
-    },
-    [],
-  );
-
   const consumeProtocolBytes = useCallback((data: Uint8Array) => {
     const currentProtocol = streamProtocolRef.current;
     if (currentProtocol === "nmea0183") {
@@ -343,11 +315,10 @@ export default function App() {
 
   useEffect(() => {
     streamProtocolRef.current = streamProtocol;
+    signalStore.setProtocol(streamProtocol);
     resetStreamParsers();
-    setWaveSamples([]);
     setProtocolFrames([]);
-    setWaveChannel(0);
-  }, [streamProtocol, resetStreamParsers]);
+  }, [streamProtocol, resetStreamParsers, signalStore]);
 
   const refreshLedger = useCallback(async (cfg: ConnectionConfig, bearerToken?: string) => {
     const session = activeSession();
@@ -421,10 +392,20 @@ export default function App() {
     }
   }, [activeSession, isCurrent]);
 
+  useEffect(() => {
+    if (tab !== "events" || !online) return;
+    const session = activeSession();
+    if (!session) return;
+    void refreshLedger(session.cfg, session.bearerToken);
+    void refreshMetrics(session.cfg, session.bearerToken);
+    return () => { ledgerAbortRef.current?.abort(); metricsAbortRef.current?.abort(); };
+  }, [tab, online, activeSession, refreshLedger, refreshMetrics]);
+
   const disconnect = useCallback(() => {
     if (operationRef.current) pushLog({ kind: "err", text: "会话已结束，进行中的操作可能已被设备执行。请核对事件记录后再决定是否重试。" });
     jobRef.current?.abort(new Error("会话已断开"));
     capture.stop("会话已断开，录制已停止");
+    signalStore.close("浏览器会话已断开");
     stopConnection();
     operationRef.current = null;
     setBusy(false);
@@ -441,7 +422,7 @@ export default function App() {
     setMetricsText("");
     setMetricsError(null);
     setMetricsLoading(false);
-  }, [stopConnection, pushLog, capture]);
+  }, [stopConnection, pushLog, capture, signalStore]);
 
   const connect = useCallback(async () => {
     disconnect();
@@ -456,19 +437,21 @@ export default function App() {
         decoderEncoding = receiveEncodingRef.current;
         textDecoder = new TextDecoder(decoderEncoding);
         resetStreamParsers();
-        setWaveSamples([]);
+        signalStore.open();
         setProtocolFrames([]);
         pushLog({ kind: "sys", text: `实时流已连接 ${wsUrl(cfg)}` });
       },
       onClose: () => {
         jobRef.current?.abort(new Error("实时流已中断"));
         capture.stop("实时流中断，录制已停止");
+        signalStore.close();
         pushLog({ kind: "err", text: "实时流已中断，正在重连；自动发送已停止。重连首包可能包含历史数据。" });
       },
       onServerError: (message) => pushLog({ kind: "err", text: `Hub：${message}` }),
       onBytes: (data, meta) => {
         trafficRef.current.rx += data.byteLength;
         capture.add(data, meta.isHistoryHint);
+        signalStore.feed(data, meta.isHistoryHint);
         if (decoderEncoding !== receiveEncodingRef.current) {
           decoderEncoding = receiveEncodingRef.current;
           textDecoder = new TextDecoder(decoderEncoding);
@@ -478,7 +461,6 @@ export default function App() {
           resetStreamParsers();
           return;
         }
-        consumeWaveBytes(data);
         consumeProtocolBytes(data);
         pushLog({ kind: "rx", text: `${meta.isHistoryHint ? "[可能含历史] " : ""}${bytesToText(data, textDecoder).replace(/\n/g, "\\n")}`, hex: bytesToHex(data) });
       },
@@ -486,10 +468,8 @@ export default function App() {
     if (!connected) return;
     setConn(cfg);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch { /* Memory-only still works. */ }
-    void refreshLedger(cfg, inputBearerToken);
-    void refreshMetrics(cfg, inputBearerToken);
   }, [disconnect, hostInput, portInput, protocolInput, inputBearerToken, startConnection,
-    consumeWaveBytes, consumeProtocolBytes, pushLog, refreshLedger, refreshMetrics, resetStreamParsers, capture]);
+    consumeProtocolBytes, pushLog, resetStreamParsers, capture, signalStore]);
 
   useEffect(() => {
     if (!canWrite) {
@@ -508,7 +488,8 @@ export default function App() {
     setLeaseExpiresAt(0);
     jobRef.current?.abort(new Error("设备连接代次已改变"));
     capture.stop("设备连接已更换，录制已停止");
-  }, [status?.port.epoch, capture]);
+    if (signalStore.getSnapshot().source === "live") signalStore.clear("设备连接已更换");
+  }, [status?.port.epoch, capture, signalStore]);
 
   useEffect(() => {
     if (!leaseToken) { setLeaseRemaining(0); return; }
@@ -548,8 +529,9 @@ export default function App() {
       metricsAbortRef.current?.abort();
       jobRef.current?.abort(new Error("页面已关闭"));
       capture.stop("页面已关闭");
+      signalStore.dispose();
     },
-    [capture],
+    [capture, signalStore],
   );
 
   const transmit = useCallback(async (
@@ -851,9 +833,10 @@ export default function App() {
         <nav className="sidebar-nav" aria-label="主导航">
           {([
             ["monitor", "terminal", "实时工作台", "01"],
-            ["events", "activity", "事件与指标", "02"],
-            ["endpoints", "layers", "连接与端点", "03"],
-            ["protocol", "book", "使用指南", "04"],
+            ["signals", "activity", "信号仪表", "02"],
+            ["events", "activity", "事件与指标", "03"],
+            ["endpoints", "layers", "连接与端点", "04"],
+            ["protocol", "book", "使用指南", "05"],
           ] as const).map(([id, icon, label, number]) => <button type="button" key={id}
             className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined}
             onClick={() => setTab(id)}><Icon name={icon} /><span>{label}</span><small>{number}</small></button>)}
@@ -862,8 +845,8 @@ export default function App() {
         <div className="sidebar-footer"><span className="version-dot" />SerialHub <code>v0.0.2</code></div>
       </aside>
       <header className="header">
-        <div><div className="eyebrow">WORKSPACE <span>/</span> {tab === "monitor" ? "LIVE CONSOLE" : tab === "events" ? "EVENT EVIDENCE" : tab === "endpoints" ? "CONNECTIONS" : "GUIDE"}</div>
-          <h1>{tab === "monitor" ? "串口工作台" : tab === "events" ? "事件与运行指标" : tab === "endpoints" ? "连接与端点" : "使用指南"}<span className="heading-dot" aria-hidden="true">.</span></h1>
+        <div><div className="eyebrow">WORKSPACE <span>/</span> {tab === "signals" ? "SIGNAL STUDIO" : tab === "monitor" ? "LIVE CONSOLE" : tab === "events" ? "EVENT EVIDENCE" : tab === "endpoints" ? "CONNECTIONS" : "GUIDE"}</div>
+          <h1>{tab === "signals" ? "信号与可视化" : tab === "monitor" ? "串口工作台" : tab === "events" ? "事件与运行指标" : tab === "endpoints" ? "连接与端点" : "使用指南"}<span className="heading-dot" aria-hidden="true">.</span></h1>
           <p className="sub">连接设备，观察数据，让调试井然有序。</p>
         </div>
         <div className="header-status"><span className="local-badge"><Icon name="shield" size={14} /> 单一设备所有者</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>
@@ -952,7 +935,7 @@ export default function App() {
       </section>
       <TrafficCounters counters={trafficRef} />
       {jobLabel && <div className="job-status" role="status"><span className="stream-dot live" /><strong>{jobLabel}</strong><span>串口发送任务进行中</span><button type="button" onClick={() => { jobRef.current?.abort(new Error("用户停止")); }}>停止发送任务</button><small>当前块确认后停止，不自动重发</small></div>}
-      <div className="workspace-heading"><div><span className="section-index">{tab === "monitor" ? "01" : tab === "events" ? "02" : tab === "endpoints" ? "03" : "04"}</span><h2>{tab === "monitor" ? "实时监控" : tab === "events" ? "事件证据" : tab === "endpoints" ? "共享端点" : "协议与操作"}</h2></div><span>{online ? httpBase(conn) : "尚未建立会话"}</span></div>
+      <div className="workspace-heading"><div><span className="section-index">{({ monitor: "01", signals: "02", events: "03", endpoints: "04", protocol: "05" })[tab]}</span><h2>{tab === "signals" ? "信号仪表" : tab === "monitor" ? "实时监控" : tab === "events" ? "事件证据" : tab === "endpoints" ? "共享端点" : "协议与操作"}</h2></div><span>{online ? httpBase(conn) : "尚未建立会话"}</span></div>
       {(
         <div className="grid" hidden={tab !== "monitor"}>
           <section className="panel device-panel">
@@ -1312,6 +1295,8 @@ export default function App() {
                     <option value="raw">RawData</option>
                     <option value="firewater">FireWater CSV</option>
                     <option value="justfloat">JustFloat LE</option>
+                    <option value="binary">自定义数值帧</option>
+                    <option value="image">原始图像帧</option>
                     <option value="nmea0183">NMEA 0183</option>
                     <option value="slip">SLIP / RFC 1055</option>
                     <option value="cobs">COBS</option>
@@ -1352,13 +1337,7 @@ export default function App() {
             <div className="terminal-statusbar"><span>{paused ? "显示已暂停，后端采集继续" : wsOpen ? "实时流接收中" : "等待实时流"}</span><span>显示最多 2,000 条 · 长包截断 · 完整记录见事件账本</span></div>
           </section>
 
-          <WaveformPanel
-            samples={waveSamples}
-            channel={waveChannel}
-            onChannelChange={setWaveChannel}
-            onClear={() => setWaveSamples([])}
-            protocolLabel={protocolLabel(streamProtocol)}
-          />
+          <WaveformPanel connected={canWrite} store={signalStore} protocolLabel={protocolLabel(streamProtocol)} onOpen={() => setTab("signals")} />
           <ProtocolInspectorPanel
             protocol={streamProtocol}
             frames={protocolFrames}
@@ -1366,6 +1345,11 @@ export default function App() {
           />
         </div>
       )}
+
+      <SignalWorkbench isMock={status?.port.path.startsWith("mock:")} visible={tab === "signals"} store={signalStore} protocol={streamProtocol} onProtocol={setStreamProtocol}
+        canWrite={canWrite} busy={busy} commands={quickCommands}
+        onQuick={command => transmit(command.mode, command.payload, command.lineEnding)}
+        onValue={payload => transmit("hex", fullHex(new TextEncoder().encode(payload + "\n")), "none")} />
 
       {tab === "events" && (
         <>

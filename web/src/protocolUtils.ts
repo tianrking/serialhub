@@ -2,6 +2,8 @@ export type StreamProtocol =
   | "raw"
   | "firewater"
   | "justfloat"
+  | "binary"
+  | "image"
   | "nmea0183"
   | "slip"
   | "cobs"
@@ -13,7 +15,7 @@ export type WaveSample = {
 };
 
 export type ProtocolFrame = {
-  protocol: Exclude<StreamProtocol, "raw" | "firewater" | "justfloat">;
+  protocol: Exclude<StreamProtocol, "raw" | "firewater" | "justfloat" | "binary" | "image">;
   summary: string;
   bytes: Uint8Array;
   valid?: boolean;
@@ -57,11 +59,14 @@ export function parseFireWater(buffer: string): { samples: WaveSample[]; remaind
     if (!line) continue;
     const separator = line.indexOf(":");
     const valuesText = separator >= 0 ? line.slice(separator + 1) : line;
-    const values = valuesText
-      .split(",")
-      .map((value) => Number(value.trim()))
-      .filter((value) => Number.isFinite(value));
-    if (values.length === 0) continue;
+    const tokens = valuesText.split(",");
+    // Preserve channel positions. Missing/invalid values are gaps, never zeros
+    // or a reason to shift later channels to the left.
+    if (tokens.length > 64 || line.length > MAX_REMAINDER) { samples.push({ values: [NaN] }); continue; }
+    const values = tokens.map(value => {
+      const token = value.trim();
+      return /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(token) && Number.isFinite(Number(token)) ? Number(token) : Number.NaN;
+    });
     samples.push({
       values,
       ...(separator >= 0 && line.slice(0, separator).trim()
@@ -69,7 +74,7 @@ export function parseFireWater(buffer: string): { samples: WaveSample[]; remaind
         : {}),
     });
   }
-  return { samples, remainder: buffer.slice(consumed) };
+  return { samples, remainder: buffer.slice(consumed).slice(-MAX_REMAINDER) };
 }
 
 /** Parse one or more JustFloat frames across arbitrary WebSocket chunks. */
@@ -83,15 +88,15 @@ export function parseJustFloat(
     const tail = findTail(bytes);
     if (tail < 0) break;
     const payload = bytes.subarray(0, tail);
-    if (payload.length > 0 && payload.length % 4 === 0) {
+    if (payload.length > 0 && payload.length <= 64 * 4 && payload.length % 4 === 0) {
       const view = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
       const values: number[] = [];
       for (let offset = 0; offset < payload.length; offset += 4) {
         const value = view.getFloat32(offset, true);
-        if (Number.isFinite(value)) values.push(value);
+        values.push(Number.isFinite(value) ? value : Number.NaN);
       }
       if (values.length > 0) samples.push({ values });
-    }
+    } else if (payload.length > 0) samples.push({ values: [NaN] });
     bytes = bytes.subarray(tail + JUSTFLOAT_TAIL.length);
   }
   return { samples, remainder: boundedRemainder(bytes) };
@@ -303,6 +308,10 @@ export function parseModbusRtu(
 
 export function protocolLabel(protocol: StreamProtocol): string {
   switch (protocol) {
+    case "binary":
+      return "自定义数值帧";
+    case "image":
+      return "原始图像帧";
     case "firewater":
       return "FireWater CSV";
     case "justfloat":

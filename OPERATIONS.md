@@ -145,3 +145,24 @@ acknowledged by the serial owner and are not persisted to TOML. Port enumeration
 lists the Hub machine's devices. Changing the owned physical port still requires
 editing the Hub profile and restarting. See [the SSCOM capability matrix](./SSCOM_PARITY.zh-CN.md)
 for hardware validation requirements and remaining GUI gaps.
+
+
+## Signal Studio
+
+Open the signal instruments navigation and select FireWater, JustFloat, a
+configured fixed-length numeric frame, or a raw pixel frame. Set the **device's
+uniform sampling rate** before interpreting the time axis or FFT. Packet arrival
+timing is not a measurement clock. Invalid/missing values remain gaps; spectral
+analysis requires a contiguous valid window. Engineering calibration affects the
+display; CSV exports keep the original raw values.
+
+Acquisition uses a separate 16,384-frame ring (64 channels, up to 16 visible
+curves) and snapshots at no more than 20 Hz. Terminal display pause does not stop
+signal acquisition; a frozen plot retains its view while live acquisition
+continues. CSV replay is isolated from live RX and never transmits commands.
+Parameter controls require an explicit send and use the shared TX gate.
+
+This is a browser software instrument, with bounded storage and display latency.
+Validate sample-clock accuracy, throughput and CPU behavior on the actual target
+hardware. See the [VOFA+ matrix](./VOFA_PARITY.zh-CN.md) for supported formats,
+analysis assumptions, image framing, replay limits and remaining differences.

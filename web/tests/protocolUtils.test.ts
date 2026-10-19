@@ -24,7 +24,7 @@ test("FireWater keeps partial UTF-8 text across chunks", () => {
   const first = parseFireWater("imu:1,2\npartial");
   assert.deepEqual(first.samples, [{ label: "imu", values: [1, 2] }]);
   const second = parseFireWater(`${first.remainder},3\n`);
-  assert.deepEqual(second.samples, [{ values: [3] }]);
+  assert.deepEqual(second.samples, [{ values: [NaN, 3] }]);
   assert.equal(second.remainder, "");
 });
 

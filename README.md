@@ -139,6 +139,8 @@ Device (UART/COM)
 
 The embedded workspace includes binary file TX, bounded raw RX recording, ordered multi-command sending, GBK/UTF-8 tools, runtime line settings, and configuration migration. See the [SSCOM 5.13 capability matrix and remaining gaps](./SSCOM_PARITY.zh-CN.md) and [operating guide](./OPERATIONS.md).
 
+Signal Studio adds multichannel scopes, cursors and software triggers, FFT/XY/waterfall analysis, meters, Euler attitude, raw pixel frames, configurable parameter controls, and bounded CSV replay. See the [VOFA+ capability matrix and analysis contracts](./VOFA_PARITY.zh-CN.md).
+
 ### Functional features
 
 | Feature | Description | Status |

@@ -15,7 +15,7 @@ export default function ProtocolInspectorPanel({
   onClear,
 }: ProtocolInspectorPanelProps) {
   const recent = useMemo(() => frames.slice(-100), [frames]);
-  if (protocol === "raw" || protocol === "firewater" || protocol === "justfloat") return null;
+  if (protocol === "raw" || protocol === "firewater" || protocol === "justfloat" || protocol === "binary" || protocol === "image") return null;
 
   return (
     <section className="panel protocol-inspector">

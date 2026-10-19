@@ -1,103 +1,18 @@
 import { useMemo } from "react";
-import type { WaveSample } from "./protocolUtils";
-
-type WaveformPanelProps = {
-  samples: WaveSample[];
-  channel: number;
-  onChannelChange: (channel: number) => void;
-  onClear: () => void;
-  protocolLabel: string;
-};
-
-const VIEW_WIDTH = 960;
-const VIEW_HEIGHT = 220;
-
-function formatValue(value: number | undefined): string {
-  return value === undefined || !Number.isFinite(value) ? "—" : value.toPrecision(6);
-}
-
-export default function WaveformPanel({
-  samples,
-  channel,
-  onChannelChange,
-  onClear,
-  protocolLabel,
-}: WaveformPanelProps) {
-  const channelCount = useMemo(
-    () => Math.max(1, samples.reduce((count, sample) => Math.max(count, sample.values.length), 0)),
-    [samples],
-  );
-  const activeChannel = Math.min(channel, channelCount - 1);
-  const values = useMemo(
-    () => samples.map((sample) => sample.values[activeChannel]).filter((value) => Number.isFinite(value)),
-    [activeChannel, samples],
-  );
-  const { points, min, max } = useMemo(() => {
-    if (values.length === 0) return { points: "", min: 0, max: 0 };
-    let minimum = Math.min(...values);
-    let maximum = Math.max(...values);
-    if (minimum === maximum) {
-      const padding = Math.max(1, Math.abs(minimum) * 0.05);
-      minimum -= padding;
-      maximum += padding;
-    }
-    const span = maximum - minimum;
-    const last = Math.max(1, values.length - 1);
-    const svgPoints = values
-      .map((value, index) => {
-        const x = (index / last) * VIEW_WIDTH;
-        const y = VIEW_HEIGHT - ((value - minimum) / span) * VIEW_HEIGHT;
-        return `${x.toFixed(2)},${y.toFixed(2)}`;
-      })
-      .join(" ");
-    return { points: svgPoints, min: minimum, max: maximum };
-  }, [values]);
-  const latest = values.at(-1);
-
-  return (
-    <section className="panel waveform-panel">
-      <div className="log-head">
-        <div>
-          <h2>数据波形</h2>
-          <p className="hint">
-            {protocolLabel} · {values.length} samples · 最新 {formatValue(latest)}
-          </p>
-        </div>
-        <div className="row">
-          <label>
-            通道
-            <select
-              value={activeChannel}
-              onChange={(event) => onChannelChange(Number(event.target.value))}
-            >
-              {Array.from({ length: channelCount }, (_, index) => (
-                <option key={index} value={index}>
-                  CH{index}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="button" className="ghost" onClick={onClear}>
-            清空波形
-          </button>
-        </div>
-      </div>
-      <div className="waveform-shell">
-        {points ? (
-          <svg
-            className="waveform"
-            viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-            preserveAspectRatio="none"
-            role="img"
-            aria-label={`CH${activeChannel} 波形，范围 ${formatValue(min)} 到 ${formatValue(max)}`}
-          >
-            <line x1="0" x2={VIEW_WIDTH} y1={VIEW_HEIGHT / 2} y2={VIEW_HEIGHT / 2} className="waveform-grid" />
-            <polyline points={points} className="waveform-line" />
-          </svg>
-        ) : (
-          <p className="muted">选择 FireWater 或 JustFloat，收到完整数据帧后显示波形。</p>
-        )}
-      </div>
-    </section>
-  );
+import { useSignalSnapshot } from "./signals/useSignalSnapshot";
+import { SignalStore } from "./signals/store";
+import { COLORS, extent, formatNumber, plotPath } from "./signals/math";
+export default function WaveformPanel({ store, protocolLabel, connected, onOpen }: { connected: boolean; store: SignalStore; protocolLabel: string; onOpen(): void }) {
+  const snapshot = useSignalSnapshot(store);
+  const samples = useMemo(() => snapshot.samples.slice(-512), [snapshot.samples]);
+  const count = Math.min(4, snapshot.channels);
+  const domain = extent(samples.flatMap(sample => sample.values.slice(0, count)));
+  const first = samples[0]?.index ?? 0, last = Math.max(first + 1, samples.at(-1)?.index ?? 1);
+  return <section className="panel waveform-panel"><div className="log-head"><div><h2>数据波形</h2><p className="hint">{protocolLabel} · {snapshot.source === "replay" ? "CSV 离线回放" : connected && snapshot.connected ? "实时采样" : "离线缓存"} · {snapshot.samples.length.toLocaleString()} samples · {snapshot.channels} channels</p></div>
+    <button type="button" className="ghost" onClick={onOpen}>打开信号仪表 ↗</button></div>
+    <div className="waveform-preview-legend">{Array.from({ length: count }, (_, index) => <span key={index} style={{ color: COLORS[index] }}>CH{index} <b>{formatNumber(samples.at(-1)?.values[index])}</b></span>)}</div>
+    <div className="waveform-shell">{samples.length ? <svg className="waveform" viewBox="0 0 960 220" preserveAspectRatio="none" role="img" aria-label="最近采样多通道预览">
+      {Array.from({ length: count }, (_, index) => <path data-preview-channel={index} key={index} d={plotPath(samples.map(sample => ({ x: sample.index, y: sample.values[index] ?? NaN })), value => (value - first) / (last - first) * 960, value => 210 - (value - domain[0]) / (domain[1] - domain[0]) * 200)} fill="none" stroke={COLORS[index]} strokeWidth="1.7" />)}
+    </svg> : <p className="muted">选择 FireWater 或 JustFloat，收到完整数据帧后显示波形。</p>}</div>
+  </section>;
 }

@@ -173,6 +173,8 @@ test("HTTPS pages use HTTPS requests and a WSS stream", async ({ page }) => {
   await expect(page.getByRole("status").first()).toContainText("HTTP + WS");
   await expect(page.locator(".line.rx")).toContainText("secure-endpoint");
   expect(streamUrl).toBe("wss://console.example.test/v1/stream?live=true");
+  await page.getByRole("button", { name: "断开", exact: true }).click();
+  await page.unrouteAll({ behavior: "wait" });
 });
 
 test("binary file TX and paused-display raw RX preserve every byte", async ({ page }) => {
@@ -308,14 +310,14 @@ test("live recording accepts its first packet and stops on disconnect", async ({
 test("an active sequence renews only its original lease and stops when renewal fails", async ({ page }) => {
   let locks = 0, writes = 0;
   await page.addInitScript(() => localStorage.setItem("ohmyserial.web.quickCommands", JSON.stringify([
-    { id: "lease-command", name: "Leased", mode: "hex", payload: "01", lineEnding: "none", delayMs: 250 },
+    { id: "lease-command", name: "Leased", mode: "hex", payload: "01", lineEnding: "none", delayMs: 1200 },
   ])));
   await page.route("**/v1/lock", async route => {
     locks++;
     const body = route.request().postDataJSON();
     if (locks > 1) expect(body.lease_token).toBe("original-lease");
     await route.fulfill({ json: locks >= 4 ? { ok: false, error: "write lease expired" } : {
-      ok: true, lock: { owner: "web-ui", lease_token: "original-lease", expires_ms: 400 },
+      ok: true, lock: { owner: "web-ui", lease_token: "original-lease", expires_ms: 2000 },
     } });
   });
   await page.route("**/v1/write", async route => {
