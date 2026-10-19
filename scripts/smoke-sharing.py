@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 from urllib.error import HTTPError, URLError
@@ -107,6 +108,7 @@ mirror_console = false
     with (directory / "hub.log").open("wb") as log:
         process = subprocess.Popen([str(binary), "run", "-c", str(profile)],
                                    cwd=directory, stdout=log, stderr=log)
+        completed = False
         try:
             deadline = time.monotonic() + 10
             while True:
@@ -150,6 +152,8 @@ mirror_console = false
                 receive_exact(a, next_payload)
                 receive_exact(b, next_payload)
                 print("PASS TCP writer can send after lease release; both readers receive RX")
+            require(process.poll() is None, "Hub exited before smoke checks completed")
+            completed = True
         finally:
             if process.poll() is None:
                 process.terminate()
@@ -158,7 +162,10 @@ mirror_console = false
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
-            if process.returncode:
+            # Windows terminate() intentionally uses TerminateProcess, whose
+            # nonzero result is expected here. Only dump diagnostics for a
+            # failed check, not for our own successful cleanup.
+            if not completed:
                 print((directory / "hub.log").read_text(encoding="utf-8", errors="replace")[-4000:])
 
 
@@ -177,4 +184,5 @@ def main():
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
     main()

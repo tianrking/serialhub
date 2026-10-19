@@ -23,6 +23,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: never
+  PYTHONUTF8: "1"
 
 jobs:
   check-workflows:
@@ -74,7 +75,7 @@ jobs:
         run: git diff --exit-code -- web/dist
       - name: Share the verified frontend with native builders
         if: matrix.node == '24'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: web-dist
           path: web/dist/
@@ -135,7 +136,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: native-${{ matrix.target }}
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         with:
           name: web-dist
           path: web/dist/
@@ -167,7 +168,7 @@ jobs:
         run: python scripts/ci-run.py --log browser-tests.log -- npm --prefix web run test:e2e
       - name: Upload failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: diagnostics-${{ matrix.target }}
           path: |
@@ -176,7 +177,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload verified native archive
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: serialhub-${{ matrix.target }}
           path: |

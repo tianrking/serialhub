@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 
+sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--log", type=Path, required=True)
 parser.add_argument("command", nargs=argparse.REMAINDER)
