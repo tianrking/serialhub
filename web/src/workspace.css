@@ -1,0 +1,269 @@
+/* Shared overlays also work in the narrow-screen stacked layout. */
+.workspace-dialog-trigger { min-width: 0; }
+.workspace-dialog { width: min(1050px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); padding: 0; color: var(--text); background: var(--panel); border: 1px solid #d7e1ee; border-radius: 12px; box-shadow: 0 24px 100px #0d1e3d55; }
+.workspace-dialog::backdrop { background: #10203b88; backdrop-filter: blur(3px); }
+.workspace-dialog > header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; background: #fff; border-bottom: 1px solid var(--border); }
+.workspace-dialog > header h2 { margin: 0; font-size: 15px; }
+.workspace-dialog-body { padding: 18px 20px; overflow: auto; }
+.signal-top-actions > .workspace-dialog-trigger { padding: 0; margin: 0; border: 0; background: transparent; }
+.signal-top-actions .workspace-dialog { text-align: left; }
+.signal-top-actions .workspace-dialog .signal-channel-config { max-height: none; }
+.signal-top-actions .workspace-dialog .signal-table-scroll { max-height: none; }
+.signal-top-actions .workspace-dialog button { font-size: 11px; }
+.signal-top-actions .workspace-dialog label { font-size: 11px; }
+.signal-top-actions .workspace-dialog input, .signal-top-actions .workspace-dialog select { font-size: 12px; }
+.signal-dashboard { min-width: 0; }
+.scope-plot-viewport { min-width: 0; }
+.workspace-status-ribbon { margin-bottom: 16px; }
+.workspace-status-ribbon .traffic-counters { margin: 0; }
+.lease-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.lease-actions button { font-size: 10px; padding: 5px 8px; }
+.workbench-dock { min-width: 0; background: white; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.dock-tabs, .analysis-tabs { display: flex; gap: 3px; padding: 5px; border-bottom: 1px solid var(--border); background: #f5f8fc; }
+.dock-tabs button, .analysis-tabs button { flex: 1; min-width: 0; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #687d9b; padding: 6px 4px; font-size: 11px; white-space: nowrap; }
+.dock-tabs [aria-selected="true"], .analysis-tabs [aria-selected="true"] { background: white; border-color: #dce6f5; color: #285dbb; box-shadow: 0 1px 4px #253f6910; }
+.dock-content > [role="tabpanel"] > .panel { border: 0; box-shadow: none; margin: 0; }
+.dock-content { min-height: 0; }
+.dock-empty { padding: 16px; margin: 0; }
+.analysis-tabs { display: none; }
+button:focus-visible, summary:focus-visible { outline: 2px solid #4c83e3; outline-offset: 2px; }
+
+/* Desktop: the window is the workspace; only data panes and long tools scroll. */
+@media (min-width: 1000px) {
+  html, body, #root { height: 100%; min-height: 0; }
+  body { overflow: hidden; }
+  .app { position: relative; display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: none; height: 100dvh; min-height: 0; margin: 0; padding: 8px 12px 5px; overflow: hidden; }
+  .sidebar { position: static; inset: auto; width: auto; height: 46px; flex: 0 0 46px; display: flex; flex-direction: row; align-items: center; padding: 0 12px; border-radius: 8px; z-index: auto; }
+  .brand { font-size: 17px; gap: 8px; margin: 0 25px 0 0; letter-spacing: -.5px; }
+  .brand-mark { width: 28px; height: 29px; border-radius: 7px; }
+  .brand-mark svg { width: 20px; }
+  .brand small, .nav-label, .sidebar-note, .sidebar-footer, .sidebar-nav small { display: none; }
+  .sidebar-nav { display: flex; gap: 4px; margin-right: 190px; }
+  .sidebar-nav button { gap: 6px; min-height: 31px; padding: 5px 11px; font-size: 11px; border-radius: 5px; }
+  .sidebar-nav svg { width: 14px; height: 14px; }
+  .header { position: absolute; top: 17px; right: 25px; margin: 0 !important; padding: 0; z-index: 1; }
+  .header > div:first-child, .local-badge { display: none; }
+  .header-status { margin: 0; }
+  .header .lamp { min-height: 0; padding: 3px 8px; font-size: 10px; border-radius: 5px; }
+  #main-content { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; min-width: 0; gap: 7px; overflow: hidden; }
+  .panel { margin: 0; border-radius: 8px; }
+  .connect, .app:has(.signal-workbench) .connect { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; flex-shrink: 0; padding: 7px 10px; margin: 0; }
+  .connection-heading, .connection-help { display: none; }
+  .connect > .row { flex: 1; gap: 10px; min-width: 0; }
+  .connect label { gap: 3px; font-size: 10px; }
+  .connect > .row > label { flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; }
+  .connect > .row > label > input { min-width: 70px; }
+  .connect input, .connect select { height: 29px; min-height: 29px; padding: 4px 7px; font-size: 12px; }
+  .connect > .row > label:first-child { flex: .8; }
+  .connect > .row > label:has(input[type="password"]) { flex: 1; }
+  .connect > .row > button, .profile-settings > button { min-height: 29px; padding: 4px 11px; font-size: 11px; }
+  .connect .profile-settings { margin: 0; padding: 0; border: 0; }
+  .profile-settings .profile-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .profile-settings .workspace-dialog { width: min(800px, calc(100vw - 32px)); }
+  .connect .connection-error { flex-basis: 100%; padding: 5px 8px; margin: 0; font-size: 11px; }
+  .connection-error span { display: inline; margin: 0 0 0 10px; }
+  .overview, .app:has(.signal-workbench) .overview { display: flex; align-items: center; flex-shrink: 0; gap: 12px; padding: 5px 10px; margin: 0; min-height: 33px; border-radius: 7px; }
+  .overview > div { display: flex; flex-direction: row; align-items: baseline; justify-content: flex-start; gap: 8px; padding: 0 12px; }
+  .overview > .overview-device { flex: 1; min-width: 0; padding: 0; gap: 8px; }
+  .overview > .lease-actions { gap: 5px; padding: 0 0 0 6px; flex-shrink: 0; }
+  .overview > .lease-actions button { white-space: nowrap; }
+  .overview-device > div { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .overview small { font-size: 10px; margin: 0; white-space: nowrap; }
+  .overview strong { font-size: 12px; letter-spacing: 0; white-space: nowrap; }
+  .overview strong > span { display: inline; font-size: 9px; margin: 0 0 0 4px; }
+  .overview-device strong { font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+  .overview-device div > span { display: none; }
+  .overview .device-indicator { width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; }
+  .overview .device-indicator svg { width: 14px; }
+  .simulation-label { display: inline-block; padding: 2px 5px; font-size: 8px; }
+  .workspace-status-ribbon { display: flex; flex-shrink: 0; align-items: center; gap: 12px; margin: 0; min-height: 27px; }
+  .workspace-status-ribbon .traffic-counters, .app:has(.signal-workbench) .workspace-status-ribbon .traffic-counters { display: flex; flex: 1; gap: 7px; margin: 0; padding: 0 3px; font-size: 10px; }
+  .traffic-counters .hint { display: none; }
+  .traffic-counters small { margin-right: 7px; }
+  .workspace-status-ribbon button { min-height: 25px; }
+  .lease-actions { flex-wrap: nowrap; }
+  .lease-actions button { min-height: 25px; padding: 3px 8px; font-size: 10px; }
+  .workspace-heading { display: none; }
+  .job-status { position: static; flex-shrink: 0; gap: 8px; margin: 0; padding: 5px 10px; min-height: 34px; font-size: 11px; }
+  .job-status button { min-height: 25px; padding: 3px 8px; font-size: 11px; }
+  .grid { display: grid; flex: 1 1 0; min-height: 0; min-width: 0; grid-template-columns: minmax(0,1fr) minmax(320px, 28%); grid-template-rows: minmax(0,1.35fr) minmax(0,1fr); align-items: stretch; gap: 8px; }
+  .grid > .log-panel { grid-area: 1 / 1; }
+  .grid > .composer-panel { grid-area: 1 / 2; }
+  .grid > .waveform-panel { grid-area: 2 / 1; }
+  .grid > .workbench-dock { grid-area: 2 / 2; }
+  .grid > * { min-height: 0; min-width: 0; }
+  .log-panel { display: flex; flex-direction: column; }
+  .log-panel > .log-head { padding: 9px 12px 7px; gap: 6px; flex-shrink: 0; }
+  .terminal-title h2 { font-size: 12px; }
+  .log-panel .log-head > .row { gap: 8px; margin: 0; }
+  .log-panel label { font-size: 10px; }
+  .log-panel select, .log-panel button.ghost { min-height: 25px; font-size: 10px; }
+  .log-filter { padding: 5px 12px; flex-shrink: 0; }
+  .log { flex: 1 1 0; min-height: 0; height: auto; padding: 8px 12px; overscroll-behavior: contain; }
+  .line { font-size: 12px; }
+  .terminal-statusbar { padding: 5px 12px; font-size: 9px; flex-shrink: 0; }
+  .composer-panel { padding: 10px 12px; overflow: auto; overscroll-behavior: contain; }
+  .composer-heading { margin-bottom: 7px; }
+  .composer-heading h2 { font-size: 12px; }
+  .composer-panel .segmented { margin-bottom: 5px; }
+  .composer-panel .segmented button { min-height: 26px; padding: 3px 10px; font-size: 11px; }
+  .composer-panel label { gap: 3px; font-size: 10px; }
+  .composer-panel label.block { margin: 3px 0 7px; }
+  .composer-panel textarea { height: clamp(55px, 10vh, 100px); min-height: 45px; resize: vertical; padding: 6px 8px; line-height: 1.6; }
+  .composer-options { gap: 10px; }
+  .composer-options select { font-size: 11px; min-height: 27px; padding: 3px 6px; min-width: 88px; }
+  .composer-options .inline-hint { display: none; }
+  .composer-panel .send-button { min-height: 30px; margin-top: 8px; padding: 4px 10px; font-size: 12px; }
+  .composer-panel .send-history { margin-bottom: 5px; }
+  .auto-send-settings { margin-top: 7px; padding-top: 6px; }
+  .composer-note { margin: 5px 0 0; }
+  .workbench-dock { display: flex; flex-direction: column; }
+  .dock-tabs { flex-shrink: 0; }
+  .dock-content { flex: 1 1 0; overflow: auto; overscroll-behavior: contain; }
+  .dock-content .panel { padding: 10px 12px; }
+  .dock-content h2 { font-size: 12px; margin-bottom: 8px; }
+  .dock-content .kv { grid-template-columns: 66px 1fr; font-size: 10px; gap: 4px 8px; margin: 0 0 8px; }
+  .dock-content .kv dd { overflow-wrap: anywhere; }
+  .dock-content .kv dt:nth-of-type(3), .dock-content .kv dd:nth-of-type(3), .dock-content .kv dt:nth-of-type(6), .dock-content .kv dd:nth-of-type(6), .dock-content .kv dt:nth-of-type(7), .dock-content .kv dd:nth-of-type(7) { display: none; }
+  .dock-content .hint { font-size: 10px; }
+  .dock-content .hardware-controls { margin-top: 8px; }
+  .dock-content .quick-editor { grid-template-columns: 1fr 80px; gap: 8px; }
+  .dock-content .quick-editor .quick-payload { grid-column: 1 / -1; }
+  .dock-content .quick-list { max-height: none; }
+  .dock-content .quick-item { display: block; padding: 8px; }
+  .dock-content .quick-item-main { margin-bottom: 8px; }
+  .dock-content .tool-heading .eyebrow, .dock-content .tool-heading > .tag { display: none; }
+  .dock-content .tool-heading h2 { margin-bottom: 7px; }
+  .dock-content .tool-tabs { gap: 0; justify-content: space-between; margin-bottom: 12px; }
+  .dock-content .tool-tabs button { min-height: 28px; padding-bottom: 5px; font-size: 10px; }
+  .dock-content .tool-columns { grid-template-columns: 1fr; gap: 15px; }
+  .dock-content .tool-card + .tool-card { border-left: 0; border-top: 1px solid #e9eef5; padding: 15px 0 0; }
+  .dock-content .sequence-list { max-height: none; }
+  .dock-content .sequence-row { flex-wrap: wrap; gap: 8px; }
+  .dock-content .sequence-command { flex-basis: 60%; }
+  .dock-content input, .dock-content select { min-width: 0; max-width: 100%; font-size: 11px; }
+  .waveform-panel { display: flex; flex-direction: column; padding: 10px 12px; overflow: hidden; }
+  .waveform-panel .log-head { flex-shrink: 0; align-items: center; gap: 8px; }
+  .waveform-panel h2 { font-size: 12px; }
+  .waveform-panel .hint { margin-top: 2px; font-size: 10px; }
+  .waveform-preview-legend { margin-top: 5px; font-size: 10px; flex-wrap: wrap; flex-shrink: 0; }
+  .waveform-shell { flex: 1 1 0; min-height: 0; margin-top: 7px; overflow: hidden; background-color: #101e33; background-image: linear-gradient(#22354b 1px,transparent 1px),linear-gradient(90deg,#22354b 1px,transparent 1px); border-color: #24344b; }
+  .waveform { width: 100%; height: 100%; }
+  .waveform-shell > .muted { font-size: 11px; }
+  .auxiliary-workspace { flex: 1 1 0; min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; }
+  .auxiliary-workspace > .panel { margin-bottom: 10px; }
+  .footer { display: flex; align-items: center; flex-shrink: 0; gap: 12px; font-size: 9px; margin: 0; padding: 0 2px; line-height: 13px; }
+  .footer .traffic-counters, .app:has(.signal-workbench) .footer .traffic-counters { display: flex; margin: 0; flex: 1; gap: 7px; font-size: 10px; padding: 0; }
+  .footer-caption { color: #95a3b7; }
+
+  .signal-workbench { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; gap: 6px; position: relative; }
+  .signal-workbench:fullscreen { height: 100dvh; overflow: hidden; padding: 10px; }
+  .signal-topbar { flex-shrink: 0; gap: 10px; margin: 0; min-height: 30px; }
+  .signal-topbar h2 { font-size: 14px; letter-spacing: 0; }
+  .signal-top-actions { align-items: center; }
+  .signal-source-bar { flex-shrink: 0; gap: 14px; padding: 4px 10px; border-radius: 7px; }
+  .signal-source-bar { gap: 8px; }
+  .signal-source-bar > .signal-top-actions { display: flex; gap: 5px; margin-left: auto; }
+  .signal-source-bar .signal-import-actions { margin-left: 0; gap: 5px; }
+  .signal-source-bar .signal-top-actions > select { min-width: 92px; }
+  .signal-source-bar button, .signal-source-bar .signal-file-button { padding-inline: 7px; }
+  .signal-source-bar input[type="number"] { width: 78px; }
+  .signal-source-bar > label { gap: 6px; }
+  .signal-workbench label { font-size: 10px; }
+  .signal-workbench button, .signal-workbench input, .signal-workbench select { min-height: 27px; font-size: 11px; }
+  .signal-workbench input[type="checkbox"] { min-height: 0; width: 12px; height: 12px; }
+  .signal-workbench input[type="range"] { min-height: 0; height: 14px; padding: 0; }
+  .signal-workbench select, .signal-workbench input[type="number"] { padding: 3px 6px; height: 27px; }
+  .signal-source-bar input[type="number"] { width: 90px; }
+  .signal-import-actions { margin-left: auto; }
+  .source-pill { font-size: 10px; padding: 4px 6px; }
+  .signal-acquisition-stats { flex-shrink: 0; gap: 14px; padding: 0 3px; font-size: 10px; }
+  .signal-acquisition-stats b { font-size: 10px; }
+  .signal-acquisition-stats > span:last-of-type { margin-left: auto; }
+  .signal-timing-note { display: none; }
+  .signal-notice { flex-shrink: 0; padding: 5px 10px; margin: 0; }
+  .signal-replay-bar { flex-shrink: 0; padding: 6px 10px; margin: 0; }
+  .signal-dashboard { display: grid; flex: 1 1 0; min-height: 0; grid-template-columns: minmax(0,1fr) minmax(310px,31%); grid-template-rows: minmax(0,1fr) 102px; gap: 8px; }
+  .signal-dashboard > .scope-card { grid-area: 1 / 1; display: flex; flex-direction: column; overflow: auto; }
+  .signal-card { min-height: 0; padding: 10px 12px; border-radius: 8px; box-shadow: none; }
+  .instrument-heading { margin-bottom: 7px; flex-shrink: 0; }
+  .instrument-heading .eyebrow { display: none; }
+  .instrument-heading h3 { font-size: 12px; }
+  .scope-toolbar { flex-shrink: 0; gap: 6px; margin-bottom: 6px; }
+  .scope-toolbar button, .scope-toolbar select { min-height: 25px; padding: 3px 6px; font-size: 10px; }
+  .signal-legends { flex-shrink: 0; gap: 5px; margin-bottom: 6px; max-height: 62px; }
+  .signal-legends button { min-height: 24px; font-size: 10px; padding: 3px 7px; }
+  .signal-legends b { font-size: 10px; }
+  .scope-plot-viewport { flex: 1 0 100px; min-height: 100px; overflow: auto; background: #0e1b2e; border-radius: 7px; }
+  .scope-plot-viewport .signal-scope { height: 100%; min-height: calc(var(--scope-tracks) * 72px); border-radius: 7px; }
+  .scope-bottom { flex-shrink: 0; padding: 5px 0; font-size: 9px; }
+  .scope-bottom input { width: 150px; }
+  .signal-analysis-strip { flex-shrink: 0; padding: 5px 0; gap: 14px; font-size: 9px; }
+  .signal-analysis-strip > span { display: flex; align-items: center; gap: 6px; }
+  .signal-analysis-strip b { display: inline; font-size: 10px; margin: 0; }
+  .signal-analysis-strip select { min-height: 25px; font-size: 10px; }
+  .signal-cursors { flex-shrink: 0; padding-top: 5px; gap: 12px; font-size: 10px; }
+  .signal-cursors button { height: 24px; min-height: 24px; padding: 2px 6px; }
+  .signal-trigger { flex-shrink: 0; margin-top: 6px; padding: 5px 8px; gap: 8px; font-size: 10px; }
+  .signal-trigger > span:nth-child(2) { display: none; }
+  .signal-trigger > span:last-child { font-size: 9px; }
+  .signal-dashboard > .signal-meters { grid-area: 2 / 1; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); grid-auto-rows: 100px; overflow: auto; margin: 0; gap: 8px; }
+  .signal-meter { padding: 8px 10px; border-radius: 7px; }
+  .meter-title { font-size: 10px; }
+  .meter-main { margin: 5px 0; }
+  .meter-main strong { font-size: 20px; }
+  .meter-main small { display: none; }
+  .meter-main svg { width: 43px; height: 29px; }
+  .signal-meter.out-of-range .meter-main strong { color: #b87525; }
+  .meter-statistics { font-size: 8px; margin-top: 5px; }
+  .meter-statistics b { margin-top: 1px; font-size: 9px; }
+  .signal-dashboard > .signal-instrument-grid { grid-area: 1 / 2 / 3 / 3; display: flex; flex-direction: column; min-height: 0; gap: 0; background: #fff; border: 1px solid var(--signal-border); border-radius: 8px; overflow: hidden; }
+  .analysis-tabs { display: flex; flex-wrap: wrap; flex-shrink: 0; }
+  .analysis-tabs button { padding: 5px 3px; min-height: 27px; font-size: 11px; }
+  .signal-instrument-grid > .signal-card { display: none; border: 0; border-radius: 0; flex: 1 1 0; overflow: auto; }
+  .signal-instrument-grid[data-panel="fft"] > .spectrum-card,
+  .signal-instrument-grid[data-panel="xy"] > .xy-card,
+  .signal-instrument-grid[data-panel="waterfall"] > .waterfall-card,
+  .signal-instrument-grid[data-panel="histogram"] > .histogram-card,
+  .signal-instrument-grid[data-panel="attitude"] > .attitude-card,
+  .signal-instrument-grid[data-panel="control"] > .control-deck { display: flex; flex-direction: column; }
+  .spectrum-toolbar { gap: 8px; margin-bottom: 9px; flex-shrink: 0; }
+  .spectrum-frequency-limit { flex-shrink: 0; }
+  .signal-spectrum, .xy-card > svg, .histogram-card > svg { flex: 1 0 160px; min-height: 160px; width: 100%; height: auto; margin-top: 10px; background: #0e1b2e; }
+  .signal-spectrum text, .xy-card svg text { font-size: 22px; }
+  .signal-scope text { font-size: 12px; }
+  .histogram-card svg text { font-size: 16px; }
+  .waterfall-canvas { flex: 1 0 160px; min-height: 160px; height: auto; }
+  .spectrum-footer, .signal-note { font-size: 10px; }
+  .attitude-stage { flex: 1 0 160px; min-height: 160px; }
+  .control-deck > label, .control-value, .control-range-settings, .control-slider, .control-deck > button, .control-quick-buttons { flex-shrink: 0; }
+  .signal-dashboard > .image-card { grid-area: 1 / 1 / 3 / 3; display: flex; flex-direction: column; overflow: auto; }
+  .image-viewer-tools { flex-shrink: 0; }
+  .image-frame-viewer { flex: 1 1 0; min-height: 100px; overflow: auto; }
+  .image-frame-viewer canvas.fit { width: auto; max-height: 100%; object-fit: contain; }
+  .signal-channel-row { min-width: 780px; }
+}
+@media (min-width: 1000px) and (max-width: 1200px) {
+  .brand { margin-right: 12px; font-size: 15px; }
+  .sidebar-nav button { padding-inline: 7px; font-size: 10px; }
+  .overview { gap: 0; }
+  .overview > div { padding-inline: 8px; }
+  .overview small { font-size: 9px; }
+  .overview-device small { display: none; }
+  .overview strong > span { display: none; }
+  .overview > div { gap: 4px; padding-inline: 5px; }
+  .overview > div:nth-child(4) { display: none; }
+  .signal-source-bar { gap: 8px; }
+  .signal-import-actions { gap: 4px; }
+  .signal-dashboard { grid-template-columns: minmax(0,1fr) 300px; }
+}
+@media (max-width: 999px) {
+  .grid .workbench-dock { grid-column: 1; }
+  .workbench-dock { margin-bottom: 16px; }
+  .dock-content { max-height: 60vh; overflow: auto; }
+  .workspace-status-ribbon { display: flex; flex-wrap: wrap; gap: 8px; }
+  .signal-top-actions { flex-wrap: wrap; }
+  .signal-topbar { flex-wrap: wrap; }
+  .signal-workspace-title .signal-note { font-size: 9px; }
+  .signal-configuration, .signal-data-table { overflow: visible; }
+}

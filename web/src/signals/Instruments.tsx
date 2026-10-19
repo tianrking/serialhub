@@ -26,7 +26,7 @@ export function Attitude({ latest, channels, count }: { latest: SignalSample | u
   const values = mapping.map(index => latest ? calibrated(latest, index, channels[index]!) * (radians ? 180 / Math.PI : 1) : NaN);
   const valid = values.every(Number.isFinite);
   const safe = values.map(value => Number.isFinite(value) ? value % 360 : 0);
-  return <article className="signal-card attitude-card"><div className="instrument-heading"><div><span className="eyebrow">ORIENTATION</span><h3>三轴姿态</h3></div><span className={`signal-tag ${valid ? "" : "warn"}`}>{valid ? "EULER · ZYX" : "缺少有效角度"}</span></div>
+  return <article className="signal-card attitude-card" role="tabpanel" id="analysis-attitude" aria-labelledby="analysis-tab-attitude"><div className="instrument-heading"><div><span className="eyebrow">ORIENTATION</span><h3>三轴姿态</h3></div><span className={`signal-tag ${valid ? "" : "warn"}`}>{valid ? "EULER · ZYX" : "缺少有效角度"}</span></div>
     <div className="attitude-stage" role="img" aria-label={valid ? `Roll ${formatNumber(values[0])} 度，Pitch ${formatNumber(values[1])} 度，Yaw ${formatNumber(values[2])} 度` : "等待三轴角度数据"}>
       <div className="attitude-grid" /><div className="attitude-camera"><div className="attitude-cube" style={{ transform: `rotateZ(${safe[2]}deg) rotateY(${safe[1]}deg) rotateX(${safe[0]}deg)` }}>
         {["front", "back", "left", "right", "top", "bottom"].map(face => <div key={face} className={`cube-face ${face}`}>{face === "front" ? "SERIALHUB" : face.toUpperCase()}</div>)}</div></div>
@@ -44,7 +44,7 @@ export function ControlDeck({ config, onConfig, commands, canWrite, busy, onQuic
   const [value, setValue] = useState(50);
   const [result, setResult] = useState("");
   useEffect(() => { setValue(previous => Math.min(config.max, Math.max(config.min, previous))); }, [config.min, config.max]);
-  return <article className="signal-card control-deck"><div className="instrument-heading"><div><span className="eyebrow">CONTROL DECK</span><h3>参数与命令</h3></div><span className="signal-tag">手动确认发送</span></div>
+  return <article className="signal-card control-deck" role="tabpanel" id="analysis-control" aria-labelledby="analysis-tab-control"><div className="instrument-heading"><div><span className="eyebrow">CONTROL DECK</span><h3>参数与命令</h3></div><span className="signal-tag">手动确认发送</span></div>
     <label>发送模板（使用 {'{value}'}）<input aria-label="仪表发送模板" maxLength={512} value={template} onChange={event => onConfig({ ...config, template: event.target.value })} /></label>
     <div className="control-value"><strong>{value}</strong><input aria-label="仪表设定值" type="number" min={config.min} max={config.max} step={config.step} value={value} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) setValue(Math.max(config.min, Math.min(config.max, next))); }} /></div>
     <details className="control-range-settings"><summary>滑块范围与步长</summary><div className="row">{([['min', '下限'], ['max', '上限'], ['step', '步长']] as const).map(([key, title]) => <label key={key}>{title}<input aria-label={`控件${title}`} type="number" step="any" value={draft[key]} onChange={event => setDraft(previous => ({ ...previous, [key]: Number(event.target.value) }))} /></label>)}</div>

@@ -27,6 +27,7 @@ import WaveformPanel from "./WaveformPanel";
 import SignalWorkbench from "./signals/SignalWorkbench";
 import { SignalStore } from "./signals/store";
 import Icon from "./Icon";
+import WorkspaceDialog from "./WorkspaceDialog";
 import SerialToolsPanel from "./SerialToolsPanel";
 import SerialSettingsPanel from "./SerialSettingsPanel";
 import TrafficCounters from "./TrafficCounters";
@@ -49,6 +50,7 @@ import {
 } from "./protocolUtils";
 import "./App.css";
 import "./signals/signals.css";
+import "./workspace.css";
 
 type Tab = "monitor" | "signals" | "events" | "endpoints" | "protocol";
 
@@ -114,6 +116,7 @@ function downloadTextFile(filename: string, content: string, mime = "text/plain;
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("monitor");
+  const [dockTab, setDockTab] = useState("device");
   const [conn, setConn] = useState<ConnectionConfig>(loadConn);
   const [hostInput, setHostInput] = useState(conn.host);
   const [portInput, setPortInput] = useState(String(conn.port));
@@ -825,7 +828,7 @@ export default function App() {
   }, [online, wsOpen, phase, retryCount]);
 
   return (
-    <div className="app">
+    <div className="app" data-workspace={tab}>
       <a className="skip-link" href="#main-content">跳到工作区</a>
       <aside className="sidebar">
         <div className="brand"><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>DEVICE WORKSPACE</small></div></div>
@@ -890,7 +893,7 @@ export default function App() {
             断开
           </button>
         </div>
-        <details className="profile-settings"><summary>已保存的连接配置 <span>在本机浏览器保存，不包含令牌</span></summary><div className="row profile-row">
+        <WorkspaceDialog label="连接配置" className="profile-settings"><p className="hint">在本机浏览器保存，不包含令牌。</p><div className="row profile-row">
           <label>
             会话配置
             <select value={selectedProfileId} onChange={(e) => loadConnectionProfile(e.target.value)}>
@@ -922,7 +925,7 @@ export default function App() {
             删除配置
           </button>
         </div>
-        </details>
+        </WorkspaceDialog>
         {!online && !error && <p className="connection-help">首次使用？在设备所在主机运行 <code>serialhub share mock:demo</code> 即可体验模拟回环。</p>}
         {error && <p className="error connection-error" role="alert">{error}<span>检查地址、令牌与 Hub 运行状态后重新连接。写入请求不会自动重试。</span></p>}
       </section>
@@ -932,49 +935,7 @@ export default function App() {
         <div><small>发送 TX</small><strong>{online ? status?.stats.tx_bytes.toLocaleString() : "—"}<span>bytes</span></strong></div>
         <div><small>在线客户端</small><strong>{online ? status?.clients.length : "—"}<span>clients</span></strong></div>
         <div className={status?.stats.rx_drops ? "has-drops" : ""}><small>分发丢弃</small><strong>{online ? status?.stats.rx_drops.toLocaleString() : "—"}<span>chunks</span></strong></div>
-      </section>
-      <TrafficCounters counters={trafficRef} />
-      {jobLabel && <div className="job-status" role="status"><span className="stream-dot live" /><strong>{jobLabel}</strong><span>串口发送任务进行中</span><button type="button" onClick={() => { jobRef.current?.abort(new Error("用户停止")); }}>停止发送任务</button><small>当前块确认后停止，不自动重发</small></div>}
-      <div className="workspace-heading"><div><span className="section-index">{({ monitor: "01", signals: "02", events: "03", endpoints: "04", protocol: "05" })[tab]}</span><h2>{tab === "signals" ? "信号仪表" : tab === "monitor" ? "实时监控" : tab === "events" ? "事件证据" : tab === "endpoints" ? "共享端点" : "协议与操作"}</h2></div><span>{online ? httpBase(conn) : "尚未建立会话"}</span></div>
-      {(
-        <div className="grid" hidden={tab !== "monitor"}>
-          <section className="panel device-panel">
-            <h2><Icon name="shield" size={17} /> 设备与写入权限</h2>
-            {status ? (
-              <dl className="kv">
-                <dt>设备路径</dt>
-                <dd>
-                  {status.port.path}{" "}
-                  <span className={status.port.connected ? "tag ok" : "tag off"}>
-                    {status.port.connected ? "已打开" : "未连接"}
-                  </span>
-                </dd>
-                <dt>波特率</dt>
-                <dd>{status.port.baud}</dd>
-                <dt>连接详情</dt>
-                <dd>{status.port.detail}</dd>
-                <dt>TX 模式</dt>
-                <dd>
-                  <code>{status.tx_mode}</code>
-                </dd>
-                <dt>写入租约</dt>
-                <dd>
-                  {status.lock_owner
-                    ? `${status.lock_owner}（剩余 ${status.lock_expires_ms ?? "?"} ms）`
-                    : "未持有"}
-                </dd>
-                <dt>统计</dt>
-                <dd>
-                  RX {status.stats.rx_bytes} · TX {status.stats.tx_bytes} · drop{" "}
-                  {status.stats.rx_drops} · deny {status.stats.tx_denies}
-                </dd>
-                <dt>客户端数</dt>
-                <dd>{status.clients.length}</dd>
-              </dl>
-            ) : (
-              <p className="muted">尚未连接</p>
-            )}
-            <div className="row">
+            <div className="lease-actions">
               <button type="button" disabled={!canWrite || busy} onClick={() => void onLock()}>
                 获取写入租约
               </button>
@@ -995,63 +956,11 @@ export default function App() {
                 刷新状态
               </button>
             </div>
-            <SerialSettingsPanel online={online} busy={busy} canApply={canWrite && !!leaseToken && !status?.port.path.startsWith("mock:")}
-              inspect={inspectSerial} apply={applySerial} sessionKey={activeSession()} />
-            {leaseToken && <p className="lease-countdown" role="status">本页写入租约有效 · 剩余 {(leaseRemaining / 1000).toFixed(1)} 秒</p>}<details className="hardware-controls"><summary>硬件控制线 <span>{status?.port.path.startsWith("mock:") ? "模拟设备不支持" : "需要服务端授权与有效租约"}</span></summary><div className="row control-row">
-              <button
-                type="button"
-                className="ghost"
-                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
-                onClick={() => void onControl({ op: "dtr", level: true })}
-              >
-                DTR ON
-              </button>
-              <button
-                type="button"
-                className="ghost"
-                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
-                onClick={() => void onControl({ op: "dtr", level: false })}
-              >
-                DTR OFF
-              </button>
-              <button
-                type="button"
-                className="ghost"
-                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
-                onClick={() => void onControl({ op: "rts", level: true })}
-              >
-                RTS ON
-              </button>
-              <button
-                type="button"
-                className="ghost"
-                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
-                onClick={() => void onControl({ op: "rts", level: false })}
-              >
-                RTS OFF
-              </button>
-              <label>
-                BREAK (ms)
-                <input
-                  className="interval-input"
-                  type="number"
-                  min={1}
-                  max={1000}
-                  value={breakDurationMs}
-                  onChange={(e) => setBreakDurationMs(Math.min(1000, Math.max(1, Number(e.target.value) || 1)))}
-                />
-              </label>
-              <button
-                type="button"
-                className="ghost"
-                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
-                onClick={() => void onControl({ op: "break", duration_ms: breakDurationMs })}
-              >
-                發送 BREAK
-              </button>
-            </div></details>
-          </section>
-
+      </section>
+      {jobLabel && <div className="job-status" role="status"><span className="stream-dot live" /><strong>{jobLabel}</strong><span>串口发送任务进行中</span><button type="button" onClick={() => { jobRef.current?.abort(new Error("用户停止")); }}>停止发送任务</button><small>当前块确认后停止，不自动重发</small></div>}
+      <div className="workspace-heading"><div><span className="section-index">{({ monitor: "01", signals: "02", events: "03", endpoints: "04", protocol: "05" })[tab]}</span><h2>{tab === "signals" ? "信号仪表" : tab === "monitor" ? "实时监控" : tab === "events" ? "事件证据" : tab === "endpoints" ? "共享端点" : "协议与操作"}</h2></div><span>{online ? httpBase(conn) : "尚未建立会话"}</span></div>
+      {(
+        <div className="grid" hidden={tab !== "monitor"}>
           <section className="panel composer-panel">
             <div className="composer-heading"><h2>发送命令</h2><span>主机确认写入</span></div>{sendHistory.length > 0 && <label className="send-history">最近发送<select aria-label="最近发送" value="" onChange={event => {
               const item = sendHistory[Number(event.target.value)];
@@ -1163,14 +1072,112 @@ export default function App() {
             </details><p className="composer-note"><Icon name="shield" size={14} /> 经过统一写入仲裁；主机确认不等于设备应答。</p>
           </section>
 
-          <SerialToolsPanel canWrite={canWrite} busy={busy} capture={capture} runJob={runJob}
-            commands={quickCommands} profiles={connectionProfiles} encoding={textEncoding}
-            onCommandsChange={setQuickCommands} notify={(text, failure) => pushLog({ kind: failure ? "err" : "sys", text })}
-            onImport={backup => {
-              setQuickCommands(previous => [...previous, ...backup.commands.map(command => ({ ...command, id: newCommandId() }))]);
-              setConnectionProfiles(previous => [...previous, ...backup.profiles.map(profile => ({ ...profile, id: newProfileId() }))]);
-              pushLog({ kind: "sys", text: `已追加导入 ${backup.commands.length} 条指令、${backup.profiles.length} 个连接配置` });
-            }} />
+          <aside className="workbench-dock" aria-label="工作台工具面板">
+            <div className="dock-tabs" role="tablist" aria-label="工作台工具">
+              {([["device", "设备参数"], ["quick", "快捷指令"], ["tools", "工具箱"], ["protocol", "协议帧"]] as const).map(([id, label], index, tabs) =>
+                <button type="button" role="tab" key={id} id={`dock-tab-${id}`} aria-controls={`dock-${id}`} aria-selected={dockTab === id} tabIndex={dockTab === id ? 0 : -1}
+                  onClick={() => setDockTab(id)} onKeyDown={event => {
+                    const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : event.key === "ArrowRight" ? (index + 1) % tabs.length : event.key === "ArrowLeft" ? (index + tabs.length - 1) % tabs.length : -1;
+                    if (next >= 0) { event.preventDefault(); setDockTab(tabs[next]![0]); document.getElementById(`dock-tab-${tabs[next]![0]}`)?.focus(); }
+                  }}>{label}</button>)}
+            </div>
+            <div className="dock-content">
+              <div role="tabpanel" id="dock-device" aria-labelledby="dock-tab-device" hidden={dockTab !== "device"}>
+          <section className="panel device-panel">
+            <h2><Icon name="shield" size={17} /> 设备与写入权限</h2>
+            {status ? (
+              <dl className="kv">
+                <dt>设备路径</dt>
+                <dd>
+                  {status.port.path}{" "}
+                  <span className={status.port.connected ? "tag ok" : "tag off"}>
+                    {status.port.connected ? "已打开" : "未连接"}
+                  </span>
+                </dd>
+                <dt>波特率</dt>
+                <dd>{status.port.baud}</dd>
+                <dt>连接详情</dt>
+                <dd>{status.port.detail}</dd>
+                <dt>TX 模式</dt>
+                <dd>
+                  <code>{status.tx_mode}</code>
+                </dd>
+                <dt>写入租约</dt>
+                <dd>
+                  {status.lock_owner
+                    ? `${status.lock_owner}（剩余 ${status.lock_expires_ms ?? "?"} ms）`
+                    : "未持有"}
+                </dd>
+                <dt>统计</dt>
+                <dd>
+                  RX {status.stats.rx_bytes} · TX {status.stats.tx_bytes} · drop{" "}
+                  {status.stats.rx_drops} · deny {status.stats.tx_denies}
+                </dd>
+                <dt>客户端数</dt>
+                <dd>{status.clients.length}</dd>
+              </dl>
+            ) : (
+              <p className="muted">尚未连接</p>
+            )}
+            <SerialSettingsPanel online={online} busy={busy} canApply={canWrite && !!leaseToken && !status?.port.path.startsWith("mock:")}
+              inspect={inspectSerial} apply={applySerial} sessionKey={activeSession()} />
+            {leaseToken && <p className="lease-countdown" role="status">本页写入租约有效 · 剩余 {(leaseRemaining / 1000).toFixed(1)} 秒</p>}<details className="hardware-controls"><summary>硬件控制线 <span>{status?.port.path.startsWith("mock:") ? "模拟设备不支持" : "需要服务端授权与有效租约"}</span></summary><div className="row control-row">
+              <button
+                type="button"
+                className="ghost"
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
+                onClick={() => void onControl({ op: "dtr", level: true })}
+              >
+                DTR ON
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
+                onClick={() => void onControl({ op: "dtr", level: false })}
+              >
+                DTR OFF
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
+                onClick={() => void onControl({ op: "rts", level: true })}
+              >
+                RTS ON
+              </button>
+              <button
+                type="button"
+                className="ghost"
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
+                onClick={() => void onControl({ op: "rts", level: false })}
+              >
+                RTS OFF
+              </button>
+              <label>
+                BREAK (ms)
+                <input
+                  className="interval-input"
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={breakDurationMs}
+                  onChange={(e) => setBreakDurationMs(Math.min(1000, Math.max(1, Number(e.target.value) || 1)))}
+                />
+              </label>
+              <button
+                type="button"
+                className="ghost"
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
+                onClick={() => void onControl({ op: "break", duration_ms: breakDurationMs })}
+              >
+                發送 BREAK
+              </button>
+            </div></details>
+          </section>
+
+              </div>
+              <div role="tabpanel" id="dock-quick" aria-labelledby="dock-tab-quick" hidden={dockTab !== "quick"}>
           <section className="panel quick-panel">
             <div className="log-head">
               <div>
@@ -1257,6 +1264,27 @@ export default function App() {
             </div>
           </section>
 
+              </div>
+              <div role="tabpanel" id="dock-tools" aria-labelledby="dock-tab-tools" hidden={dockTab !== "tools"}>
+          <SerialToolsPanel canWrite={canWrite} busy={busy} capture={capture} runJob={runJob}
+            commands={quickCommands} profiles={connectionProfiles} encoding={textEncoding}
+            onCommandsChange={setQuickCommands} notify={(text, failure) => pushLog({ kind: failure ? "err" : "sys", text })}
+            onImport={backup => {
+              setQuickCommands(previous => [...previous, ...backup.commands.map(command => ({ ...command, id: newCommandId() }))]);
+              setConnectionProfiles(previous => [...previous, ...backup.profiles.map(profile => ({ ...profile, id: newProfileId() }))]);
+              pushLog({ kind: "sys", text: `已追加导入 ${backup.commands.length} 条指令、${backup.profiles.length} 个连接配置` });
+            }} />
+              </div>
+              <div role="tabpanel" id="dock-protocol" aria-labelledby="dock-tab-protocol" hidden={dockTab !== "protocol"}>
+          <ProtocolInspectorPanel
+            protocol={streamProtocol}
+            frames={protocolFrames}
+            onClear={() => setProtocolFrames([])}
+          />
+                {["raw", "firewater", "justfloat", "binary", "image"].includes(streamProtocol) && <p className="hint dock-empty">在终端的“解析”中选择 NMEA、SLIP、COBS 或 Modbus 查看协议帧。数值与图像分析请打开信号仪表。</p>}
+              </div>
+            </div>
+          </aside>
           <section className="panel log-panel">
             <div className="log-head">
               <div className="terminal-title"><span className={`stream-dot ${wsOpen ? "live" : ""}`} /><h2>实时终端</h2><span className="terminal-transport">WS /v1/stream</span></div>
@@ -1338,11 +1366,6 @@ export default function App() {
           </section>
 
           <WaveformPanel connected={canWrite} store={signalStore} protocolLabel={protocolLabel(streamProtocol)} onOpen={() => setTab("signals")} />
-          <ProtocolInspectorPanel
-            protocol={streamProtocol}
-            frames={protocolFrames}
-            onClear={() => setProtocolFrames([])}
-          />
         </div>
       )}
 
@@ -1352,7 +1375,7 @@ export default function App() {
         onValue={payload => transmit("hex", fullHex(new TextEncoder().encode(payload + "\n")), "none")} />
 
       {tab === "events" && (
-        <>
+        <div className="auxiliary-workspace">
           <EventLedgerPanel
           status={ledgerStatus}
           events={ledgerEvents}
@@ -1370,11 +1393,11 @@ export default function App() {
             onRefresh={() => void refreshMetrics(conn, apiBearerToken)}
             onExport={exportMetrics}
           />
-        </>
+        </div>
       )}
 
       {tab === "endpoints" && (
-        <section className="panel">
+        <section className="panel auxiliary-workspace">
           <h2>並聯端點（一個真串口 → 多路出口）</h2>
           <p className="hint">
             上位機開 SERIAL（PTY）路徑；腳本連 TCP；Agent / 本頁用 WebSocket。
@@ -1454,7 +1477,7 @@ export default function App() {
       )}
 
       {tab === "protocol" && (
-        <section className="panel protocol">
+        <section className="panel protocol auxiliary-workspace">
           <h2>協定精要（繁中）</h2>
           <p>
             完整文件：倉庫內 <code>web/PROTOCOL.zh-TW.md</code>
@@ -1502,7 +1525,7 @@ export default function App() {
       )}
 
       </main><footer className="footer">
-        SerialHub · 为人和自动化共享设备而设计。
+        <TrafficCounters counters={trafficRef} /><span className="footer-caption">SerialHub · 本地设备共享工作台</span>
       </footer>
     </div>
   );

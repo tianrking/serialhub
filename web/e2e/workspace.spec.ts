@@ -151,7 +151,8 @@ test("an incompatible service is reported without crashing the workspace", async
   await page.getByRole("button", { name: "连接 Hub", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("不兼容的状态数据");
   await expect(page.getByRole("button", { name: "发送文本", exact: true })).toBeDisabled();
-  await expect(page.getByRole("heading", { name: "串口工作台", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "主导航", exact: true }).getByRole("button", { name: /实时工作台/ })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "实时终端", exact: true })).toBeVisible();
 });
 
 test("HTTPS pages use HTTPS requests and a WSS stream", async ({ page }) => {
@@ -185,6 +186,7 @@ test("binary file TX and paused-display raw RX preserve every byte", async ({ pa
   await page.getByRole("button", { name: "发送文本", exact: true }).click();
   await expect(page.locator(".line.rx").filter({ hasText: marker })).toBeVisible();
   await page.getByLabel("暂停显示", { exact: true }).check();
+  await page.getByRole("tab", { name: "工具箱", exact: true }).click();
   await page.getByRole("button", { name: "开始录制", exact: true }).click();
   const bytes = Buffer.from(Array.from({ length: 1028 }, (_, index) => index % 256));
   await page.getByLabel("选择发送文件", { exact: true }).setInputFiles({ name: "binary.bin", mimeType: "application/octet-stream", buffer: bytes });
@@ -216,6 +218,7 @@ test("stopping a file job waits for its current ACK and never sends the next blo
     await route.fulfill({ json: { ok: true, bytes: 64 } });
   });
   await connect(page);
+  await page.getByRole("tab", { name: "工具箱", exact: true }).click();
   await page.getByLabel("选择发送文件", { exact: true }).setInputFiles({ name: "cancel.bin", mimeType: "application/octet-stream", buffer: Buffer.alloc(256, 42) });
   await page.getByLabel("文件每块字节", { exact: true }).selectOption("64");
   await page.getByRole("button", { name: "发送文件", exact: true }).click();
@@ -242,6 +245,7 @@ test("selected commands run sequentially in the chosen order and fail closed", a
     await route.fulfill({ json: writes.length === 3 ? { ok: false, bytes: 0, error: "lease expired" } : { ok: true, bytes: body.hex.split(" ").length } });
   });
   await connect(page);
+  await page.getByRole("tab", { name: "工具箱", exact: true }).click();
   await page.getByRole("tab", { name: "多条轮发", exact: true }).click();
   await page.getByRole("button", { name: "上移 Beta", exact: true }).click();
   await page.getByLabel("循环轮数", { exact: true }).fill("2");
@@ -273,6 +277,7 @@ test("GBK text sends exact bytes and rejects characters without a representation
 
 test("configuration imports are previewed, validated, and appended without credentials", async ({ page }) => {
   await connect(page);
+  await page.getByRole("tab", { name: "工具箱", exact: true }).click();
   await page.getByRole("tab", { name: "配置迁移", exact: true }).click();
   const backup = { format: "serialhub-workspace", version: 1,
     commands: [{ id: "ignored", name: "Imported", mode: "hex", payload: "00 ff", lineEnding: "none" }],
@@ -297,6 +302,7 @@ test("configuration imports are previewed, validated, and appended without crede
 
 test("live recording accepts its first packet and stops on disconnect", async ({ page }) => {
   await connect(page);
+  await page.getByRole("tab", { name: "工具箱", exact: true }).click();
   await page.getByRole("button", { name: "开始录制", exact: true }).click();
   await page.getByPlaceholder("例如 AT 或任意指令").fill("first-live");
   await page.getByRole("button", { name: "发送文本", exact: true }).click();
@@ -326,9 +332,11 @@ test("an active sequence renews only its original lease and stops when renewal f
     await route.fulfill({ json: { ok: true, bytes: 1 } });
   });
   await connect(page);
-  await page.getByRole("button", { name: "获取写入租约", exact: true }).click();
+  await page.getByRole("tab", { name: "工具箱", exact: true }).click();
   await page.getByRole("tab", { name: "多条轮发", exact: true }).click();
   await page.getByLabel("循环轮数", { exact: true }).fill("0");
+  // Acquire after preparing the UI: the fixture intentionally has a short TTL.
+  await page.getByRole("button", { name: "获取写入租约", exact: true }).click();
   await page.getByRole("button", { name: "开始轮发", exact: true }).click();
   await expect(page.locator(".line.err").filter({ hasText: "write lease expired" })).toBeVisible();
   await expect(page.locator(".job-status")).toHaveCount(0);
@@ -339,6 +347,7 @@ test("an active sequence renews only its original lease and stops when renewal f
 
 test("large packet display stays bounded while raw recording keeps all bytes", async ({ page }) => {
   await connect(page);
+  await page.getByRole("tab", { name: "工具箱", exact: true }).click();
   await page.getByRole("button", { name: "开始录制", exact: true }).click();
   const payload = "A".repeat(6000);
   await page.getByPlaceholder("例如 AT 或任意指令").fill(payload);
@@ -370,6 +379,7 @@ test("a changed device epoch stops recording and prevents subsequent file chunks
     await route.fulfill({ json: { ok: true, bytes: 64 } });
   });
   await connect(page);
+  await page.getByRole("tab", { name: "工具箱", exact: true }).click();
   await page.getByRole("button", { name: "开始录制", exact: true }).click();
   await page.getByLabel("选择发送文件", { exact: true }).setInputFiles({ name: "epoch.bin", mimeType: "application/octet-stream", buffer: Buffer.alloc(256, 42) });
   await page.getByLabel("文件每块字节", { exact: true }).selectOption("64");

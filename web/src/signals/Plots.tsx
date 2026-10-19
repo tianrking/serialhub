@@ -13,28 +13,51 @@ export function PlotGrid({ xDomain, yDomain, xLabel = "时间 / s", yLabel = "�
       <text x={l + index * (w - l - r) / 8} y={h - 23} textAnchor="middle">{axisTick(xDomain[0] + index / 8 * (xDomain[1] - xDomain[0]), (xDomain[1] - xDomain[0]) / 8)}</text></g>)}
     {Array.from({ length: 5 }, (_, index) => <g key={`y${index}`}><line x1={l} x2={w - r} y1={t + index * (h - t - b) / 4} y2={t + index * (h - t - b) / 4} stroke="#24364e" strokeWidth=".6" />
       {!hideY && <text x={l - 10} y={t + index * (h - t - b) / 4 + 3} textAnchor="end">{axisTick(yDomain[1] - index / 4 * (yDomain[1] - yDomain[0]), (yDomain[1] - yDomain[0]) / 4)}</text>}</g>)}
-    <text x={w - r} y={h - 5} textAnchor="end">{xLabel}</text><text x={l} y="13">{yLabel}</text>
+    <text x={w - r} y={h - 5} textAnchor="end">{xLabel}</text><text x={l} y="20">{yLabel}</text>
   </g>;
 }
-function plotScales(xDomain: [number, number], yDomain: [number, number]) {
+function plotScales(xDomain: [number, number], yDomain: [number, number], height = PLOT.height) {
   return { x: (value: number) => PLOT.left + (value - xDomain[0]) / Math.max(Number.EPSILON, xDomain[1] - xDomain[0]) * (PLOT.width - PLOT.left - PLOT.right),
-    y: (value: number) => PLOT.height - PLOT.bottom - (value - yDomain[0]) / Math.max(Number.EPSILON, yDomain[1] - yDomain[0]) * (PLOT.height - PLOT.top - PLOT.bottom) };
+    y: (value: number) => height - PLOT.bottom - (value - yDomain[0]) / Math.max(Number.EPSILON, yDomain[1] - yDomain[0]) * (height - PLOT.top - PLOT.bottom) };
+}
+
+function usePlotHeight(ref: RefObject<SVGSVGElement | null>, parent = false) {
+  const [height, setHeight] = useState(PLOT.height);
+  useEffect(() => {
+    const node = parent ? ref.current?.parentElement : ref.current;
+    if (!node) return;
+    const desktop = window.matchMedia("(min-width: 1000px)");
+    const measure = () => {
+      // Narrow layouts use intrinsic SVG height; reset before measuring to avoid
+      // carrying a tall desktop viewBox into the mobile intrinsic aspect ratio.
+      if (!desktop.matches) { setHeight(PLOT.height); return; }
+      const { width, height: pixels } = node.getBoundingClientRect();
+      if (width > 0 && pixels > 0) setHeight(Math.max(160, Math.round(pixels / width * PLOT.width)));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    desktop.addEventListener("change", measure);
+    measure();
+    return () => { observer.disconnect(); desktop.removeEventListener("change", measure); };
+  }, [ref, parent]);
+  return height;
 }
 export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cursors, onCursor, onPan, onZoom, mode, svgRef, stacked }: {
   samples: readonly SignalSample[]; channels: Channel[]; selected: number[]; sampleRate: number; yDomain: [number, number];
   cursors: [number | null, number | null]; onCursor(index: number): void; onPan(amount: number): void; onZoom(amount: number): void;
   stacked: boolean; mode: "pan" | "a" | "b"; svgRef: RefObject<SVGSVGElement | null>;
 }) {
-  const height = stacked ? Math.max(PLOT.height, selected.length * 100 + PLOT.top + PLOT.bottom) : PLOT.height;
+  const measuredHeight = usePlotHeight(svgRef, true);
+  const height = stacked ? Math.max(measuredHeight, selected.length * 100 + PLOT.top + PLOT.bottom) : measuredHeight;
   const first = samples[0]?.index ?? 0, last = samples.at(-1)?.index ?? 1;
   const xDomain: [number, number] = [first / sampleRate, (last === first ? first + 1 : last) / sampleRate];
-  const scale = plotScales(xDomain, yDomain), drag = useRef<number | null>(null);
+  const scale = plotScales(xDomain, yDomain, height), drag = useRef<number | null>(null);
   useEffect(() => {
     const node = svgRef.current; if (!node) return;
     const wheel = (event: WheelEvent) => { if (event.ctrlKey) { event.preventDefault(); onZoom(event.deltaY < 0 ? .7 : 1.4); } };
     node.addEventListener("wheel", wheel, { passive: false }); return () => node.removeEventListener("wheel", wheel);
   }, [svgRef, onZoom]);
-  return <svg ref={svgRef} className={`signal-scope interaction-${mode}`} viewBox={`0 0 ${PLOT.width} ${height}`} role="img" aria-label="多通道示波图" tabIndex={0}
+  return <svg ref={svgRef} preserveAspectRatio="none" className={`signal-scope interaction-${mode}`} viewBox={`0 0 ${PLOT.width} ${height}`} role="img" aria-label="多通道示波图" tabIndex={0}
     onKeyDown={event => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); onPan(event.key === "ArrowLeft" ? -.2 : .2); }
       if (event.key === "+" || event.key === "=") onZoom(.5); if (event.key === "-") onZoom(2); }}
     onPointerDown={event => { if (!samples.length) return; event.currentTarget.setPointerCapture(event.pointerId);
@@ -57,16 +80,17 @@ export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cu
     })}
     {cursors.map((index, cursor) => index !== null && index >= first && index <= last && <g key={cursor}><line x1={scale.x(index / sampleRate)} x2={scale.x(index / sampleRate)} y1={PLOT.top} y2={height - PLOT.bottom} stroke={cursor ? "#fbbf24" : "#e2e8f0"} strokeDasharray="4 4" />
       <text x={scale.x(index / sampleRate) + 5} y={PLOT.top + 12} fontSize="12" fill={cursor ? "#fbbf24" : "#e2e8f0"}>{cursor ? "B" : "A"}</text></g>)}</g>
-    {!samples.length && <text x="500" y="155" textAnchor="middle" fill="#7691b6" fontSize="13">选择 FireWater / JustFloat 并接收数据，或导入 CSV</text>}
+    {!samples.length && <text x="500" y={height / 2} textAnchor="middle" fill="#7691b6" fontSize="13">选择 FireWater / JustFloat 并接收数据，或导入 CSV</text>}
   </svg>;
 }
 export function SpectrumPlot({ result, logarithmic, unit, maxFrequency = 0 }: { maxFrequency?: number; result: Spectrum | null; logarithmic: boolean; unit: string }) {
+  const svg = useRef<SVGSVGElement>(null), height = usePlotHeight(svg);
   const yDomain: [number, number] = logarithmic ? [-120, Math.max(0, ...result?.db ?? []) + 6] : [0, Math.max(.01, ...result?.amplitudes ?? []) * 1.12];
   const nyquist = result?.frequencies.at(-1) || 1;
-  const xDomain: [number, number] = [0, maxFrequency > 0 ? Math.min(maxFrequency, nyquist) : nyquist], scale = plotScales(xDomain, yDomain);
-  return <svg className="signal-spectrum" viewBox={`0 0 ${PLOT.width} ${PLOT.height}`} role="img" aria-label="FFT 单边幅度谱">
-    <PlotGrid xDomain={xDomain} yDomain={yDomain} xLabel="频率 / Hz" yLabel={logarithmic ? `dB re 1 ${unit || "unit"}` : `幅值 ${unit}`} />
-    <defs><clipPath id="spectrum-clip"><rect x={PLOT.left} y={PLOT.top} width={PLOT.width - PLOT.left - PLOT.right} height={PLOT.height - PLOT.top - PLOT.bottom} /></clipPath></defs>
+  const xDomain: [number, number] = [0, maxFrequency > 0 ? Math.min(maxFrequency, nyquist) : nyquist], scale = plotScales(xDomain, yDomain, height);
+  return <svg ref={svg} preserveAspectRatio="none" className="signal-spectrum" viewBox={`0 0 ${PLOT.width} ${height}`} role="img" aria-label="FFT 单边幅度谱">
+    <PlotGrid xDomain={xDomain} yDomain={yDomain} height={height} xLabel="频率 / Hz" yLabel={logarithmic ? `dB re 1 ${unit || "unit"}` : `幅值 ${unit}`} />
+    <defs><clipPath id="spectrum-clip"><rect x={PLOT.left} y={PLOT.top} width={PLOT.width - PLOT.left - PLOT.right} height={height - PLOT.top - PLOT.bottom} /></clipPath></defs>
     {result && <g clipPath="url(#spectrum-clip)"><path d={plotPath(result.frequencies.map((x, index) => ({ x, y: logarithmic ? result.db[index]! : result.amplitudes[index]! })), scale.x, scale.y)} fill="none" stroke="#a78bfa" strokeWidth="1.6" vectorEffect="non-scaling-stroke" /></g>}
   </svg>;
 }

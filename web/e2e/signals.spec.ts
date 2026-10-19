@@ -116,10 +116,11 @@ test("JustFloat binary data decodes across real HTTP writes", async ({ page }) =
 
 test("raw RGB image frames render exact pixels without pretending to be compressed image protocols", async ({ page }) => {
   await connect(page);
-  await page.locator(".signal-configuration > summary").click();
+  await page.getByRole("button", { name: "通道与数据帧配置", exact: true }).click();
   await page.getByLabel("图像宽", { exact: true }).fill("2"); await page.getByLabel("图像高", { exact: true }).fill("2");
   await page.getByLabel("图像像素格式", { exact: true }).selectOption("rgb888"); await page.getByLabel("图像帧头", { exact: true }).fill("aa 55");
   await page.getByRole("button", { name: "应用帧配置", exact: true }).click();
+  await page.getByRole("button", { name: "关闭通道与数据帧配置", exact: true }).click();
   await page.getByLabel("信号解析协议", { exact: true }).selectOption("image");
   await writeHex(page, Uint8Array.of(0xaa, 0x55, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255));
   const canvas = page.getByRole("img", { name: "收到的原始图像帧", exact: true });
@@ -132,6 +133,7 @@ test("manual control slider uses the shared TX gate and sends exact UTF-8 bytes"
   const writes: string[] = [];
   page.on("request", request => { if (request.url().endsWith("/v1/write")) writes.push(request.postDataJSON().hex); });
   await connect(page); await page.getByLabel("仪表布局", { exact: true }).selectOption("instruments");
+  await page.getByRole("tab", { name: "参数控制", exact: true }).click();
   await page.getByLabel("仪表设定值", { exact: true }).fill("37");
   expect(writes).toHaveLength(0);
   await page.getByRole("button", { name: "发送设定值", exact: true }).click();
@@ -171,17 +173,21 @@ test("full sixteen-channel cache remains bounded and reduces displayed vertices"
 
 test("channel units, custom control range, and instrument configuration survive reload", async ({ page }) => {
   await connect(page);
-  await page.locator(".signal-configuration > summary").click();
+  await page.getByRole("button", { name: "通道与数据帧配置", exact: true }).click();
   await page.getByLabel("CH0 名称", { exact: true }).fill("Motor speed");
   await page.getByLabel("CH0 单位", { exact: true }).fill("RPM");
+  await page.getByRole("button", { name: "关闭通道与数据帧配置", exact: true }).click();
   await page.getByLabel("仪表布局", { exact: true }).selectOption("instruments");
+  await page.getByRole("tab", { name: "参数控制", exact: true }).click();
   await page.locator(".control-range-settings > summary").click();
   await page.getByLabel("控件上限", { exact: true }).fill("4095");
   await page.getByRole("button", { name: "应用控件量程", exact: true }).click();
   await page.reload(); await page.getByRole("navigation", { name: "主导航", exact: true }).getByRole("button", { name: /信号仪表/ }).click();
-  await page.locator(".signal-configuration > summary").click();
+  await page.getByRole("button", { name: "通道与数据帧配置", exact: true }).click();
   await expect(page.getByLabel("CH0 名称", { exact: true })).toHaveValue("Motor speed");
   await expect(page.getByLabel("CH0 单位", { exact: true })).toHaveValue("RPM");
+  await page.getByRole("button", { name: "关闭通道与数据帧配置", exact: true }).click();
+  await page.getByRole("tab", { name: "参数控制", exact: true }).click();
   await expect(page.getByLabel("参数滑块", { exact: true })).toHaveAttribute("max", "4095");
   await expect(page.getByRole("button", { name: "发送设定值", exact: true })).toBeDisabled();
 });
@@ -191,6 +197,7 @@ test("replay disables instrument writes even when the physical Hub remains conne
   await page.getByLabel("导入信号 CSV", { exact: true }).setInputFiles({ name: "safe.csv", mimeType: "text/csv", buffer: Buffer.from("CH0,CH1,CH2\n1,2,3\n4,5,6\n") });
   await expect(page.locator(".source-pill")).toContainText("离线回放");
   await page.getByLabel("仪表布局", { exact: true }).selectOption("instruments");
+  await page.getByRole("tab", { name: "参数控制", exact: true }).click();
   await expect(page.getByRole("button", { name: "发送设定值", exact: true })).toBeDisabled();
   await page.getByRole("button", { name: "返回实时采集", exact: true }).click();
   await expect(page.getByRole("button", { name: "发送设定值", exact: true })).toBeEnabled();
