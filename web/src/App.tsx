@@ -2,13 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { hubApi } from "./api/client";
 import type {
   ConnectionConfig,
-  Endpoint,
   LedgerEvent,
   LedgerStatus,
-  StatusSnapshot,
 } from "./api/types";
-import { httpBase, wsUrl } from "./api/types";
-import { bytesToHex, bytesToText, connectStream } from "./api/wsStream";
+import { httpBase, wsUrl, validateConnection } from "./api/types";
+import { bytesToHex, bytesToText } from "./api/wsStream";
 import {
   appendLineEnding,
   CONNECTION_PROFILES_STORAGE_KEY,
@@ -26,7 +24,9 @@ import EventLedgerPanel from "./EventLedgerPanel";
 import MetricsPanel from "./MetricsPanel";
 import ProtocolInspectorPanel from "./ProtocolInspectorPanel";
 import WaveformPanel from "./WaveformPanel";
+import Icon from "./Icon";
 import { LogBuffer } from "./logBuffer";
+import { useHubConnection, type HubSession } from "./useHubConnection";
 import {
   appendHexChecksum,
   checksumLabel,
@@ -77,7 +77,7 @@ function defaultConn(): ConnectionConfig {
       return { host: "127.0.0.1", port: 8787 };
     }
     if (host) {
-      return { host, port: port || 8787 };
+      return { host, port: port || 8787, protocol: window.location.protocol === "https:" ? "https" : "http" };
     }
   }
   return { host: "127.0.0.1", port: 8787 };
@@ -86,7 +86,7 @@ function defaultConn(): ConnectionConfig {
 function loadConn(): ConnectionConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as ConnectionConfig;
+    if (raw) return validateConnection(JSON.parse(raw) as ConnectionConfig);
   } catch {
     /* ignore */
   }
@@ -113,6 +113,7 @@ export default function App() {
   const [conn, setConn] = useState<ConnectionConfig>(loadConn);
   const [hostInput, setHostInput] = useState(conn.host);
   const [portInput, setPortInput] = useState(String(conn.port));
+  const [protocolInput, setProtocolInput] = useState<"http" | "https">(conn.protocol ?? "http");
   const [connectionProfiles, setConnectionProfiles] = useState<ConnectionProfile[]>(
     loadConnectionProfiles,
   );
@@ -120,13 +121,13 @@ export default function App() {
   const [profileName, setProfileName] = useState("");
   // Optional remote-API bearer. It is deliberately never persisted.
   const [apiTokenInput, setApiTokenInput] = useState("");
-  const apiBearerToken = apiTokenInput.trim() || undefined;
+  const inputBearerToken = apiTokenInput.trim() || undefined;
+  const { phase, online, wsOpen, status, endpoints, error, retryCount,
+    connect: startConnection, disconnect: stopConnection, refreshMeta,
+    activeSession, isCurrent } = useHubConnection();
+  const apiBearerToken = activeSession()?.bearerToken;
+  const canWrite = online && phase === "connected" && status?.port.connected === true;
 
-  const [online, setOnline] = useState(false);
-  const [wsOpen, setWsOpen] = useState(false);
-  const [status, setStatus] = useState<StatusSnapshot | null>(null);
-  const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [ledgerStatus, setLedgerStatus] = useState<LedgerStatus | null>(null);
   const [ledgerEvents, setLedgerEvents] = useState<LedgerEvent[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(false);
@@ -145,10 +146,10 @@ export default function App() {
   const [autoScroll, setAutoScroll] = useState(true);
   const logId = useRef(0);
   const logBoxRef = useRef<HTMLDivElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const pausedRef = useRef(false);
 
   const [sendText, setSendText] = useState("");
+  const [sendMode, setSendMode] = useState<CommandMode>("text");
   const [sendHex, setSendHex] = useState("");
   const [hexChecksum, setHexChecksum] = useState<HexChecksum>("none");
   const [lineEnding, setLineEnding] = useState<LineEnding>("lf");
@@ -179,6 +180,21 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   // A write lease is a bearer credential: keep it in memory only and never log it.
   const [leaseToken, setLeaseToken] = useState<string | null>(null);
+  const [leaseExpiresAt, setLeaseExpiresAt] = useState(0);
+  const [leaseRemaining, setLeaseRemaining] = useState(0);
+  const operationRef = useRef<HubSession | null>(null);
+  const [logSearch, setLogSearch] = useState("");
+  const [logKind, setLogKind] = useState("all");
+
+  const resetStreamParsers = useCallback(() => {
+    fireWaterBufferRef.current = "";
+    fireWaterDecoderRef.current = new TextDecoder();
+    justFloatBufferRef.current = new Uint8Array();
+    nmeaBufferRef.current = "";
+    slipBufferRef.current = new Uint8Array();
+    cobsBufferRef.current = new Uint8Array();
+    modbusBufferRef.current = new Uint8Array();
+  }, []);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -212,17 +228,6 @@ export default function App() {
 
   useEffect(() => () => logBuffer.clear(), [logBuffer]);
 
-  const refreshMeta = useCallback(async (cfg: ConnectionConfig, bearerToken?: string) => {
-    const [st, ep] = await Promise.all([
-      hubApi.status(cfg, bearerToken),
-      hubApi.endpoints(cfg, bearerToken),
-    ]);
-    setStatus(st);
-    setEndpoints(ep.endpoints);
-    setOnline(true);
-    setError(null);
-  }, []);
-
   const saveConnectionProfile = () => {
     const name = profileName.trim();
     const host = hostInput.trim();
@@ -236,6 +241,7 @@ export default function App() {
       name,
       host,
       port,
+      protocol: protocolInput,
     };
     setConnectionProfiles((previous) => [profile, ...previous.filter((item) => item.id !== profile.id)].slice(0, 50));
     setSelectedProfileId(profile.id);
@@ -250,6 +256,7 @@ export default function App() {
     setProfileName(profile.name);
     setHostInput(profile.host);
     setPortInput(String(profile.port));
+    setProtocolInput(profile.protocol ?? "http");
     pushLog({ kind: "sys", text: `已载入会话配置：${profile.name}` });
   };
 
@@ -313,19 +320,15 @@ export default function App() {
 
   useEffect(() => {
     streamProtocolRef.current = streamProtocol;
-    fireWaterBufferRef.current = "";
-    fireWaterDecoderRef.current = new TextDecoder();
-    justFloatBufferRef.current = new Uint8Array();
-    nmeaBufferRef.current = "";
-    slipBufferRef.current = new Uint8Array();
-    cobsBufferRef.current = new Uint8Array();
-    modbusBufferRef.current = new Uint8Array();
+    resetStreamParsers();
     setWaveSamples([]);
     setProtocolFrames([]);
     setWaveChannel(0);
-  }, [streamProtocol]);
+  }, [streamProtocol, resetStreamParsers]);
 
   const refreshLedger = useCallback(async (cfg: ConnectionConfig, bearerToken?: string) => {
+    const session = activeSession();
+    if (!session || !isCurrent(session)) return;
     ledgerAbortRef.current?.abort();
     const controller = new AbortController();
     ledgerAbortRef.current = controller;
@@ -334,7 +337,7 @@ export default function App() {
     try {
       // The status high-water mark is required before asking for a stable
       // recent window, so this dependency is intentionally sequential.
-      const nextStatus = await hubApi.eventsStatus(cfg, bearerToken, controller.signal);
+      const nextStatus = await hubApi.eventsStatus(cfg, bearerToken, AbortSignal.any([controller.signal, session.signal]));
       if (!Number.isSafeInteger(nextStatus.newest_seq) || nextStatus.newest_seq < 0) {
         throw new Error("事件序號超出瀏覽器可安全表示的範圍");
       }
@@ -348,15 +351,16 @@ export default function App() {
           limit: RECENT_EVENT_LIMIT,
         },
         bearerToken,
-        controller.signal,
+        AbortSignal.any([controller.signal, session.signal]),
       );
       if (response.session_id !== nextStatus.session_id) {
-        throw new Error("事件帳本 session 已切換，請重新整理");
+        throw new Error("事件帳本 session 已切換，請刷新状态");
       }
+      if (!isCurrent(session) || controller.signal.aborted) return;
       setLedgerStatus(nextStatus);
       setLedgerEvents(response.page.events);
     } catch (ledgerFailure) {
-      if (!(ledgerFailure instanceof DOMException && ledgerFailure.name === "AbortError")) {
+      if (isCurrent(session) && !controller.signal.aborted && !(ledgerFailure instanceof DOMException && ledgerFailure.name === "AbortError")) {
         setLedgerError(
           `事件帳本讀取失敗：${
             ledgerFailure instanceof Error ? ledgerFailure.message : String(ledgerFailure)
@@ -369,18 +373,21 @@ export default function App() {
         setLedgerLoading(false);
       }
     }
-  }, []);
+  }, [activeSession, isCurrent]);
 
   const refreshMetrics = useCallback(async (cfg: ConnectionConfig, bearerToken?: string) => {
+    const session = activeSession();
+    if (!session || !isCurrent(session)) return;
     metricsAbortRef.current?.abort();
     const controller = new AbortController();
     metricsAbortRef.current = controller;
     setMetricsLoading(true);
     setMetricsError(null);
     try {
-      setMetricsText(await hubApi.metrics(cfg, bearerToken, controller.signal));
+      const text = await hubApi.metrics(cfg, bearerToken, AbortSignal.any([controller.signal, session.signal]));
+      if (isCurrent(session) && !controller.signal.aborted) setMetricsText(text);
     } catch (metricsFailure) {
-      if (!(metricsFailure instanceof DOMException && metricsFailure.name === "AbortError")) {
+      if (isCurrent(session) && !controller.signal.aborted && !(metricsFailure instanceof DOMException && metricsFailure.name === "AbortError")) {
         setMetricsError(metricsFailure instanceof Error ? metricsFailure.message : String(metricsFailure));
       }
     } finally {
@@ -389,17 +396,18 @@ export default function App() {
         setMetricsLoading(false);
       }
     }
-  }, []);
+  }, [activeSession, isCurrent]);
 
   const disconnect = useCallback(() => {
-    wsRef.current?.close();
-    wsRef.current = null;
+    if (operationRef.current) pushLog({ kind: "err", text: "会话已结束，进行中的操作可能已被设备执行。请核对事件记录后再决定是否重试。" });
+    stopConnection();
+    operationRef.current = null;
+    setBusy(false);
+    setAutoSend(false);
     ledgerAbortRef.current?.abort();
     ledgerAbortRef.current = null;
     metricsAbortRef.current?.abort();
     metricsAbortRef.current = null;
-    setWsOpen(false);
-    setOnline(false);
     setLeaseToken(null);
     setLedgerStatus(null);
     setLedgerEvents([]);
@@ -408,104 +416,82 @@ export default function App() {
     setMetricsText("");
     setMetricsError(null);
     setMetricsLoading(false);
-  }, []);
+  }, [stopConnection, pushLog]);
 
   const connect = useCallback(async () => {
+    disconnect();
     const cfg: ConnectionConfig = {
-      host: hostInput.trim() || "127.0.0.1",
-      port: Number(portInput) || 8787,
+      host: hostInput.trim(), port: Number(portInput), protocol: protocolInput,
     };
+    let textDecoder = new TextDecoder();
+    const connected = await startConnection(cfg, inputBearerToken, {
+      onOpen: () => {
+        textDecoder = new TextDecoder();
+        resetStreamParsers();
+        setWaveSamples([]);
+        setProtocolFrames([]);
+        pushLog({ kind: "sys", text: `实时流已连接 ${wsUrl(cfg)}` });
+      },
+      onClose: () => pushLog({ kind: "err", text: "实时流已中断，正在重连；自动发送已停止。重连首包可能包含历史数据。" }),
+      onServerError: (message) => pushLog({ kind: "err", text: `Hub：${message}` }),
+      onBytes: (data, meta) => {
+        if (pausedRef.current) {
+          textDecoder = new TextDecoder();
+          resetStreamParsers();
+          return;
+        }
+        consumeWaveBytes(data);
+        consumeProtocolBytes(data);
+        pushLog({ kind: "rx", text: `${meta.isHistoryHint ? "[可能含历史] " : ""}${bytesToText(data, textDecoder).replace(/\n/g, "\\n")}`, hex: bytesToHex(data) });
+      },
+    });
+    if (!connected) return;
     setConn(cfg);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
-    } catch {
-      // Private browsing or a restrictive embed may deny storage; the active
-      // connection remains usable in memory.
-    }
-    setError(null);
-    setBusy(true);
-    try {
-      await hubApi.health(cfg);
-      await Promise.all([
-        refreshMeta(cfg, apiBearerToken),
-        refreshLedger(cfg, apiBearerToken),
-        refreshMetrics(cfg, apiBearerToken),
-      ]);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); } catch { /* Memory-only still works. */ }
+    void refreshLedger(cfg, inputBearerToken);
+    void refreshMetrics(cfg, inputBearerToken);
+  }, [disconnect, hostInput, portInput, protocolInput, inputBearerToken, startConnection,
+    consumeWaveBytes, consumeProtocolBytes, pushLog, refreshLedger, refreshMetrics, resetStreamParsers]);
 
-      wsRef.current?.close();
-      let textDecoder = new TextDecoder();
-      const ws = connectStream(
-        cfg,
-        {
-          onOpen: () => {
-            setWsOpen(true);
-            pushLog({ kind: "sys", text: `WebSocket 已連線 ${wsUrl(cfg)}` });
-          },
-          onClose: () => {
-            setWsOpen(false);
-            pushLog({ kind: "sys", text: "WebSocket 已關閉" });
-          },
-          onError: () => {
-            pushLog({
-              kind: "err",
-              text: "WebSocket 錯誤（若頁面為 HTTPS，瀏覽器可能封鎖 ws://127.0.0.1）",
-            });
-          },
-          onServerError: (message) => {
-            pushLog({ kind: "err", text: `Hub：${message}` });
-          },
-          onBytes: (data, meta) => {
-            if (pausedRef.current) {
-              textDecoder = new TextDecoder();
-              return;
-            }
-            const text = bytesToText(data, textDecoder);
-            const hex = bytesToHex(data);
-            consumeWaveBytes(data);
-            consumeProtocolBytes(data);
-            pushLog({
-              kind: "rx",
-              text: meta.isHistoryHint
-                ? `[歷史?] ${text.replace(/\n/g, "\\n")}`
-                : text.replace(/\n/g, "\\n"),
-              hex,
-            });
-          },
-        },
-        apiBearerToken,
-      );
-      wsRef.current = ws;
-    } catch (e) {
-      ledgerAbortRef.current?.abort();
-      setOnline(false);
-      setError(e instanceof Error ? e.message : String(e));
-      pushLog({
-        kind: "err",
-        text: `連線失敗：${e instanceof Error ? e.message : String(e)}。請先在本機執行 serialhub share ...`,
-      });
-    } finally {
-      setBusy(false);
-    }
-  }, [
-    apiBearerToken,
-    consumeProtocolBytes,
-    consumeWaveBytes,
-    hostInput,
-    portInput,
-    pushLog,
-    refreshLedger,
-    refreshMetrics,
-    refreshMeta,
-  ]);
-
-  // 定時刷新狀態
   useEffect(() => {
-    if (!online) return;
-    const t = setInterval(() => {
-      refreshMeta(conn, apiBearerToken).catch(() => setOnline(false));
-    }, 2000);
-    return () => clearInterval(t);
-  }, [apiBearerToken, online, conn, refreshMeta]);
+    if (!canWrite) setAutoSend(false);
+    if (!online || phase === "reconnecting" || !status?.port.connected) {
+      setLeaseToken(null);
+      setLeaseExpiresAt(0);
+    }
+  }, [canWrite, online, phase, status?.port.connected]);
+
+  useEffect(() => {
+    setLeaseToken(null);
+    setLeaseExpiresAt(0);
+  }, [status?.port.epoch]);
+
+  useEffect(() => {
+    if (!leaseToken) { setLeaseRemaining(0); return; }
+    const update = () => {
+      const remaining = Math.max(0, leaseExpiresAt - Date.now());
+      setLeaseRemaining(remaining);
+      if (!remaining) setLeaseToken(null);
+    };
+    update();
+    const timer = setInterval(update, 200);
+    return () => clearInterval(timer);
+  }, [leaseToken, leaseExpiresAt]);
+
+  const beginOperation = useCallback(() => {
+    const session = activeSession();
+    if (!canWrite || !session || !isCurrent(session) || !session.streamOpen
+        || !session.deviceConnected || operationRef.current) return null;
+    operationRef.current = session;
+    setBusy(true);
+    return session;
+  }, [activeSession, canWrite, isCurrent]);
+
+  const endOperation = useCallback((session: HubSession) => {
+    if (operationRef.current !== session) return;
+    operationRef.current = null;
+    setBusy(false);
+  }, []);
 
   useEffect(() => {
     if (!autoScroll || !logBoxRef.current) return;
@@ -514,64 +500,37 @@ export default function App() {
 
   useEffect(
     () => () => {
-      wsRef.current?.close();
       ledgerAbortRef.current?.abort();
       metricsAbortRef.current?.abort();
     },
     [],
   );
 
-  const transmit = useCallback(
-    async (
-      mode: CommandMode,
-      payload: string,
-      ending: LineEnding,
-      checksum: HexChecksum = "none",
-    ): Promise<boolean> => {
-      if (mode === "text" ? payload.length === 0 : payload.trim().length === 0) return false;
-      setBusy(true);
-      try {
-        if (mode === "text") {
-          const wire = appendLineEnding(payload, ending);
-          const r = await hubApi.writeText(conn, wire, {
-            newline: false,
-            as_client: CLIENT_NAME,
-            lease_token: leaseToken ?? undefined,
-            bearer_token: apiBearerToken,
-          });
-          if (!r.ok) throw new Error(r.error || "写入失败");
-          pushLog({
-            kind: "tx",
-            text: `HTTP 写入 text ${r.bytes} bytes：${wire
-              .replace(/\r/g, "\\r")
-              .replace(/\n/g, "\\n")}`,
-          });
-        } else {
-          const wire = appendHexChecksum(payload, checksum);
-          const r = await hubApi.writeHex(conn, wire, {
-            as_client: CLIENT_NAME,
-            lease_token: leaseToken ?? undefined,
-            bearer_token: apiBearerToken,
-          });
-          if (!r.ok) throw new Error(r.error || "写入失败");
-          pushLog({
-            kind: "tx",
-            text: `HTTP 写入 hex ${r.bytes} bytes：${wire}${checksum !== "none" ? `（${checksumLabel(checksum)}）` : ""}`,
-          });
-        }
-        return true;
-      } catch (e) {
-        pushLog({
-          kind: "err",
-          text: `写入失败：${e instanceof Error ? e.message : String(e)}`,
-        });
-        return false;
-      } finally {
-        setBusy(false);
+  const transmit = useCallback(async (
+    mode: CommandMode, payload: string, ending: LineEnding, checksum: HexChecksum = "none",
+  ): Promise<boolean> => {
+    if (!payload.length || (mode === "hex" && !payload.trim())) return false;
+    const session = beginOperation();
+    if (!session) return false;
+    try {
+      const wire = mode === "text" ? appendLineEnding(payload, ending) : appendHexChecksum(payload, checksum);
+      const options = { as_client: CLIENT_NAME, lease_token: leaseToken ?? undefined,
+        bearer_token: session.bearerToken, signal: session.signal, newline: false };
+      const response = mode === "text"
+        ? await hubApi.writeText(session.cfg, wire, options)
+        : await hubApi.writeHex(session.cfg, wire, options);
+      if (!isCurrent(session)) return false;
+      if (!response.ok) throw new Error(response.error || "写入失败");
+      pushLog({ kind: "tx", text: `主机已确认 ${response.bytes} bytes · ${wire.replace(/\r/g, "\\r").replace(/\n/g, "\\n")}${checksum !== "none" ? ` · ${checksumLabel(checksum)}` : ""}` });
+      return true;
+    } catch (failure) {
+      if (isCurrent(session)) {
+        setAutoSend(false);
+        pushLog({ kind: "err", text: `写入未确认：${failure instanceof Error ? failure.message : String(failure)}` });
       }
-    },
-    [apiBearerToken, conn, leaseToken, pushLog],
-  );
+      return false;
+    } finally { endOperation(session); }
+  }, [beginOperation, endOperation, isCurrent, leaseToken, pushLog]);
 
   const onSendText = () => void transmit("text", sendText, lineEnding);
 
@@ -587,7 +546,7 @@ export default function App() {
   }, [hexChecksum, sendHex]);
 
   useEffect(() => {
-    if (!autoSend || !online || autoIntervalMs < 50) return;
+    if (!autoSend || !canWrite || autoIntervalMs < 50 || !Number.isFinite(autoIntervalMs)) return;
     const timer = window.setInterval(() => {
       if (busy) return;
       const payload = autoMode === "text" ? sendText : sendHex;
@@ -599,7 +558,7 @@ export default function App() {
       );
     }, autoIntervalMs);
     return () => window.clearInterval(timer);
-  }, [autoIntervalMs, autoMode, autoSend, busy, hexChecksum, lineEnding, online, sendHex, sendText, transmit]);
+  }, [autoIntervalMs, autoMode, autoSend, busy, hexChecksum, lineEnding, canWrite, sendHex, sendText, transmit]);
 
   const resetQuickEditor = () => {
     setEditingCommandId(null);
@@ -644,17 +603,25 @@ export default function App() {
     pushLog({ kind: "sys", text: `已删除快捷指令：${command.name}` });
   };
 
+  const visibleLogs = useMemo(() => logs.filter((line) =>
+    (logKind === "all" || line.kind === logKind)
+    && (!logSearch.trim() || `${line.text} ${line.hex ?? ""}`.toLowerCase().includes(logSearch.trim().toLowerCase())),
+  ), [logs, logKind, logSearch]);
+
   const exportVisibleLogs = () => {
-    const text = logs
+    const text = visibleLogs
       .map((line) => `${line.ts}\t${line.kind.toUpperCase()}\t${line.text}${line.hex ? `\t${line.hex}` : ""}`)
       .join("\n");
     downloadTextFile(`serialhub-${new Date().toISOString().replace(/[:.]/g, "-")}.log`, text);
-    pushLog({ kind: "sys", text: `已导出 ${logs.length} 条页面日志` });
+    pushLog({ kind: "sys", text: `已导出 ${visibleLogs.length} 条页面日志` });
   };
 
   const exportLedger = async () => {
     try {
-      const ndjson = await hubApi.eventsExport(conn, apiBearerToken);
+      const session = activeSession();
+      if (!session || !isCurrent(session)) return;
+      const ndjson = await hubApi.eventsExport(session.cfg, session.bearerToken, session.signal);
+      if (!isCurrent(session)) return;
       downloadTextFile(
         `serialhub-events-${new Date().toISOString().replace(/[:.]/g, "-")}.ndjson`,
         ndjson,
@@ -675,84 +642,57 @@ export default function App() {
   };
 
   const onLock = async () => {
-    setBusy(true);
+    const session = beginOperation();
+    if (!session) return;
     try {
-      const r = await hubApi.lock(
-        conn,
-        CLIENT_NAME,
-        leaseToken ?? undefined,
-        apiBearerToken,
-      );
-      if (!r.ok) throw new Error(r.error || "鎖失敗");
-      if (!r.lock) throw new Error("伺服器未回傳租約");
-      setLeaseToken(r.lock.lease_token);
-      pushLog({
-        kind: "sys",
-        text: `已取得寫鎖：${r.lock.owner}（${r.lock.expires_ms} ms）`,
-      });
-      await refreshMeta(conn, apiBearerToken);
-    } catch (e) {
-      setLeaseToken(null);
-      pushLog({
-        kind: "err",
-        text: `寫鎖失敗：${e instanceof Error ? e.message : String(e)}`,
-      });
-    } finally {
-      setBusy(false);
-    }
+      const response = await hubApi.lock(session.cfg, CLIENT_NAME, leaseToken ?? undefined, session.bearerToken, session.signal);
+      if (!isCurrent(session)) return;
+      if (!response.ok || !response.lock) throw new Error(response.error || "服务器未返回写入租约");
+      setLeaseToken(response.lock.lease_token);
+      setLeaseExpiresAt(Date.now() + response.lock.expires_ms);
+      pushLog({ kind: "sys", text: `已取得写入租约 · ${response.lock.expires_ms} ms` });
+      await refreshMeta();
+    } catch (failure) {
+      if (isCurrent(session)) {
+        setLeaseToken(null);
+        pushLog({ kind: "err", text: `租约获取失败：${failure instanceof Error ? failure.message : String(failure)}` });
+      }
+    } finally { endOperation(session); }
   };
 
   const onUnlock = async () => {
-    if (!leaseToken) {
-      pushLog({ kind: "err", text: "本頁沒有可釋放的租約令牌" });
-      return;
-    }
-    setBusy(true);
+    if (!leaseToken) return;
+    const session = beginOperation();
+    if (!session) return;
     try {
-      const r = await hubApi.unlock(conn, leaseToken, apiBearerToken);
-      if (!r.ok) throw new Error(r.error || "解鎖失敗");
+      const response = await hubApi.unlock(session.cfg, leaseToken, session.bearerToken, session.signal);
+      if (!isCurrent(session)) return;
+      if (!response.ok) throw new Error(response.error || "释放租约失败");
       setLeaseToken(null);
-      pushLog({ kind: "sys", text: "已釋放寫鎖" });
-      await refreshMeta(conn, apiBearerToken);
-    } catch (e) {
-      pushLog({
-        kind: "err",
-        text: `解鎖失敗：${e instanceof Error ? e.message : String(e)}`,
-      });
-    } finally {
-      setBusy(false);
-    }
+      pushLog({ kind: "sys", text: "写入租约已释放" });
+      await refreshMeta();
+    } catch (failure) {
+      if (isCurrent(session)) pushLog({ kind: "err", text: `释放失败：${failure instanceof Error ? failure.message : String(failure)}` });
+    } finally { endOperation(session); }
   };
 
-  const onControl = async (
-    body:
-      | { op: "dtr" | "rts"; level: boolean }
-      | { op: "break"; duration_ms: number },
+  const onControl = async (body:
+    | { op: "dtr" | "rts"; level: boolean }
+    | { op: "break"; duration_ms: number },
   ) => {
-    if (!leaseToken) {
-      pushLog({ kind: "err", text: "控制線操作需要先取得寫鎖" });
-      return;
-    }
-    setBusy(true);
+    if (!leaseToken || status?.port.path.startsWith("mock:")) return;
+    const session = beginOperation();
+    if (!session) return;
     try {
-      const r = await hubApi.control(
-        conn,
-        { ...body, as_client: CLIENT_NAME, lease_token: leaseToken },
-        apiBearerToken,
-      );
-      if (!r.ok) throw new Error(r.error || "控制線操作失敗");
-      pushLog({
-        kind: "sys",
-        text:
-          body.op === "break"
-            ? `BREAK ${body.duration_ms} ms 已確認`
-            : `${body.op.toUpperCase()} ${body.level ? "ON" : "OFF"} 已確認`,
-      });
-    } catch (e) {
-      pushLog({ kind: "err", text: `控制線操作失敗：${e instanceof Error ? e.message : String(e)}` });
-    } finally {
-      setBusy(false);
-    }
+      const response = await hubApi.control(session.cfg,
+        { ...body, as_client: CLIENT_NAME, lease_token: leaseToken }, session.bearerToken, session.signal);
+      if (!isCurrent(session)) return;
+      if (!response.ok) throw new Error(response.error || "控制操作失败");
+      pushLog({ kind: "sys", text: body.op === "break"
+        ? `BREAK ${body.duration_ms} ms 已确认` : `${body.op.toUpperCase()} ${body.level ? "ON" : "OFF"} 已确认` });
+    } catch (failure) {
+      if (isCurrent(session)) pushLog({ kind: "err", text: `控制失败：${failure instanceof Error ? failure.message : String(failure)}` });
+    } finally { endOperation(session); }
   };
 
   const copy = async (text: string) => {
@@ -765,29 +705,46 @@ export default function App() {
   };
 
   const statusLamp = useMemo(() => {
-    if (online && wsOpen) return { cls: "ok", label: "已連線（HTTP + WS）" };
-    if (online) return { cls: "warn", label: "HTTP 通，WS 未連" };
-    return { cls: "off", label: "未連線" };
-  }, [online, wsOpen]);
+    if (phase === "connecting") return { cls: "warn", label: "正在连接…" };
+    if (phase === "reconnecting") return { cls: "warn", label: `实时流重连中 · ${retryCount}/5` };
+    if (phase === "error") return { cls: "off", label: "连接异常" };
+    if (online && wsOpen) return { cls: "ok", label: "已连接 · HTTP + WS" };
+    if (online) return { cls: "warn", label: "HTTP 通，WS 未连接" };
+    return { cls: "off", label: "未连接" };
+  }, [online, wsOpen, phase, retryCount]);
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content">跳到工作区</a>
+      <aside className="sidebar">
+        <div className="brand"><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>DEVICE WORKSPACE</small></div></div>
+        <div className="nav-label">工作空间</div>
+        <nav className="sidebar-nav" aria-label="主导航">
+          {([
+            ["monitor", "terminal", "实时工作台", "01"],
+            ["events", "activity", "事件与指标", "02"],
+            ["endpoints", "layers", "连接与端点", "03"],
+            ["protocol", "book", "使用指南", "04"],
+          ] as const).map(([id, icon, label, number]) => <button type="button" key={id}
+            className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined}
+            onClick={() => setTab(id)}><Icon name={icon} /><span>{label}</span><small>{number}</small></button>)}
+        </nav>
+        <div className="sidebar-note"><Icon name="shield" /><strong>一个串口，协作有序</strong><p>统一管理设备访问，<br />让每一次操作有据可查。</p><span>OPEN SOURCE · MIT</span></div>
+        <div className="sidebar-footer"><span className="version-dot" />SerialHub <code>v0.0.2</code></div>
+      </aside>
       <header className="header">
-        <div>
-          <h1>SerialHub 控制台</h1>
-          <p className="sub">
-            本機串口共享中樞 · 即時監控 · 繁體中文 · 協定見{" "}
-            <code>web/PROTOCOL.zh-TW.md</code>
-          </p>
+        <div><div className="eyebrow">WORKSPACE <span>/</span> {tab === "monitor" ? "LIVE CONSOLE" : tab === "events" ? "EVENT EVIDENCE" : tab === "endpoints" ? "CONNECTIONS" : "GUIDE"}</div>
+          <h1>{tab === "monitor" ? "串口工作台" : tab === "events" ? "事件与运行指标" : tab === "endpoints" ? "连接与端点" : "使用指南"}<span className="heading-dot" aria-hidden="true">.</span></h1>
+          <p className="sub">连接设备，观察数据，让调试井然有序。</p>
         </div>
-        <div className={`lamp ${statusLamp.cls}`}>{statusLamp.label}</div>
+        <div className="header-status"><span className="local-badge"><Icon name="shield" size={14} /> 单一设备所有者</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>
       </header>
-
+      <main id="main-content">
       <section className="panel connect">
-        <h2>連線本機 hub</h2>
+        <div className="connection-heading"><h2><Icon name="layers" size={16} /> 连接配置</h2><span>{online ? (status?.port.path.startsWith("mock:") ? "模拟设备 · 无需硬件" : "设备会话") : "支持本机 Hub 或 HTTPS 反向代理"}</span></div>
         <div className="row">
           <label>
-            主機
+            主机地址
             <input
               value={hostInput}
               onChange={(e) => setHostInput(e.target.value)}
@@ -795,7 +752,7 @@ export default function App() {
             />
           </label>
           <label>
-            埠
+            端口
             <input
               value={portInput}
               onChange={(e) => setPortInput(e.target.value)}
@@ -803,24 +760,25 @@ export default function App() {
               className="port"
             />
           </label>
+          <label>协议<select aria-label="连接协议" value={protocolInput} onChange={(event) => setProtocolInput(event.target.value as "http" | "https")}><option value="http">HTTP</option><option value="https">HTTPS</option></select></label>
           <label>
-            API Token（遠端選填）
+            访问令牌（可选）
             <input
               type="password"
               autoComplete="off"
               value={apiTokenInput}
               onChange={(e) => setApiTokenInput(e.target.value)}
-              placeholder="只保存在本頁記憶體"
+              placeholder="仅在本次会话使用"
             />
           </label>
-          <button type="button" disabled={busy} onClick={() => void connect()}>
-            連線
+          <button type="button" disabled={phase === "connecting"} onClick={() => void connect()}>
+            {phase === "connecting" ? "连接中…" : online ? "重新连接" : "连接 Hub"}
           </button>
-          <button type="button" className="ghost" onClick={disconnect}>
-            斷開
+          <button type="button" className="ghost" disabled={phase === "idle"} onClick={disconnect}>
+            断开
           </button>
         </div>
-        <div className="row profile-row">
+        <details className="profile-settings"><summary>已保存的连接配置 <span>在本机浏览器保存，不包含令牌</span></summary><div className="row profile-row">
           <label>
             会话配置
             <select value={selectedProfileId} onChange={(e) => loadConnectionProfile(e.target.value)}>
@@ -852,107 +810,82 @@ export default function App() {
             删除配置
           </button>
         </div>
-        <p className="hint">
-          請先在本機執行：
-          <code>serialhub share mock:demo</code> 或真實裝置。 HTTP：
-          <code>{httpBase(conn)}</code> · WS：
-          <code>{wsUrl(conn)}</code>
-        </p>
-        {error && <p className="error">{error}</p>}
+        </details>
+        {!online && !error && <p className="connection-help">首次使用？在设备所在主机运行 <code>serialhub share mock:demo</code> 即可体验模拟回环。</p>}
+        {error && <p className="error connection-error" role="alert">{error}<span>检查地址、令牌与 Hub 运行状态后重新连接。写入请求不会自动重试。</span></p>}
       </section>
-
-      <nav className="tabs">
-        {(
-          [
-            ["monitor", "監控與收發"],
-            ["events", "事件帳本"],
-            ["endpoints", "並聯端點"],
-            ["protocol", "協定說明"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={tab === id ? "active" : ""}
-            onClick={() => setTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-
+      <section className="overview" aria-label="设备概览">
+        <div className="overview-device"><span className={`device-indicator ${canWrite ? "ready" : ""}`}><Icon name="terminal" size={23} /></span><div><small>当前设备</small><strong>{online ? status?.port.path : "等待连接"}</strong><span>{online ? `${status?.port.baud.toLocaleString()} baud · ${status?.port.connected ? "设备已打开" : "设备离线"}` : "选择一个 Hub 开始调试"}</span></div>{online && status?.port.path.startsWith("mock:") && <b className="simulation-label">MOCK</b>}</div>
+        <div><small>接收 RX</small><strong>{online ? status?.stats.rx_bytes.toLocaleString() : "—"}<span>bytes</span></strong></div>
+        <div><small>发送 TX</small><strong>{online ? status?.stats.tx_bytes.toLocaleString() : "—"}<span>bytes</span></strong></div>
+        <div><small>在线客户端</small><strong>{online ? status?.clients.length : "—"}<span>clients</span></strong></div>
+        <div className={status?.stats.rx_drops ? "has-drops" : ""}><small>分发丢弃</small><strong>{online ? status?.stats.rx_drops.toLocaleString() : "—"}<span>chunks</span></strong></div>
+      </section>
+      <div className="workspace-heading"><div><span className="section-index">{tab === "monitor" ? "01" : tab === "events" ? "02" : tab === "endpoints" ? "03" : "04"}</span><h2>{tab === "monitor" ? "实时监控" : tab === "events" ? "事件证据" : tab === "endpoints" ? "共享端点" : "协议与操作"}</h2></div><span>{online ? httpBase(conn) : "尚未建立会话"}</span></div>
       {tab === "monitor" && (
         <div className="grid">
-          <section className="panel">
-            <h2>狀態</h2>
+          <section className="panel device-panel">
+            <h2><Icon name="shield" size={17} /> 设备与写入权限</h2>
             {status ? (
               <dl className="kv">
-                <dt>真實埠</dt>
+                <dt>设备路径</dt>
                 <dd>
                   {status.port.path}{" "}
                   <span className={status.port.connected ? "tag ok" : "tag off"}>
-                    {status.port.connected ? "已開啟" : "未連"}
+                    {status.port.connected ? "已打开" : "未连接"}
                   </span>
                 </dd>
-                <dt>鮑率</dt>
+                <dt>波特率</dt>
                 <dd>{status.port.baud}</dd>
-                <dt>詳情</dt>
+                <dt>连接详情</dt>
                 <dd>{status.port.detail}</dd>
                 <dt>TX 模式</dt>
                 <dd>
                   <code>{status.tx_mode}</code>
                 </dd>
-                <dt>寫鎖</dt>
+                <dt>写入租约</dt>
                 <dd>
                   {status.lock_owner
-                    ? `${status.lock_owner}（剩餘 ${status.lock_expires_ms ?? "?"} ms）`
-                    : "無"}
+                    ? `${status.lock_owner}（剩余 ${status.lock_expires_ms ?? "?"} ms）`
+                    : "未持有"}
                 </dd>
-                <dt>統計</dt>
+                <dt>统计</dt>
                 <dd>
                   RX {status.stats.rx_bytes} · TX {status.stats.tx_bytes} · drop{" "}
                   {status.stats.rx_drops} · deny {status.stats.tx_denies}
                 </dd>
-                <dt>客戶端數</dt>
+                <dt>客户端数</dt>
                 <dd>{status.clients.length}</dd>
               </dl>
             ) : (
-              <p className="muted">尚未連線</p>
+              <p className="muted">尚未连接</p>
             )}
             <div className="row">
-              <button type="button" disabled={!online || busy} onClick={() => void onLock()}>
-                取得寫鎖
+              <button type="button" disabled={!canWrite || busy} onClick={() => void onLock()}>
+                获取写入租约
               </button>
               <button
                 type="button"
                 className="ghost"
-                disabled={!online || busy}
+                disabled={!canWrite || busy || !leaseToken}
                 onClick={() => void onUnlock()}
               >
-                釋放寫鎖
+                释放租约
               </button>
               <button
                 type="button"
                 className="ghost"
-                disabled={!online || busy}
-                onClick={() => void refreshMeta(conn, apiBearerToken)}
+                disabled={!canWrite || busy}
+                onClick={() => void refreshMeta().catch((failure) => pushLog({ kind: "err", text: `状态读取失败：${failure instanceof Error ? failure.message : String(failure)}` }))}
               >
-                重新整理
+                刷新状态
               </button>
             </div>
-          </section>
-
-          <section className="panel">
-            <h2>控制線</h2>
-            <p className="hint">
-              對應 DTR / RTS / BREAK。需要 Hub 的 <code>api.can_control</code> 與本頁寫鎖；mock
-              只用來測試 API，不宣稱有實體電氣效果。
-            </p>
-            <div className="row control-row">
+            {leaseToken && <p className="lease-countdown" role="status">本页写入租约有效 · 剩余 {(leaseRemaining / 1000).toFixed(1)} 秒</p>}<details className="hardware-controls"><summary>硬件控制线 <span>{status?.port.path.startsWith("mock:") ? "模拟设备不支持" : "需要服务端授权与有效租约"}</span></summary><div className="row control-row">
               <button
                 type="button"
                 className="ghost"
-                disabled={!online || busy || !leaseToken}
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
                 onClick={() => void onControl({ op: "dtr", level: true })}
               >
                 DTR ON
@@ -960,7 +893,7 @@ export default function App() {
               <button
                 type="button"
                 className="ghost"
-                disabled={!online || busy || !leaseToken}
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
                 onClick={() => void onControl({ op: "dtr", level: false })}
               >
                 DTR OFF
@@ -968,7 +901,7 @@ export default function App() {
               <button
                 type="button"
                 className="ghost"
-                disabled={!online || busy || !leaseToken}
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
                 onClick={() => void onControl({ op: "rts", level: true })}
               >
                 RTS ON
@@ -976,7 +909,7 @@ export default function App() {
               <button
                 type="button"
                 className="ghost"
-                disabled={!online || busy || !leaseToken}
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
                 onClick={() => void onControl({ op: "rts", level: false })}
               >
                 RTS OFF
@@ -995,16 +928,16 @@ export default function App() {
               <button
                 type="button"
                 className="ghost"
-                disabled={!online || busy || !leaseToken}
+                disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
                 onClick={() => void onControl({ op: "break", duration_ms: breakDurationMs })}
               >
                 發送 BREAK
               </button>
-            </div>
+            </div></details>
           </section>
 
-          <section className="panel">
-            <h2>送出（HTTP /v1/write）</h2>
+          <section className="panel composer-panel">
+            <div className="composer-heading"><h2>发送命令</h2><span>主机确认写入</span></div><div className="segmented" role="group" aria-label="发送格式"><button type="button" className={sendMode === "text" ? "active" : ""} aria-pressed={sendMode === "text"} onClick={() => setSendMode("text")}>Text 文本</button><button type="button" className={sendMode === "hex" ? "active" : ""} aria-pressed={sendMode === "hex"} onClick={() => setSendMode("hex")}>HEX 字节</button></div><div hidden={sendMode !== "text"}>
             <label className="block">
               文字
               <textarea
@@ -1035,11 +968,11 @@ export default function App() {
               </label>
               <span className="hint inline-hint">Ctrl/⌘ + Enter 发送</span>
             </div>
-            <button type="button" disabled={!online || busy} onClick={() => void onSendText()}>
-              送出文字
+            <button type="button" className="send-button" disabled={!canWrite || busy || !sendText.length} onClick={() => void onSendText()}>
+              发送文本
             </button>
-            <label className="block">
-              十六進位
+            </div><div hidden={sendMode !== "hex"}><label className="block">
+              十六进制
               <input
                 value={sendHex}
                 onChange={(e) => setSendHex(e.target.value)}
@@ -1066,16 +999,16 @@ export default function App() {
                 </span>
               )}
             </div>
-            <button type="button" disabled={!online || busy} onClick={() => void onSendHex()}>
-              送出 Hex
+            <button type="button" className="send-button" disabled={!canWrite || busy || !sendHex.trim() || hexPreview.startsWith("错误")} onClick={() => void onSendHex()}>
+              发送 Hex
             </button>
-            <div className="row auto-send-row">
+            </div><details className="auto-send-settings"><summary>定时发送 <span>断流或写入失败时自动停止</span></summary><div className="row auto-send-row">
               <label className="check">
                 <input
                   type="checkbox"
                   checked={autoSend}
                   onChange={(e) => setAutoSend(e.target.checked)}
-                  disabled={!online || busy}
+                  disabled={!canWrite || busy}
                 />
                 定时发送当前内容
               </label>
@@ -1095,13 +1028,11 @@ export default function App() {
                   max={86400000}
                   step={50}
                   value={autoIntervalMs}
-                  onChange={(e) => setAutoIntervalMs(Math.max(50, Number(e.target.value) || 50))}
+                  onChange={(e) => setAutoIntervalMs(Math.min(86400000, Math.max(50, Number(e.target.value) || 50)))}
                 />
               </label>
             </div>
-            <p className="hint">
-              可靠回传请用 HTTP 写入。定时发送复用同一写锁和安全仲裁，不会绕过 Hub。
-            </p>
+            </details><p className="composer-note"><Icon name="shield" size={14} /> 经过统一写入仲裁；主机确认不等于设备应答。</p>
           </section>
 
           <section className="panel quick-panel">
@@ -1172,7 +1103,7 @@ export default function App() {
                     <button
                       type="button"
                       className="small"
-                      disabled={!online || busy}
+                      disabled={!canWrite || busy}
                       onClick={() => void transmit(command.mode, command.payload, command.lineEnding)}
                     >
                       发送
@@ -1191,7 +1122,7 @@ export default function App() {
 
           <section className="panel log-panel">
             <div className="log-head">
-              <h2>即時日誌（WS /v1/stream）</h2>
+              <div className="terminal-title"><span className={`stream-dot ${wsOpen ? "live" : ""}`} /><h2>实时终端</h2><span className="terminal-transport">WS /v1/stream</span></div>
               <div className="row">
                 <label className="check">
                   <input
@@ -1199,7 +1130,7 @@ export default function App() {
                     checked={paused}
                     onChange={(e) => setPaused(e.target.checked)}
                   />
-                  暫停顯示
+                  暂停显示
                 </label>
                 <label className="check">
                   <input
@@ -1207,7 +1138,7 @@ export default function App() {
                     checked={autoScroll}
                     onChange={(e) => setAutoScroll(e.target.checked)}
                   />
-                  自動捲動
+                  自动滚动
                 </label>
                 <label>
                   显示
@@ -1251,9 +1182,10 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <div className="log" ref={logBoxRef}>
-              {logs.length === 0 && <div className="muted">尚無訊息</div>}
-              {logs.map((l) => (
+            <div className="log-filter"><Icon name="search" size={16} /><input aria-label="搜索终端日志" placeholder="搜索文本或 Hex…" value={logSearch} onChange={(event) => setLogSearch(event.target.value)} /><select aria-label="日志类型" value={logKind} onChange={(event) => setLogKind(event.target.value)}><option value="all">全部类型</option><option value="rx">RX 接收</option><option value="tx">TX 发送</option><option value="err">错误</option><option value="sys">系统</option></select><span>{visibleLogs.length} 条记录</span></div>
+            <div className="log" ref={logBoxRef} role="region" aria-label="实时终端记录" tabIndex={0}>
+              {visibleLogs.length === 0 && <div className="terminal-empty"><span className="empty-terminal-icon">⌁</span><strong>{logs.length ? "没有匹配的记录" : "等待设备数据"}</strong><span>{online ? "发送命令，或等待设备输出。" : "连接 Hub 后，设备输出会显示在这里。"}</span></div>}
+              {visibleLogs.map((l) => (
                 <div key={l.id} className={`line ${l.kind}`}>
                   <span className="ts">{showTimestamp ? l.ts : ""}</span>
                   <span className="kind">{l.kind.toUpperCase()}</span>
@@ -1262,6 +1194,7 @@ export default function App() {
                 </div>
               ))}
             </div>
+            <div className="terminal-statusbar"><span>{paused ? "显示已暂停，后端采集继续" : wsOpen ? "实时流接收中" : "等待实时流"}</span><span>显示窗口最多 2,000 条 · 完整记录见事件账本</span></div>
           </section>
 
           <WaveformPanel
@@ -1322,7 +1255,7 @@ export default function App() {
               {endpoints.length === 0 && (
                 <tr>
                   <td colSpan={6} className="muted">
-                    無資料 — 請先連線
+                    暂无数据，请先连接
                   </td>
                 </tr>
               )}
@@ -1393,7 +1326,7 @@ export default function App() {
               <code>GET /v1/health</code> — 探活
             </li>
             <li>
-              <code>GET /v1/status</code> — 埠、鎖、統計、客戶端
+              <code>GET /v1/status</code> — 埠、鎖、统计、客戶端
             </li>
             <li>
               <code>GET /v1/endpoints</code> — 並聯端點清單
@@ -1429,8 +1362,8 @@ export default function App() {
         </section>
       )}
 
-      <footer className="footer">
-        SerialHub · CLI + 本機 HTTP/WS · 可選網頁監控 · MIT
+      </main><footer className="footer">
+        SerialHub · 为人和自动化共享设备而设计。
       </footer>
     </div>
   );

@@ -268,8 +268,8 @@ export default function EventLedgerPanel({
     <section className="panel ledger-panel">
       <div className="ledger-head">
         <div>
-          <h2>事件帳本（唯讀）</h2>
-          <p className="hint">最近事件的可稽核視圖；原始即時 WS 監控仍在「監控與收發」。</p>
+          <h2>事件账本（只读）</h2>
+          <p className="hint">设备收发与操作的可追溯记录，实时输出见「实时工作台」。</p>
         </div>
         <button
           type="button"
@@ -277,7 +277,7 @@ export default function EventLedgerPanel({
           disabled={!online || loading}
           onClick={onRefresh}
         >
-          {loading ? "讀取中…" : "手動重新整理"}
+          {loading ? "读取中…" : "刷新事件"}
         </button>
         <button type="button" className="ghost" disabled={!online} onClick={onExport}>
           导出 NDJSON

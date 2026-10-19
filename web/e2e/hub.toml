@@ -1,0 +1,8 @@
+[real]
+path = "mock:e2e"
+
+[api]
+bind = "127.0.0.1:18887"
+
+[log]
+mirror_console = false

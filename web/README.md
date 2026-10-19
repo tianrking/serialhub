@@ -92,4 +92,18 @@ URLs.
 ```bash
 npm run build
 npm run lint
+npm test
+# After npm run build, with Cargo on PATH:
+npx playwright install chromium
+npm run test:e2e
 ```
+
+The workspace includes bounded log search/type filtering, Text/Hex send modes,
+live device counters, and a responsive layout. Requests and sockets belong to
+one connection session; disconnect cancels pending work and ignores stale
+callbacks. Automatic sending stops on a disconnected device, stream loss, or
+write failure and stays off after reconnect. Write deadlines have uncertain
+device outcomes and are never retried automatically.
+
+For service operation, HTTPS proxy requirements, shutdown behavior, and
+validation limits, see [`OPERATIONS.md`](../OPERATIONS.md).

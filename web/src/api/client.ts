@@ -9,57 +9,62 @@ import type {
   LockResponse,
   StatusSnapshot,
   WriteResponse,
-} from "./types";
-import { httpBase } from "./types";
+} from "./types.ts";
+import { httpBase } from "./types.ts";
 
 function authHeaders(bearerToken?: string): Record<string, string> {
   return bearerToken ? { authorization: `Bearer ${bearerToken}` } : {};
 }
 
-async function getJson<T>(
-  url: string,
-  bearerToken?: string,
-  signal?: AbortSignal,
-): Promise<T> {
-  const res = await fetch(url, {
-    method: "GET",
-    headers: authHeaders(bearerToken),
-    signal,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  return res.json() as Promise<T>;
+export const REQUEST_TIMEOUT_MS = 8000;
+
+async function request<T>(url: string, init: RequestInit, decode: (response: Response) => Promise<T>, mutation = false): Promise<T> {
+  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+  try {
+    const response = await fetch(url, { ...init, signal });
+    if (!response.ok) {
+      let detail = response.statusText;
+      try {
+        const body: unknown = await response.json();
+        if (body && typeof body === "object" && "error" in body && typeof body.error === "string") {
+          detail = body.error.slice(0, 512);
+        }
+      } catch { /* An upstream proxy may return HTML instead of JSON. */ }
+      throw new Error(`HTTP ${response.status}：${detail}`);
+    }
+    // Keep body consumption inside the deadline too: headers alone are not a response.
+    return await decode(response);
+  } catch (error) {
+    if (timeout.aborted && !init.signal?.aborted) {
+      throw new Error(mutation
+        ? "请求超时，设备可能已执行。请核对事件记录后再决定是否重试。"
+        : "连接超时，请检查 Hub 地址和网络。");
+    }
+    throw error;
+  }
 }
 
-async function getText(
-  url: string,
-  bearerToken?: string,
-  signal?: AbortSignal,
-): Promise<string> {
-  const res = await fetch(url, {
-    method: "GET",
-    headers: authHeaders(bearerToken),
-    signal,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  return res.text();
+async function getJson<T>(url: string, bearerToken?: string, signal?: AbortSignal): Promise<T> {
+  return request(url, { method: "GET", headers: authHeaders(bearerToken), signal }, response => response.json() as Promise<T>);
+}
+
+async function getText(url: string, bearerToken?: string, signal?: AbortSignal): Promise<string> {
+  return request(url, { method: "GET", headers: authHeaders(bearerToken), signal }, response => response.text());
 }
 
 async function sendJson<T>(
-  url: string,
-  method: string,
-  body?: unknown,
-  bearerToken?: string,
+  url: string, method: string, body?: unknown, bearerToken?: string, signal?: AbortSignal,
 ): Promise<T> {
-  const res = await fetch(url, {
+  return request(url, {
     method,
     headers: {
       ...authHeaders(bearerToken),
       ...(body ? { "content-type": "application/json" } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-  return res.json() as Promise<T>;
+    signal,
+  }, response => response.json() as Promise<T>, true);
 }
 
 function eventQueryString(query: LedgerEventsQuery): string {
@@ -78,14 +83,14 @@ function eventQueryString(query: LedgerEventsQuery): string {
 }
 
 export const hubApi = {
-  health: (cfg: ConnectionConfig) =>
-    getJson<HealthResponse>(`${httpBase(cfg)}/v1/health`),
+  health: (cfg: ConnectionConfig, signal?: AbortSignal) =>
+    getJson<HealthResponse>(`${httpBase(cfg)}/v1/health`, undefined, signal),
 
-  status: (cfg: ConnectionConfig, bearerToken?: string) =>
-    getJson<StatusSnapshot>(`${httpBase(cfg)}/v1/status`, bearerToken),
+  status: (cfg: ConnectionConfig, bearerToken?: string, signal?: AbortSignal) =>
+    getJson<StatusSnapshot>(`${httpBase(cfg)}/v1/status`, bearerToken, signal),
 
-  endpoints: (cfg: ConnectionConfig, bearerToken?: string) =>
-    getJson<EndpointsResponse>(`${httpBase(cfg)}/v1/endpoints`, bearerToken),
+  endpoints: (cfg: ConnectionConfig, bearerToken?: string, signal?: AbortSignal) =>
+    getJson<EndpointsResponse>(`${httpBase(cfg)}/v1/endpoints`, bearerToken, signal),
 
   clients: (cfg: ConnectionConfig, bearerToken?: string) =>
     getJson<StatusSnapshot["clients"]>(`${httpBase(cfg)}/v1/clients`, bearerToken),
@@ -127,6 +132,7 @@ export const hubApi = {
       as_client?: string;
       lease_token?: string;
       bearer_token?: string;
+      signal?: AbortSignal;
     },
   ) =>
     sendJson<WriteResponse>(
@@ -139,12 +145,13 @@ export const hubApi = {
         lease_token: opts?.lease_token,
       },
       opts?.bearer_token,
+      opts?.signal,
     ),
 
   writeHex: (
     cfg: ConnectionConfig,
     hex: string,
-    opts?: { as_client?: string; lease_token?: string; bearer_token?: string },
+    opts?: { as_client?: string; lease_token?: string; bearer_token?: string; signal?: AbortSignal },
   ) =>
     sendJson<WriteResponse>(
       `${httpBase(cfg)}/v1/write`,
@@ -155,6 +162,7 @@ export const hubApi = {
         lease_token: opts?.lease_token,
       },
       opts?.bearer_token,
+      opts?.signal,
     ),
 
   lock: (
@@ -162,20 +170,23 @@ export const hubApi = {
     as_client = "web-ui",
     lease_token?: string,
     bearerToken?: string,
+    signal?: AbortSignal,
   ) =>
     sendJson<LockResponse>(
       `${httpBase(cfg)}/v1/lock`,
       "POST",
       { as_client, lease_token },
       bearerToken,
+      signal,
     ),
 
-  unlock: (cfg: ConnectionConfig, lease_token: string, bearerToken?: string) =>
+  unlock: (cfg: ConnectionConfig, lease_token: string, bearerToken?: string, signal?: AbortSignal) =>
     sendJson<LockResponse>(
       `${httpBase(cfg)}/v1/lock`,
       "DELETE",
       { lease_token },
       bearerToken,
+      signal,
     ),
 
   control: (
@@ -184,6 +195,7 @@ export const hubApi = {
       | { op: "dtr" | "rts"; level: boolean; as_client?: string; lease_token?: string }
       | { op: "break"; duration_ms: number; as_client?: string; lease_token?: string },
     bearerToken?: string,
+    signal?: AbortSignal,
   ) =>
-    sendJson<ControlResponse>(`${httpBase(cfg)}/v1/control`, "POST", body, bearerToken),
+    sendJson<ControlResponse>(`${httpBase(cfg)}/v1/control`, "POST", body, bearerToken, signal),
 };

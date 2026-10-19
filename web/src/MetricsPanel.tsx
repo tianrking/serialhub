@@ -16,7 +16,7 @@ function parseMetrics(text: string): MetricRow[] {
   const rows: MetricRow[] = [];
   for (const line of text.split(/\r?\n/)) {
     if (line.startsWith("# HELP ")) {
-      const [, name, ...description] = line.split(" ");
+      const [, , name, ...description] = line.split(" ");
       if (name) help.set(name, description.join(" "));
       continue;
     }

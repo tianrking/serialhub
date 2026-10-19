@@ -58,7 +58,7 @@ export default function WaveformPanel({
     <section className="panel waveform-panel">
       <div className="log-head">
         <div>
-          <h2>波形觀察</h2>
+          <h2>数据波形</h2>
           <p className="hint">
             {protocolLabel} · {values.length} samples · 最新 {formatValue(latest)}
           </p>
@@ -95,7 +95,7 @@ export default function WaveformPanel({
             <polyline points={points} className="waveform-line" />
           </svg>
         ) : (
-          <p className="muted">選擇 FireWater 或 JustFloat，收到完整幀後會在這裡繪圖。</p>
+          <p className="muted">选择 FireWater 或 JustFloat，收到完整数据帧后显示波形。</p>
         )}
       </div>
     </section>

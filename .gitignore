@@ -1,5 +1,7 @@
 /target
 web/node_modules
+web/test-results/
+web/playwright-report/
 .DS_Store
 *.blog
 logs/

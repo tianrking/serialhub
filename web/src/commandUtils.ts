@@ -14,6 +14,7 @@ export interface ConnectionProfile {
   name: string;
   host: string;
   port: number;
+  protocol?: "http" | "https";
 }
 
 export const QUICK_COMMANDS_STORAGE_KEY = "ohmyserial.web.quickCommands";
@@ -103,10 +104,13 @@ export function loadConnectionProfiles(): ConnectionProfile[] {
         !Number.isInteger(record.port) ||
         Number(record.port) < 1 ||
         Number(record.port) > 65535
+        || (record.protocol !== undefined && record.protocol !== "http" && record.protocol !== "https")
       ) {
         return [];
       }
-      return [{ id: record.id, name: record.name, host: record.host, port: Number(record.port) }];
+      return [{ id: record.id, name: record.name, host: record.host, port: Number(record.port),
+        ...(record.protocol ? { protocol: record.protocol as "http" | "https" } : {}),
+      }];
     });
     return profiles.slice(0, 50);
   } catch {

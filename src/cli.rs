@@ -252,7 +252,7 @@ pub async fn run() -> anyhow::Result<()> {
                 rfc2217_bind,
                 rfc2217_can_control: rfc2217_control,
             })?;
-            run_until_ctrl_c(cfg, ui, Some(api)).await
+            run_until_shutdown(cfg, ui, Some(api)).await
         }
         Commands::BridgeCom {
             device,
@@ -321,7 +321,7 @@ pub async fn run() -> anyhow::Result<()> {
             cfg.validate()?;
             let api_bind = cfg.api.bind.clone();
             tracing::info!("loaded config {}", config.display());
-            run_until_ctrl_c(cfg, ui, Some(api_bind)).await
+            run_until_shutdown(cfg, ui, Some(api_bind)).await
         }
         Commands::Check { config } => {
             let cfg = Config::load(&config)?;
@@ -329,12 +329,13 @@ pub async fn run() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::Supervise { configs } => {
+            let shutdown = shutdown_signal()?;
             let profiles = supervisor::load_profiles(&configs)?;
             eprintln!("starting {} independent serial profile(s)", profiles.len());
             let handle = supervisor::Supervisor::start(profiles).await?;
             tracing::info!(profiles = handle.len(), "multi-profile supervisor ready");
             tracing::info!("press Ctrl+C to stop all profiles");
-            tokio::signal::ctrl_c().await?;
+            shutdown.await?;
             tracing::info!("shutting down all profiles");
             handle.shutdown_gracefully().await;
             Ok(())
@@ -478,11 +479,34 @@ async fn replay_capture(
     Ok(())
 }
 
-async fn run_until_ctrl_c(
+/// Register Unix handlers before starting devices/listeners, including the
+/// startup window in which a service manager can already send SIGTERM.
+fn shutdown_signal() -> std::io::Result<impl std::future::Future<Output = std::io::Result<()>>> {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+        let mut interrupt = signal(SignalKind::interrupt())?;
+        let mut terminate = signal(SignalKind::terminate())?;
+        Ok(async move {
+            let received = tokio::select! {
+                received = interrupt.recv() => received,
+                received = terminate.recv() => received,
+            };
+            received.ok_or_else(|| std::io::Error::other("shutdown signal stream closed"))
+        })
+    }
+    #[cfg(not(unix))]
+    {
+        Ok(async { tokio::signal::ctrl_c().await })
+    }
+}
+
+async fn run_until_shutdown(
     cfg: Config,
     open_ui: bool,
     api_bind: Option<String>,
 ) -> anyhow::Result<()> {
+    let shutdown = shutdown_signal()?;
     let ui_url = api_bind
         .as_ref()
         .map(|b| format!("http://{b}/"))
@@ -504,8 +528,8 @@ async fn run_until_ctrl_c(
         eprintln!("Web UI not embedded (build web/dist then rebuild serialhub)");
     }
 
-    tracing::info!("press Ctrl+C to stop");
-    tokio::signal::ctrl_c().await?;
+    tracing::info!("press Ctrl+C to stop (Unix services also accept SIGTERM)");
+    shutdown.await?;
     tracing::info!("shutting down");
     handle.shutdown_gracefully().await;
     Ok(())

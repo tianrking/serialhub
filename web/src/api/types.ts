@@ -178,12 +178,32 @@ export interface LedgerEventsQuery {
 export interface ConnectionConfig {
   host: string;
   port: number;
+  protocol?: "http" | "https";
+}
+
+export function validateConnection(value: ConnectionConfig): ConnectionConfig {
+  const host = value.host.trim();
+  if (!host || /[\s/?#@\\]/.test(host)) throw new Error("请输入有效主机名或 IP，不含协议和路径");
+  if (!Number.isInteger(value.port) || value.port < 1 || value.port > 65535) {
+    throw new Error("端口必须是 1 到 65535 之间的整数");
+  }
+  if (value.protocol !== undefined && value.protocol !== "http" && value.protocol !== "https") {
+    throw new Error("连接协议仅支持 HTTP 或 HTTPS");
+  }
+  const authority = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+  try {
+    new URL(`${value.protocol ?? "http"}://${authority}:${value.port}`);
+  } catch {
+    throw new Error("主机名或 IP 格式无效");
+  }
+  return { host, port: value.port, protocol: value.protocol ?? "http" };
 }
 
 export function httpBase(cfg: ConnectionConfig): string {
-  return `http://${cfg.host}:${cfg.port}`;
+  const host = cfg.host.includes(":") && !cfg.host.startsWith("[") ? `[${cfg.host}]` : cfg.host;
+  return `${cfg.protocol ?? "http"}://${host}:${cfg.port}`;
 }
 
 export function wsUrl(cfg: ConnectionConfig): string {
-  return `ws://${cfg.host}:${cfg.port}/v1/stream`;
+  return `${httpBase(cfg).replace(/^http/, "ws")}/v1/stream`;
 }

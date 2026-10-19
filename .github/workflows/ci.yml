@@ -98,6 +98,26 @@ jobs:
       - name: Test
         run: cargo test --locked --all-targets --target ${{ matrix.target }}
 
+      - name: Install Chromium for browser regression tests
+        if: matrix.name == 'linux-x64'
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Test embedded browser workspace
+        if: matrix.name == 'linux-x64'
+        working-directory: web
+        env:
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
+        run: npm run test:e2e
+
+      - name: Upload browser failure artifacts
+        if: failure() && matrix.name == 'linux-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-results
+          path: web/test-results/
+          if-no-files-found: ignore
+
       - name: Release build
         run: cargo build --locked --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
 

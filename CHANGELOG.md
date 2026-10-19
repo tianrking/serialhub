@@ -4,6 +4,26 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Reliable device workspace
+
+- Redesigned the console with a responsive navigation shell, live device
+  counters, a dedicated terminal, Text/Hex composer, log search/type filters,
+  waveform display, and explicit mock-device identification.
+- Isolated connection sessions so disconnect/switch cancels requests, timers,
+  and sockets; stale responses cannot restore an old session. Added serial
+  status polling, request deadlines, bounded stream reconnection, HTTPS/WSS
+  URLs, and IPv6 endpoint support.
+- Guarded manual/keyboard sends against offline state and duplicate submits.
+  Timed sending stops after device/stream loss or a write failure and stays
+  stopped after reconnect. Expired/session-old leases are cleared; uncertain
+  writes are never retried automatically.
+- Batched bounded terminal updates, preserved split UTF-8 text, and kept Hub
+  diagnostics out of the device RX stream. Optimized recent ledger queries
+  with ordered cursor lookup and fixed RFC2217 connection task ownership.
+- Added Unix SIGTERM graceful shutdown with a process-level ledger-sealing
+  regression test, a mock Vite development profile, browser regression tests
+  in Linux CI, and service guidance in `OPERATIONS.md`.
+
 ### Documentation
 
 - Replaced the pre-release positioning draft with the maintained v0.0.2 product
