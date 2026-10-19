@@ -5,155 +5,200 @@ on:
     branches: [main, master]
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ""
+      release-tag:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_type == 'branch') }}
 
 env:
-  CARGO_TERM_COLOR: always
+  CARGO_TERM_COLOR: never
 
 jobs:
-  # ---------- quick checks ----------
-  check-web:
-    name: web (test, lint, build)
-    runs-on: ubuntu-latest
+  check-workflows:
+    name: Workflow syntax
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
         with:
-          node-version: "22"
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color
+
+  check-web:
+    name: web / Node ${{ matrix.node }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Test, lint, and build React console
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Check release metadata and packaging safeguards
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: |
+          python scripts/release.py check --tag "$RELEASE_TAG"
+          python -m unittest discover -s scripts/tests -v
+      - name: Test, lint and build the local web console
         working-directory: web
         run: |
           npm ci
           npm test
           npm run lint
           npm run build
-      - name: Ensure dist present for embed
-        run: test -f web/dist/index.html
+          npm audit --audit-level=high
+      - name: Require committed production assets to match the build
+        if: matrix.node == '24'
+        run: git diff --exit-code -- web/dist
+      - name: Share the verified frontend with native builders
+        if: matrix.node == '24'
+        uses: actions/upload-artifact@v5
+        with:
+          name: web-dist
+          path: web/dist/
+          if-no-files-found: error
+          retention-days: 7
 
-  # ---------- cross-platform tests & builds ----------
+  check-rust:
+    name: Rust formatting and clippy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+
   build:
     name: ${{ matrix.name }}
-    needs: check-web
+    needs: [check-web, check-rust, check-workflows]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: linux-x64
-            os: ubuntu-latest
+            os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
-            bin: serialhub
           - name: linux-arm64
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            bin: serialhub
           - name: macos-arm64
-            os: macos-latest
+            os: macos-15
             target: aarch64-apple-darwin
-            bin: serialhub
           - name: macos-x64
-            # Cross-compile Intel target on Apple Silicon runners
-            os: macos-latest
+            os: macos-15-intel
             target: x86_64-apple-darwin
-            bin: serialhub
           - name: windows-x64
-            os: windows-latest
+            os: windows-2025
             target: x86_64-pc-windows-msvc
-            bin: serialhub.exe
           - name: windows-arm64
             os: windows-11-arm
             target: aarch64-pc-windows-msvc
-            bin: serialhub.exe
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Linux serial deps
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libudev-dev
-
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}
-
-      - uses: actions/setup-node@v4
+          key: native-${{ matrix.target }}
+      - uses: actions/download-artifact@v5
         with:
-          node-version: "22"
+          name: web-dist
+          path: web/dist/
+      - name: Run native Rust tests
+        run: python scripts/ci-run.py --log cargo-test.log -- cargo test --locked --all-targets --target ${{ matrix.target }}
+      - name: Build both release executables from the lockfile
+        run: python scripts/ci-run.py --log cargo-build.log -- cargo build --locked --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
+      - name: Package executables, local documentation and provenance
+        run: python scripts/release.py package --target ${{ matrix.target }} --binary-dir target/${{ matrix.target }}/release --output dist
+      - name: Extract and run the actual native package
+        run: python scripts/ci-run.py --log package-smoke.log -- python scripts/release.py test-package --directory dist --target ${{ matrix.target }}
+      - uses: actions/setup-node@v5
+        if: matrix.name == 'linux-x64'
+        with:
+          node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json
-
-      - name: Build web UI (embedded into binary)
+      - name: Install browser test dependencies
+        if: matrix.name == 'linux-x64'
         working-directory: web
         run: |
           npm ci
-          npm run build
-
-      - name: Test
-        run: cargo test --locked --all-targets --target ${{ matrix.target }}
-
-      - name: Install Chromium for browser regression tests
+          npx playwright install --with-deps chromium
+      - name: Exercise the embedded release UI in Chromium
         if: matrix.name == 'linux-x64'
-        working-directory: web
-        run: npx playwright install --with-deps chromium
-
-      - name: Test embedded browser workspace
-        if: matrix.name == 'linux-x64'
-        working-directory: web
         env:
           CARGO_BUILD_TARGET: ${{ matrix.target }}
-        run: npm run test:e2e
-
-      - name: Upload browser failure artifacts
-        if: failure() && matrix.name == 'linux-x64'
-        uses: actions/upload-artifact@v4
+          SERIALHUB_E2E_PROFILE: release
+        run: python scripts/ci-run.py --log browser-tests.log -- npm --prefix web run test:e2e
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v5
         with:
-          name: browser-test-results
-          path: web/test-results/
+          name: diagnostics-${{ matrix.target }}
+          path: |
+            *.log
+            web/test-results/
           if-no-files-found: ignore
-
-      - name: Release build
-        run: cargo build --locked --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
-
-      - name: Package artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          STAGE="serialhub-${{ matrix.target }}"
-          mkdir -p "dist/${STAGE}"
-          BIN="target/${{ matrix.target }}/release/${{ matrix.bin }}"
-          cp "$BIN" "dist/${STAGE}/"
-          LEGACY_BIN="${BIN/serialhub/ohmyserial}"
-          test -f "$LEGACY_BIN" && cp "$LEGACY_BIN" "dist/${STAGE}/"
-          cp README.md LICENSE MIGRATION.md serialhub.example.toml "dist/${STAGE}/" 2>/dev/null || true
-          cp web/PROTOCOL.zh-TW.md "dist/${STAGE}/" 2>/dev/null || true
-          cd dist
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            7z a "${STAGE}.zip" "${STAGE}"
-          else
-            tar -czf "${STAGE}.tar.gz" "${STAGE}"
-          fi
-          ls -la
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          retention-days: 7
+      - name: Upload verified native archive
+        uses: actions/upload-artifact@v5
         with:
           name: serialhub-${{ matrix.target }}
           path: |
             dist/*.tar.gz
             dist/*.zip
           if-no-files-found: error
+          retention-days: 14
 
-  # ---------- summary ----------
   ci-ok:
     name: all green
-    needs: [check-web, build]
-    runs-on: ubuntu-latest
+    if: always()
+    needs: [check-web, check-rust, check-workflows, build]
+    runs-on: ubuntu-24.04
     steps:
-      - run: echo "CI passed for all platforms"
+      - name: Require every check and every target
+        env:
+          WEB_RESULT: ${{ needs.check-web.result }}
+          RUST_RESULT: ${{ needs.check-rust.result }}
+          WORKFLOW_RESULT: ${{ needs.check-workflows.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: |
+          test "$WEB_RESULT" = success
+          test "$RUST_RESULT" = success
+          test "$WORKFLOW_RESULT" = success
+          test "$BUILD_RESULT" = success

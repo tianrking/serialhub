@@ -29,7 +29,7 @@ Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉�
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.0.2"><img alt="Version" src="https://img.shields.io/badge/version-v0.0.2-0ea5e9?style=flat-square" /></a>
+  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.1.0"><img alt="Version" src="https://img.shields.io/badge/version-v0.1.0-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
@@ -106,7 +106,7 @@ Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉�
 | 许可证 | MIT |
 | 文档 | [English](./README.md)（默认）· **简体中文** · [Español](./README.es.md) |
 | 产品/架构详述 | [`POSITIONING.md`](./POSITIONING.md) |
-| 当前发布 | [v0.0.2](https://github.com/tianrking/serialhub/releases/tag/v0.0.2) |
+| 当前发布 | [v0.1.0](https://github.com/tianrking/serialhub/releases/tag/v0.1.0) |
 
 > **项目已由 ohmyserial 更名为 SerialHub。** `serialhub` 是正式命令和包名；
 > 0.x 发布包仍提供兼容可执行文件，版本化账本 schema、Prometheus 指标和浏览器
@@ -761,9 +761,10 @@ CI：Ubuntu · macOS · Windows。
 
 ## 当前发布范围
 
-v0.0.2 是当前公开发布基线，包含核心 Hub、可信 TX 与租约、Unix PTY、TCP、
+v0.1.0 是当前公开发布基线，包含核心 Hub、可信 TX 与租约、Unix PTY、TCP、
 HTTP/WebSocket、RFC2217、多 profile 监督、事件账本与安全回放、设备身份选择、
-有界维护交接、Prometheus 指标和内嵌 Web 控制台。
+有界维护交接、Prometheus 指标和内嵌 Web 控制台。0.1.0 新增单屏调试工作台、
+信号仪表和可配置的六语言界面；参见[发布验证与跨平台包](./RELEASING.md)。
 
 它明确**不承诺**自研 Windows 内核虚拟 COM 驱动、UDP 传输、完整终端模拟、
 通用脚本引擎、云 SaaS，或对每一种适配器与设备组合的硬件认证。完整的平台支持、

@@ -6,3 +6,4 @@ web/.env.local
 .DS_Store
 *.blog
 logs/
+__pycache__/

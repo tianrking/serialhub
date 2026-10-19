@@ -27,7 +27,7 @@
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.0.2"><img alt="Version" src="https://img.shields.io/badge/version-v0.0.2-0ea5e9?style=flat-square" /></a>
+  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.1.0"><img alt="Version" src="https://img.shields.io/badge/version-v0.1.0-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
@@ -95,7 +95,7 @@ Ideal para depuración embebida cuando **un terminal humano y un agente/script d
 | Licencia | MIT |
 | Documentación | [English](./README.md) (por defecto) · [中文](./README.zh-CN.md) · **Español** |
 | Arquitectura | [`POSITIONING.md`](./POSITIONING.md) |
-| Versión actual | [v0.0.2](https://github.com/tianrking/serialhub/releases/tag/v0.0.2) |
+| Versión actual | [v0.1.0](https://github.com/tianrking/serialhub/releases/tag/v0.1.0) |
 
 ---
 
@@ -591,10 +591,12 @@ CI: Ubuntu · macOS · Windows.
 
 ## Alcance de la versión actual
 
-v0.0.2 es la línea pública actual: incluye el hub, TX confiable y leases,
+v0.1.0 es la línea pública actual: incluye el hub, TX confiable y leases,
 PTY en Unix, TCP, HTTP/WebSocket, RFC2217, supervisión de varios perfiles,
 ledger de eventos con replay seguro, identidad USB, handoff acotado, métricas
-Prometheus y consola web integrada.
+Prometheus y consola web integrada. La versión 0.1.0 añade el espacio de
+depuración en una pantalla, análisis de señales y seis idiomas configurables.
+Consulta [paquetes y verificación de publicación](./RELEASING.md).
 
 No promete un controlador virtual COM de kernel para Windows, UDP, emulación
 completa de terminal, un motor de scripts programable, SaaS en la nube ni

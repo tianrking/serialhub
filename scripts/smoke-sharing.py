@@ -2,6 +2,7 @@
 """Verify shared RX and leased TX using an isolated mock Hub (stdlib only)."""
 
 import argparse
+from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path
@@ -29,6 +30,41 @@ def receive_exact(reader, expected):
         require(chunk, "reader disconnected")
         received.extend(chunk)
     require(received == expected, "RX differs, or a rejected write reached the stream")
+
+
+def verify_embedded_ui(opener, base):
+    class Assets(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.urls = []
+            self.english = False
+            self.root = False
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == "html":
+                self.english = attrs.get("lang") == "en" and attrs.get("dir") == "ltr"
+            if tag == "div" and attrs.get("id") == "root":
+                self.root = True
+            url = attrs.get("src") if tag == "script" else attrs.get("href") if tag == "link" else None
+            if url:
+                require(url.startswith("/") and not url.startswith("//"), "UI requires a nonlocal asset")
+                self.urls.append(url)
+
+    with opener.open(base + "/", timeout=3) as response:
+        require(response.headers.get_content_type() == "text/html", "UI MIME type is invalid")
+        parser = Assets()
+        parser.feed(response.read().decode("utf-8"))
+    require(parser.english and parser.root and parser.urls, "Embedded English UI is missing")
+    require(any("locales-" in url for url in parser.urls), "Local translation catalog is missing")
+    for url in parser.urls:
+        with opener.open(base + url, timeout=3) as response:
+            require(response.read(), f"Empty UI asset: {url}")
+            if url.endswith(".js"):
+                require("javascript" in response.headers.get_content_type(), f"Wrong JS MIME: {url}")
+            if url.endswith(".css"):
+                require(response.headers.get_content_type() == "text/css", f"Wrong CSS MIME: {url}")
+    print("PASS embedded English UI and local JS/CSS/translation assets")
 
 
 def run(binary, directory):
@@ -83,6 +119,7 @@ mirror_console = false
                     pass
                 require(time.monotonic() < deadline, "Hub startup timed out")
                 time.sleep(0.05)
+            verify_embedded_ui(opener, base)
             require(status["port"]["path"] == "mock:sharing-smoke", "expected mock device")
             print("PASS isolated mock Hub connected")
 

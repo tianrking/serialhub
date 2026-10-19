@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-10-19
+
+### Debugging and signal analysis
+
+- Added raw file transfer, sequential command jobs, GBK/UTF-8 tools, raw RX
+  recording, configuration migration and acknowledged runtime serial settings.
+- Added the signal studio: multichannel scope, cursors, software triggers,
+  calibrated FFT, XY, waterfall, meters, attitude, raw images, parameter controls
+  and CSV replay/export with bounded acquisition history.
+- Fit the desktop terminal, waveform, composer and contextual tools into one
+  screen, preserving drafts while switching tools and containing dialog focus.
+- Added English-default localization with Traditional Chinese, Spanish, French,
+  Arabic RTL and Simplified Chinese, deploy-time language controls, localized
+  display formatting and automated catalog/placeholder checks.
+
+### Release engineering
+
+- Reused the complete CI gate for tag and manual releases, including Node 22/24,
+  Rust formatting/clippy/tests and browser tests against the release binary.
+- Built and tested six native platform archives with both executable names,
+  offline docs, per-file SHA-256 manifests and a release-level SHA256SUMS file.
+- Required archive architecture, source commit, version and file completeness;
+  extracted and ran each native package before accepting its artifact.
+- Downloaded and compared draft release assets before public publication;
+  rejected incomplete releases and overwrites of already published versions.
+- Kept Linux PTY baud checks on Linux: Darwin PTYs reject IOSSIOSPEED and are
+  not substitutes for physical macOS serial adapters.
+
 ### Reliable device workspace
 
 - Redesigned the console with a responsive navigation shell, live device

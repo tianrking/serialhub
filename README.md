@@ -31,7 +31,7 @@ See [localization and deployment controls](./I18N.md).
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.0.2"><img alt="Version" src="https://img.shields.io/badge/version-v0.0.2-0ea5e9?style=flat-square" /></a>
+  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.1.0"><img alt="Version" src="https://img.shields.io/badge/version-v0.1.0-0ea5e9?style=flat-square" /></a>
   <img alt="Status" src="https://img.shields.io/badge/status-active-22c55e?style=flat-square" />
   <a href="https://github.com/tianrking/serialhub/releases"><img alt="Release" src="https://img.shields.io/badge/release-watch%20releases-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
@@ -102,7 +102,7 @@ Ideal for embedded debug when **a human terminal and an AI agent/script must sha
 | License | MIT |
 | Default docs | **English** · [中文](./README.zh-CN.md) · [Español](./README.es.md) |
 | Architecture deep-dive | [`POSITIONING.md`](./POSITIONING.md) |
-| Current release | [v0.0.2](https://github.com/tianrking/serialhub/releases/tag/v0.0.2) |
+| Current release | [v0.1.0](https://github.com/tianrking/serialhub/releases/tag/v0.1.0) |
 
 > **Renamed from ohmyserial.** `serialhub` is the canonical command and
 > package name. The 0.x release keeps a compatibility executable; versioned
@@ -820,10 +820,12 @@ CI: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) — Ubuntu, macOS, 
 
 ## Current release scope
 
-v0.0.2 is the current public baseline. It includes the hub, trusted TX and
+v0.1.0 is the current public baseline. It includes the hub, trusted TX and
 leases, Unix PTY, TCP, HTTP/WebSocket, RFC2217, multi-profile supervision,
 event ledger and safe replay, device identity, bounded maintenance handoff,
-Prometheus metrics, and the embedded Web console.
+Prometheus metrics, and the embedded Web console. Version 0.1.0 also adds the
+single-screen debugging workspace, signal studio and configurable six-language
+interface. See [release verification and packages](./RELEASING.md).
 
 It deliberately does **not** claim a kernel virtual-COM driver for Windows,
 UDP transport, a full terminal-emulation mode, a programmable scripting

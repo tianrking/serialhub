@@ -117,7 +117,10 @@ async fn mock_does_not_falsely_confirm_physical_configuration() {
     handle.shutdown_gracefully().await;
 }
 
-#[cfg(unix)]
+// Darwin PTYs reject the IOSSIOSPEED ioctl used by serialport for nonzero
+// baud rates; they cannot stand in for a physical macOS serial adapter here.
+// Linux PTYs expose the kernel baud settings through the second descriptor.
+#[cfg(target_os = "linux")]
 #[tokio::test]
 async fn real_owner_applies_and_reports_runtime_baud_on_a_pseudoterminal() {
     use serialport::SerialPort;

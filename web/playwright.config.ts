@@ -16,7 +16,9 @@ export default defineConfig({
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {},
   },
   webServer: {
-    command: "cargo run --locked -- run -c web/e2e/hub.toml",
+    command: process.env.SERIALHUB_E2E_PROFILE === "release"
+      ? "cargo run --locked --release --bin serialhub -- run -c web/e2e/hub.toml"
+      : "cargo run --locked -- run -c web/e2e/hub.toml",
     cwd: "..",
     url: "http://127.0.0.1:18887/v1/health",
     timeout: 180000,

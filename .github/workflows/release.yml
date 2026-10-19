@@ -2,170 +2,90 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to release (e.g. v0.0.2)"
+        description: Existing version tag to validate and publish (for example v0.1.0)
+        type: string
         required: true
-        default: "v0.0.2"
 
 permissions:
-  contents: write
+  contents: read
 
-env:
-  CARGO_TERM_COLOR: always
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
-  build:
-    name: build-${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: linux-x64
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            bin: serialhub
-            asset_ext: tar.gz
-          - name: linux-arm64
-            os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            bin: serialhub
-            asset_ext: tar.gz
-          - name: macos-arm64
-            os: macos-latest
-            target: aarch64-apple-darwin
-            bin: serialhub
-            asset_ext: tar.gz
-          - name: macos-x64
-            os: macos-latest
-            target: x86_64-apple-darwin
-            bin: serialhub
-            asset_ext: tar.gz
-          - name: windows-x64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bin: serialhub.exe
-            asset_ext: zip
-          - name: windows-arm64
-            os: windows-11-arm
-            target: aarch64-pc-windows-msvc
-            bin: serialhub.exe
-            asset_ext: zip
-
+  prepare:
+    name: Validate the immutable release tag
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.metadata.outputs.tag }}
+      sha: ${{ steps.metadata.outputs.sha }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Linux serial deps
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libudev-dev
-
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v5
         with:
-          targets: ${{ matrix.target }}
-
-      - uses: Swatinem/rust-cache@v2
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
         with:
-          key: release-${{ matrix.target }}
+          python-version: "3.12"
+      - name: Check version agreement, tag identity and main ancestry
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: python scripts/release.py check --tag "$RELEASE_TAG" --require-main --github-output "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - name: Build web UI
-        working-directory: web
-        run: |
-          npm ci
-          npm run build
-
-      - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }} --bin serialhub --bin ohmyserial
-
-      - name: Package
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TAG="${{ inputs.tag }}"
-          fi
-          STAGE="serialhub-${TAG}-${{ matrix.target }}"
-          mkdir -p "pkg/${STAGE}"
-          BIN="target/${{ matrix.target }}/release/${{ matrix.bin }}"
-          cp "$BIN" "pkg/${STAGE}/"
-          LEGACY_BIN="${BIN/serialhub/ohmyserial}"
-          test -f "$LEGACY_BIN" && cp "$LEGACY_BIN" "pkg/${STAGE}/"
-          cp README.md LICENSE MIGRATION.md serialhub.example.toml "pkg/${STAGE}/" || true
-          cp web/PROTOCOL.zh-TW.md "pkg/${STAGE}/" || true
-          cd pkg
-          if [[ "${{ matrix.asset_ext }}" == "zip" ]]; then
-            7z a "${STAGE}.zip" "${STAGE}"
-            echo "ASSET=${STAGE}.zip" >> "$GITHUB_ENV"
-          else
-            tar -czf "${STAGE}.tar.gz" "${STAGE}"
-            echo "ASSET=${STAGE}.tar.gz" >> "$GITHUB_ENV"
-          fi
-          ls -la
-
-      - name: Upload release asset artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-${{ matrix.target }}
-          path: pkg/${{ env.ASSET }}
+  build:
+    name: Full CI and six native packages
+    needs: prepare
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ needs.prepare.outputs.sha }}
+      release-tag: ${{ needs.prepare.outputs.tag }}
+    permissions:
+      contents: read
 
   publish:
-    name: publish GitHub release
-    needs: build
-    runs-on: ubuntu-latest
+    name: Verify downloads and publish
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all assets
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
         with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: serialhub-*
           path: release-assets
-          pattern: release-*
           merge-multiple: true
-
-      - name: List assets
-        run: find release-assets -type f | sort
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          generate_release_notes: true
-          body: |
-            ## SerialHub ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-
-            Cross-platform serial hub for humans and agents.
-
-            ### Assets
-            Prebuilt binaries for:
-            - Linux x86_64 / aarch64
-            - macOS Apple Silicon / Intel
-            - Windows x86_64 / ARM64
-
-            ### Quick start
-            ```bash
-            # extract, then:
-            ./serialhub share mock:demo --ui
-            # open http://127.0.0.1:8787/
-            ```
-
-            ### Notes
-            - Ubuntu/Debian build requires `libudev` at runtime for real serial ports.
-            - Embedded web console is included in the binary.
-            - `ohmyserial` is included as a 0.x compatibility executable; use `serialhub` for new automation.
-          files: |
-            release-assets/**
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Require six correct archives and produce SHA256SUMS
+        run: python scripts/release.py verify --directory release-assets --tag "$RELEASE_TAG" --require-all --write-checksums
+      - name: Upload a draft, keeping existing published versions immutable
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' > draft-state.txt; then
+            test "$(cat draft-state.txt)" = true || { echo "Release is already published; refusing to overwrite it."; exit 1; }
+            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/* --verify-tag --draft --title "SerialHub $RELEASE_TAG" --notes-file RELEASE_NOTES.md
+          fi
+      - name: Download every uploaded asset and compare SHA-256
+        run: |
+          gh release download "$RELEASE_TAG" --dir release-downloads
+          python scripts/release.py compare --directory release-assets --actual release-downloads
+      - name: Publish the complete verified release
+        run: |
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+          echo "Published: https://github.com/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"
