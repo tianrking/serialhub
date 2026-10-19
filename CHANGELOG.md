@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-10-19
+
+- Kept the original workbench navigation as the only header in an open device
+  workspace. Device switching and **All devices** now live in its device menu;
+  branding, language selection and connection status appear once.
+- Preserved each device's live connection, acquisition, drafts and selected tool
+  when switching devices or returning to the manager.
+- Removed irrelevant standalone Hub connection inputs from managed workspaces,
+  including Signal Studio, and kept reconnect feedback available on errors.
+- Aligned the manager logo with the workbench and adapted the unified header for
+  tablet/mobile widths, Arabic RTL and long translated navigation labels.
+- Added browser regressions across five languages, all five feature pages and
+  1280/1366/2048 desktop widths, plus narrow-screen device navigation.
+
 ## [0.2.1] — 2026-10-19
 
 - Isolated workspace tab/panel identifiers and SVG clipping paths per mounted

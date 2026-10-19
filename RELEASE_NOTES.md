@@ -1,8 +1,12 @@
-# SerialHub v0.2.1
+# SerialHub v0.2.2
 
 Launch the app, choose a serial port in your browser and start debugging.
 No terminal commands, Node.js or Rust installation are needed for downloaded packages.
 
+- Fixed the stacked duplicate headers: the original workbench navigation is now
+  the single header, with device switching and **All devices** in its device menu.
+  One brand, language picker and connection indicator remain visible. Switching
+  retains each device's connection, drafts, acquisition and selected tool.
 - Windows: double-click `serialhub-desktop.exe`; macOS: open `SerialHub.app`;
   Linux: run `serialhub-desktop` as a program. No-argument `serialhub` also opens the manager.
 - Detect/configure ports, try a mock demo, open up to 16 independent concurrent

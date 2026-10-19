@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { translate, type MessageKey } from "../src/i18n/index";
 test.use({
   baseURL: "http://127.0.0.1:18889",
   viewport: { width: 1366, height: 768 },
@@ -40,6 +41,9 @@ test("no-command dashboard opens two independent workspaces and preserves their 
     workspace.locator(".line.rx").filter({ hasText: "alpha-only" }),
   ).toBeVisible();
   await workspace
+    .getByPlaceholder("e.g. AT or a device command")
+    .fill("unsent-alpha-draft");
+  await workspace
     .getByRole("button", { name: "Connections", exact: true })
     .click();
   await expect(
@@ -47,7 +51,9 @@ test("no-command dashboard opens two independent workspaces and preserves their 
       .locator("td code")
       .filter({ hasText: /^ws:\/\/127\.0\.0\.1:18889\/sessions\// }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: /All devices/ }).click();
+  await page
+    .locator(".managed-workspace:not([hidden]) .workspace-device-switch select")
+    .selectOption("");
   await open(page, "Sensor B", "mock:e2e-b");
   await workspace
     .getByPlaceholder("e.g. AT or a device command")
@@ -61,7 +67,14 @@ test("no-command dashboard opens two independent workspaces and preserves their 
   await expect(
     workspace.locator(".line.rx").filter({ hasText: "alpha-only" }),
   ).toHaveCount(0);
-  await page.getByRole("tab", { name: "Sensor A", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Device sessions", exact: true })
+    .selectOption({ label: "Sensor A" });
+  await expect(
+    workspace
+      .getByRole("navigation")
+      .getByRole("button", { name: "Connections", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   await workspace
     .getByRole("button", { name: "Live console", exact: true })
     .click();
@@ -71,11 +84,16 @@ test("no-command dashboard opens two independent workspaces and preserves their 
   await expect(
     workspace.locator(".line.rx").filter({ hasText: "beta-only" }),
   ).toHaveCount(0);
+  await expect(
+    workspace.getByPlaceholder("e.g. AT or a device command"),
+  ).toHaveValue("unsent-alpha-draft");
   const info = await (await page.request.get("/manager/info")).json();
   expect(info.sessions.map((s: { clients: number }) => s.clients)).toEqual([
     1, 1,
   ]);
-  await page.getByRole("tab", { name: /All devices/ }).click();
+  await page
+    .locator(".managed-workspace:not([hidden]) .workspace-device-switch select")
+    .selectOption("");
   await expect(page.locator(".manager-session")).toHaveCount(2);
   expect(
     await page.evaluate(
@@ -106,7 +124,9 @@ test("LAN link pairs another browser, retains cookie access, and revokes open so
   await expect(
     page.locator(".managed-workspace:not([hidden]) .lamp"),
   ).toContainText("HTTP + WS");
-  await page.getByRole("tab", { name: /All devices/ }).click();
+  await page
+    .locator(".managed-workspace:not([hidden]) .workspace-device-switch select")
+    .selectOption("");
   await page
     .getByRole("button", { name: "Enable LAN sharing", exact: true })
     .click();
@@ -198,6 +218,32 @@ test("demo and manager remain usable on a narrow screen", async ({ page }) => {
   await expect(
     page.locator(".managed-workspace:not([hidden]) .lamp"),
   ).toContainText("HTTP + WS");
+  for (const width of [390, 768, 1024]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(page.locator(".manager-toolbar")).toBeHidden();
+    await expect(page.locator(".language-selector:visible")).toHaveCount(1);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(width);
+    const active = page.locator(".managed-workspace:not([hidden])");
+    for (const name of [
+      "Live console",
+      "Signal studio",
+      "Events & metrics",
+      "Connections",
+      "User guide",
+    ]) {
+      await active
+        .getByRole("navigation")
+        .getByRole("button", { name, exact: true })
+        .click();
+      await expect(active.locator(".connect")).toHaveCount(0);
+    }
+  }
+  await page
+    .getByRole("combobox", { name: "Device sessions", exact: true })
+    .selectOption("");
+  await expect(page.locator(".manager-dashboard")).toBeVisible();
 });
 
 test("mounted workspaces own their keyboard focus and SVG clipping identifiers", async ({
@@ -205,7 +251,9 @@ test("mounted workspaces own their keyboard focus and SVG clipping identifiers",
 }) => {
   await page.goto("/");
   await open(page, "Keyboard A", "mock:keyboard-a");
-  await page.getByRole("tab", { name: /All devices/ }).click();
+  await page
+    .locator(".managed-workspace:not([hidden]) .workspace-device-switch select")
+    .selectOption("");
   await open(page, "Keyboard B", "mock:keyboard-b");
   const active = page.locator(".managed-workspace:not([hidden])");
   const dock = active.locator(".dock-tabs [role=tab]");
@@ -236,3 +284,84 @@ test("mounted workspaces own their keyboard focus and SVG clipping identifiers",
       expect(definitions).toContain(reference!.slice(5, -1));
   }
 });
+
+for (const locale of ["en", "zh-Hant", "es", "fr", "ar"] as const) {
+  test(`one workbench header keeps navigation and device controls usable: ${locale}`, async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Try demo", exact: true }).click();
+    const active = page.locator(".managed-workspace:not([hidden])");
+    await expect(active.locator(".lamp")).toContainText("HTTP + WS");
+    await active.locator(".language-selector select").selectOption(locale);
+    const label = (key: MessageKey) => translate(locale, key);
+    for (const width of [1280, 1366, 2048]) {
+      await page.setViewportSize({ width, height: 768 });
+      for (const key of [
+        "Live console",
+        "Signal studio",
+        "Events & metrics",
+        "Connections",
+        "User guide",
+      ] as const) {
+        await active
+          .getByRole("navigation")
+          .getByRole("button", { name: label(key), exact: true })
+          .click();
+        await expect(page.locator(".manager-toolbar")).toBeHidden();
+        await expect(
+          page.locator(".brand:visible, .manager-brand:visible"),
+        ).toHaveCount(1);
+        await expect(page.locator(".language-selector:visible")).toHaveCount(1);
+        await expect(active.locator(".connect")).toHaveCount(0);
+        const geometry = await active.locator(".sidebar").evaluate((bar) => {
+          const nav = bar.querySelector("nav")!;
+          const controls = bar.querySelector(".workspace-controls")!;
+          const n = nav.getBoundingClientRect(),
+            c = controls.getBoundingClientRect(),
+            h = bar.getBoundingClientRect();
+          return {
+            fits:
+              document.documentElement.scrollWidth <= innerWidth &&
+              document.documentElement.scrollHeight <= innerHeight,
+            oneRow:
+              h.height <= 50 &&
+              Math.abs(n.top + n.height / 2 - c.top - c.height / 2) < 2,
+            separate: n.right <= c.left + 1 || c.right <= n.left + 1,
+            labels: Array.from(nav.querySelectorAll("button span")).every(
+              (text) => text.scrollWidth <= text.clientWidth + 1,
+            ),
+            inside: [...bar.querySelectorAll("button, select, .lamp")].every(
+              (item) => {
+                const r = item.getBoundingClientRect();
+                return (
+                  r.left >= h.left &&
+                  r.right <= h.right &&
+                  r.top >= h.top &&
+                  r.bottom <= h.bottom
+                );
+              },
+            ),
+          };
+        });
+        expect(geometry, `${locale} ${width} ${key}`).toEqual({
+          fits: true,
+          oneRow: true,
+          separate: true,
+          labels: true,
+          inside: true,
+        });
+      }
+    }
+    await active
+      .getByRole("combobox", { name: label("Device sessions"), exact: true })
+      .selectOption("");
+    await expect(page.locator(".manager-dashboard")).toBeVisible();
+    await expect(page.locator(".language-selector:visible")).toHaveCount(1);
+    await page.locator(".manager-tabs [role=tab]").last().click();
+    await expect(
+      active.getByRole("button", { name: label("User guide"), exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(active.locator(".lamp")).toContainText("HTTP + WS");
+  });
+}

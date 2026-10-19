@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import App from "./App";
+import Icon from "./Icon";
 import type { SerialSettings } from "./api/types";
 import { LanguageSelector } from "./i18n/LanguageSelector";
 import { getFormattingLocale, t } from "./i18n/index";
@@ -194,11 +195,11 @@ export default function Desktop() {
   const heading = (
     <>
       <div className="manager-brand">
-        <span className="manager-symbol">S</span>
+        <span className="manager-symbol">
+          <Icon name="layers" size={23} />
+        </span>
         <div>
-          <strong>
-            SerialHub<span>.</span>
-          </strong>
+          <strong>SerialHub</strong>
           <small>{t("Device manager")}</small>
         </div>
       </div>
@@ -270,7 +271,7 @@ export default function Desktop() {
     );
   return (
     <div className={`desktop-shell${selected ? " has-workspace" : ""}`}>
-      <header className="manager-toolbar">
+      <header className="manager-toolbar" hidden={!!selected}>
         {heading}
         <div
           className="manager-tabs"
@@ -770,13 +771,31 @@ export default function Desktop() {
       {visited
         .filter((id) => info?.sessions.some((s) => s.id === id))
         .map((id) => (
-          <SessionWorkspace key={id} id={id} active={selected === id} />
+          <SessionWorkspace
+            key={id}
+            id={id}
+            active={selected === id}
+            sessions={info?.sessions ?? []}
+            onSelect={(next) =>
+              next ? openWorkspace(next) : setSelected(null)
+            }
+          />
         ))}
     </div>
   );
 }
 
-function SessionWorkspace({ id, active }: { id: string; active: boolean }) {
+function SessionWorkspace({
+  id,
+  active,
+  sessions,
+  onSelect,
+}: {
+  id: string;
+  active: boolean;
+  sessions: Session[];
+  onSelect: (id: string) => void;
+}) {
   const connection = useMemo(
     () => ({
       host: location.hostname,
@@ -790,7 +809,31 @@ function SessionWorkspace({ id, active }: { id: string; active: boolean }) {
   );
   return (
     <div className="managed-workspace" hidden={!active}>
-      <App managedConnection={connection} />
+      <App
+        managedConnection={connection}
+        deviceNavigation={
+          <label className="workspace-device-switch">
+            <Icon name="layers" size={14} />
+            <select
+              aria-label={t("Device sessions")}
+              value={id}
+              title={sessions.find((session) => session.id === id)?.path}
+              onChange={(event) => onSelect(event.target.value)}
+            >
+              <option value="">{t("All devices")}</option>
+              {sessions.map((session) => (
+                <option
+                  key={session.id}
+                  value={session.id}
+                  title={session.path}
+                >
+                  {session.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        }
+      />
     </div>
   );
 }

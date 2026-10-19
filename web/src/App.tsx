@@ -1,6 +1,7 @@
 import { t, getFormattingLocale, translate } from "./i18n/index.ts";
 import { LanguageSelector } from "./i18n/LanguageSelector";
 import { useLocale } from "./i18n/useLocale";
+import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { hubApi } from "./api/client";
 import type {
@@ -117,7 +118,7 @@ function downloadTextFile(filename: string, content: string, mime = "text/plain;
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export default function App({ managedConnection }: { managedConnection?: ConnectionConfig } = {}) {
+export default function App({ managedConnection, deviceNavigation }: { managedConnection?: ConnectionConfig; deviceNavigation?: ReactNode } = {}) {
   const workspaceId = useId();
   const locale = useLocale();
   const [tab, setTab] = useState<Tab>("monitor");
@@ -840,10 +841,12 @@ export default function App({ managedConnection }: { managedConnection?: Connect
     return { cls: "off", label: translate(locale, "Disconnected") };
   }, [online, wsOpen, phase, retryCount, locale]);
 
+  const headerStatus = <div className="header-status"><LanguageSelector /><span className="local-badge"><Icon name="shield" size={14} /> {t("Single device owner")}</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>;
+
   return (
-    <div className="app" data-workspace={tab}>
+    <div className={`app${managedConnection ? " app-managed" : ""}`} data-workspace={tab}>
       <a className="skip-link" href={`#${workspaceId}-main-content`}>{t("Skip to workspace")}</a>
-      <aside className="sidebar">
+      <header className="sidebar">
         <div className="brand"><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>{t("DEVICE WORKSPACE")}</small></div></div>
         <div className="nav-label">{t("Workspace")}</div>
         <nav className="sidebar-nav" aria-label={t("Main navigation")}>
@@ -859,17 +862,18 @@ export default function App({ managedConnection }: { managedConnection?: Connect
         </nav>
         <div className="sidebar-note"><Icon name="shield" /><strong>{t("One port, coordinated access")}</strong><p>{t("Manage device access centrally,")} <br /> {t("with a record of every operation.")}</p><span>{t("OPEN SOURCE · MIT")}</span></div>
         <div className="sidebar-footer"><span className="version-dot" />SerialHub <code>v{__APP_VERSION__}</code></div>
-      </aside>
-      <header className="header">
+        {managedConnection && <div className="workspace-controls">{deviceNavigation}{headerStatus}</div>}
+      </header>
+      {!managedConnection && <header className="header">
         <div><div className="eyebrow">{t("WORKSPACE")} <span>/</span> {tab === "signals" ? "SIGNAL STUDIO" : tab === "monitor" ? "LIVE CONSOLE" : tab === "events" ? "EVENT EVIDENCE" : tab === "endpoints" ? "CONNECTIONS" : "GUIDE"}</div>
           <h1>{tab === "signals" ? t("Signals & visualization") : tab === "monitor" ? t("Serial workspace") : tab === "events" ? t("Events & runtime metrics") : tab === "endpoints" ? t("Connections") : t("User guide")}<span className="heading-dot" aria-hidden="true">.</span></h1>
           <p className="sub">{t("Connect, inspect data and keep debugging organized.")}</p>
         </div>
-        <div className="header-status"><LanguageSelector /><span className="local-badge"><Icon name="shield" size={14} /> {t("Single device owner")}</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>
-      </header>
+        {headerStatus}
+      </header>}
       <main id={`${workspaceId}-main-content`} className="workspace-main">
       {managedConnection && error && <div className="managed-error" role="alert">{error}<button onClick={() => void connect()}>{t("Reconnect")}</button></div>}
-      <section className={`panel connect${managedConnection ? " managed-connect" : ""}`}>
+      {!managedConnection && <section className="panel connect">
         <div className="connection-heading"><h2><Icon name="layers" size={16} /> {t("Connection profiles")}</h2><span>{online ? (status?.port.path.startsWith("mock:") ? t("Mock device · no hardware required") : t("Device session")) : t("Local Hub or HTTPS reverse proxy")}</span></div>
         <div className="row">
           <label>{t("Host")} <input
@@ -926,7 +930,7 @@ export default function App({ managedConnection }: { managedConnection?: Connect
         </WorkspaceDialog>
         {!online && !error && <p className="connection-help">{t("First time? On the device host, run")} <code>serialhub share mock:demo</code> {t("to try mock loopback.")}</p>}
         {error && <p className="error connection-error" role="alert">{error}<span>{t("Check the address, token and Hub, then reconnect. Writes are never retried automatically.")}</span></p>}
-      </section>
+      </section>}
       <section className="overview" aria-label={t("Device overview")}>
         <div className="overview-device"><span className={`device-indicator ${canWrite ? "ready" : ""}`}><Icon name="terminal" size={23} /></span><div><small>{t("Device")}</small><strong>{online ? status?.port.path : t("Waiting for connection")}</strong><span>{online ? `${status?.port.baud.toLocaleString(getFormattingLocale())} baud · ${status?.port.connected ? t("Device open") : t("Device offline")}` : t("Choose a Hub to start debugging")}</span></div>{online && status?.port.path.startsWith("mock:") && <b className="simulation-label">MOCK</b>}</div>
         <div><small>{t("RX received")}</small><strong>{online ? status?.stats.rx_bytes.toLocaleString(getFormattingLocale()) : "—"}<span>{t("bytes")}</span></strong></div>

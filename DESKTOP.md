@@ -47,8 +47,11 @@ TCP and PTY resources are prepared before opening hardware; failed binds roll ba
 The inventory displays the owner's connected/offline state and OS diagnostic;
 reconnect continues while the session exists. Closing cancels its browser streams,
 releases endpoints and stops the owner. Existing subscribers to other devices continue.
-Switching browser tabs preserves acquisition, drafts and explicit send jobs in already
-visited workspaces. Closing the browser stops browser jobs, but keeps host sessions alive.
+In an open workspace, use the device menu in the original top navigation to switch
+between sessions; choose **All devices** in that menu to return to the manager.
+The manager's header is hidden while a workspace is open. Language selection and
+connection status stay in the single workbench header. Switching preserves acquisition,
+drafts, the selected tool and explicit send jobs in already visited workspaces. Closing the browser stops browser jobs, but keeps host sessions alive.
 Reloading a browser retains the host inventory but starts fresh browser acquisition.
 Sessions are not automatically reopened after exiting/restarting the application.
 
