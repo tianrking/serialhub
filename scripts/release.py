@@ -20,12 +20,13 @@ TARGETS = (
     "x86_64-apple-darwin", "aarch64-apple-darwin",
     "x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc",
 )
+SUPPORTED_TARGETS = TARGETS + ("x86_64-pc-windows-gnu",)
 DOCS = (
     "README.md", "README.zh-CN.md", "README.es.md", "LICENSE", "MIGRATION.md",
     "CHANGELOG.md", "RELEASE_NOTES.md", "GETTING_STARTED.zh-CN.md", "OPERATIONS.md", "I18N.md",
     "SSCOM_PARITY.zh-CN.md", "VOFA_PARITY.zh-CN.md", "WINDOWS_COM_BRIDGE.md",
     "RELEASING.md", "serialhub.example.toml", "web/PROTOCOL.zh-TW.md",
-    "scripts/smoke-sharing.py", "scripts/smoke-manager.py", "DESKTOP.md",
+    "scripts/smoke-sharing.py", "scripts/smoke-manager.py", "scripts/smoke-launcher.py", "DESKTOP.md",
     "POSITIONING.md", "RELIABILITY_TEST_MATRIX.md",
 )
 MANIFEST = "release-manifest.json"
@@ -53,7 +54,7 @@ def version():
 
 
 def binary_names(target):
-    require(target in TARGETS, f"Unsupported target: {target}")
+    require(target in SUPPORTED_TARGETS, f"Unsupported target: {target}")
     suffix = ".exe" if "windows" in target else ""
     return ["serialhub" + suffix, "ohmyserial" + suffix, "serialhub-desktop" + suffix]
 
@@ -69,8 +70,8 @@ def extra_files(target, release_version):
         "CFBundleExecutable": "SerialHub", "CFBundleIdentifier": "io.serialhub.desktop",
         "CFBundleName": "SerialHub", "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": release_version, "CFBundleVersion": release_version,
-        "LSUIElement": True, "NSHighResolutionCapable": True,
-    })}
+        "LSUIElement": True, "NSHighResolutionCapable": True, "CFBundleIconFile": "SerialHub.icns",
+    }), "SerialHub.app/Contents/Resources/SerialHub.icns": (ROOT / "assets/serialhub.icns").read_bytes()}
 
 
 def executable_paths(target):
@@ -161,7 +162,7 @@ def verify_archive(archive, release_version, commit):
     require(len(manifests) == 1, "Expected exactly one release manifest")
     manifest = json.loads(entries[manifests[0]])
     target = manifest["target"]
-    require(target in TARGETS and manifest["format"] == "serialhub.release.v1", "Invalid release manifest")
+    require(target in SUPPORTED_TARGETS and manifest["format"] == "serialhub.release.v1", "Invalid release manifest")
     require(manifest["version"] == release_version, "Archive version mismatch")
     require(manifest["commit"] == commit, "Archive source commit mismatch")
     stage = f"serialhub-v{release_version}-{target}"
@@ -223,6 +224,9 @@ def test_package(archive, release_version, commit):
         subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-manager.py"),
                         "--binary", str(destination / stage / binary_names(manifest["target"])[2])],
                        check=True, timeout=60)
+        subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-launcher.py"),
+                        "--binary", str(destination / stage / binary_names(manifest["target"])[2])],
+                       check=True, timeout=60)
     print("PACKAGE_SMOKE_OK", archive.name)
 
 
@@ -240,7 +244,7 @@ def main():
     parser.add_argument("--tag", default="")
     parser.add_argument("--require-main", action="store_true")
     parser.add_argument("--github-output", type=Path)
-    parser.add_argument("--target", choices=TARGETS)
+    parser.add_argument("--target", choices=SUPPORTED_TARGETS)
     parser.add_argument("--binary-dir", type=Path)
     parser.add_argument("--directory", "--output", dest="directory", type=Path, default=Path("dist"))
     parser.add_argument("--actual", type=Path)

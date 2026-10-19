@@ -1,5 +1,10 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 const messages = {
+  "Application menu": "Application menu",
+  "Running in background": "Running in background",
+  "Open diagnostics": "Open diagnostics",
+  "Closing this page keeps devices running. Reopen SerialHub from its launcher or system tray.": "Closing this page keeps devices running. Reopen SerialHub from its launcher or system tray.",
+
   "Disabled": "Disabled",
   "External tools (optional)": "External tools (optional)",
   "One TCP endpoint accepts multiple local programs. Use browser pairing for LAN access.": "One TCP endpoint accepts multiple local programs. Use browser pairing for LAN access.",

@@ -14,3 +14,6 @@ pub mod supervisor;
 pub mod workflow;
 
 pub mod desktop;
+
+pub mod launcher;
+mod tray;

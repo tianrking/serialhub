@@ -24,6 +24,7 @@ type Info = {
   local: boolean;
   limit: number;
   supports_pty: boolean;
+  app?: { background: boolean; tray: boolean };
   sessions: Session[];
   lan: { url: string; pair_url: string; port: number } | null;
 };
@@ -58,7 +59,7 @@ async function api<T>(
   return response.json() as Promise<T>;
 }
 export default function Desktop() {
-  useLocale();
+  const locale = useLocale();
   const [mode, setMode] = useState<
     "loading" | "legacy" | "manager" | "pair" | "stopped" | "error"
   >("loading");
@@ -77,13 +78,20 @@ export default function Desktop() {
   const [closeId, setCloseId] = useState<string | null>(null);
   const [quitConfirm, setQuitConfirm] = useState(false);
   const [pairCode, setPairCode] = useState("");
+  const appDialog = useRef<HTMLDialogElement>(null);
   const pairing = useRef<Promise<unknown> | null>(null);
   const generation = useRef(0);
+  const serviceStopped = useRef(false);
   const mounted = useRef(true);
   const refresh = useCallback(async () => {
     const requestId = ++generation.current;
     const next = await api<Info>("info");
-    if (!mounted.current || requestId !== generation.current) return;
+    if (
+      serviceStopped.current ||
+      !mounted.current ||
+      requestId !== generation.current
+    )
+      return;
     if (next.product !== "serialhub.desktop.v1")
       throw new Error("Unexpected manager response");
     setInfo(next);
@@ -93,6 +101,40 @@ export default function Desktop() {
       ids.filter((id) => next.sessions.some((s) => s.id === id)),
     );
   }, []);
+  useEffect(() => {
+    if (mode !== "manager") return;
+    const events = new EventSource("/manager/lifecycle");
+    events.addEventListener("revoked", () => events.close());
+    events.addEventListener("stopping", () => {
+      serviceStopped.current = true;
+      generation.current++;
+      setError("");
+      appDialog.current?.close();
+      setVisited([]);
+      setSelected(null);
+      setInfo(null);
+      setMode("stopped");
+    });
+    return () => events.close();
+  }, [mode]);
+  useEffect(() => {
+    if (mode === "manager" && info?.local && info.app?.background)
+      void api("app/locale", { locale }).catch((e) => setError(String(e)));
+  }, [mode, info?.local, info?.app?.background, locale]);
+  const stopApp = async () => {
+    await api("quit", {});
+    serviceStopped.current = true;
+    generation.current++;
+    appDialog.current?.close();
+    setVisited([]);
+    setSelected(null);
+    setInfo(null);
+    setMode("stopped");
+  };
+  const openAppMenu = () => {
+    setQuitConfirm(false);
+    appDialog.current?.showModal();
+  };
   const scan = useCallback(async () => {
     const result = await api<{ ports: Port[] }>("ports");
     if (mounted.current) setPorts(result.ports);
@@ -152,7 +194,7 @@ export default function Desktop() {
     if (mode !== "manager") return;
     const timer = setInterval(() => {
       void refresh().catch((e) => {
-        if (!mounted.current) return;
+        if (!mounted.current || serviceStopped.current) return;
         setError(String(e));
         if (e instanceof PairingRequired) {
           setMode("pair");
@@ -170,6 +212,7 @@ export default function Desktop() {
     try {
       await operation();
     } catch (e) {
+      if (serviceStopped.current) return;
       setError(String(e));
       if (e instanceof PairingRequired) setMode("pair");
     } finally {
@@ -194,7 +237,15 @@ export default function Desktop() {
   if (mode === "legacy") return <App />;
   const heading = (
     <>
-      <div className="manager-brand">
+      <button
+        className="manager-brand"
+        type="button"
+        title={t("Application menu")}
+        aria-label={t("Application menu")}
+        aria-haspopup="dialog"
+        onClick={openAppMenu}
+        disabled={mode !== "manager"}
+      >
         <span className="manager-symbol">
           <Icon name="layers" size={23} />
         </span>
@@ -202,7 +253,10 @@ export default function Desktop() {
           <strong>SerialHub</strong>
           <small>{t("Device manager")}</small>
         </div>
-      </div>
+        <span className="brand-caret" aria-hidden="true">
+          ⌄
+        </span>
+      </button>
       <LanguageSelector />
     </>
   );
@@ -741,14 +795,7 @@ export default function Desktop() {
                   <button
                     className="danger"
                     disabled={busy}
-                    onClick={() =>
-                      void action(async () => {
-                        await api("quit", {});
-                        setVisited([]);
-                        setInfo(null);
-                        setMode("stopped");
-                      })
-                    }
+                    onClick={() => void action(stopApp)}
                   >
                     {t("Stop SerialHub")}
                   </button>
@@ -768,6 +815,100 @@ export default function Desktop() {
           )}
         </footer>
       </div>
+      <dialog
+        className="workspace-dialog app-menu"
+        aria-label={t("Application menu")}
+        ref={appDialog}
+        onClose={() => setQuitConfirm(false)}
+      >
+        <header>
+          <h2>{t("Application menu")}</h2>
+          <button
+            type="button"
+            className="ghost"
+            aria-label={t("Close {p0}", { p0: t("Application menu") })}
+            onClick={() => appDialog.current?.close()}
+          >
+            {t("Close ×")}
+          </button>
+        </header>
+        <div className="workspace-dialog-body">
+          <div className="app-menu-status">
+            <span className="stream-dot live" />
+            <strong>SerialHub v{info?.version}</strong>
+            <span>
+              {info?.app?.background
+                ? t("Running in background")
+                : t("Device host")}
+            </span>
+          </div>
+          <p>
+            {info?.local
+              ? t(
+                  "Closing this page keeps devices running. Reopen SerialHub from its launcher or system tray.",
+                )
+              : t("LAN settings are managed on the device host")}
+          </p>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => {
+              setSelected(null);
+              appDialog.current?.close();
+            }}
+          >
+            {t("All devices")} · {info?.sessions.length ?? 0}
+          </button>
+          {info?.local && info.app?.background && (
+            <button
+              type="button"
+              className="ghost"
+              disabled={busy}
+              onClick={() =>
+                void action(async () => {
+                  await api("app/logs", {});
+                })
+              }
+            >
+              {t("Open diagnostics")}
+            </button>
+          )}
+          {info?.local && (
+            <section className="app-menu-quit">
+              {quitConfirm ? (
+                <>
+                  <p>{t("Stop SerialHub and close every device?")}</p>
+                  <div className="row">
+                    <button
+                      className="danger"
+                      disabled={busy}
+                      onClick={() => void action(stopApp)}
+                    >
+                      {t("Stop SerialHub")}
+                    </button>
+                    <button
+                      className="ghost"
+                      disabled={busy}
+                      onClick={() => setQuitConfirm(false)}
+                    >
+                      {t("Cancel")}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button className="danger" onClick={() => setQuitConfirm(true)}>
+                  {t("Quit SerialHub")}
+                </button>
+              )}
+            </section>
+          )}
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      </dialog>
       {visited
         .filter((id) => info?.sessions.some((s) => s.id === id))
         .map((id) => (
@@ -776,6 +917,7 @@ export default function Desktop() {
             id={id}
             active={selected === id}
             sessions={info?.sessions ?? []}
+            onAppMenu={openAppMenu}
             onSelect={(next) =>
               next ? openWorkspace(next) : setSelected(null)
             }
@@ -789,11 +931,13 @@ function SessionWorkspace({
   id,
   active,
   sessions,
+  onAppMenu,
   onSelect,
 }: {
   id: string;
   active: boolean;
   sessions: Session[];
+  onAppMenu: () => void;
   onSelect: (id: string) => void;
 }) {
   const connection = useMemo(
@@ -811,6 +955,7 @@ function SessionWorkspace({
     <div className="managed-workspace" hidden={!active}>
       <App
         managedConnection={connection}
+        onAppMenu={onAppMenu}
         deviceNavigation={
           <label className="workspace-device-switch">
             <Icon name="layers" size={14} />

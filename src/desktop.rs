@@ -11,7 +11,10 @@ use axum::{
     extract::{Path, Request, State},
     http::{header, StatusCode, Uri},
     middleware::{self, Next},
-    response::{IntoResponse, Response},
+    response::{
+        sse::{Event, KeepAlive, Sse},
+        IntoResponse, Response,
+    },
     routing::{any, get, post},
     Json, Router,
 };
@@ -20,7 +23,10 @@ use serde_json::{json, Value};
 use std::{
     collections::BTreeMap,
     net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
@@ -31,6 +37,16 @@ const MAX_SESSIONS: usize = 16;
 struct Manager {
     inner: Arc<Mutex<Inner>>,
     stopped: CancellationToken,
+    instance: String,
+    control: Arc<DesktopControl>,
+}
+/// Shared state is read by the native event loop; HTTP is never run on that thread.
+#[derive(Default)]
+pub struct DesktopControl {
+    pub background: AtomicBool,
+    pub tray: AtomicBool,
+    pub locale: parking_lot::RwLock<String>,
+    pub log: parking_lot::RwLock<Option<std::path::PathBuf>>,
 }
 struct Inner {
     sessions: BTreeMap<String, Session>,
@@ -107,6 +123,8 @@ impl Desktop {
                 closing: false,
             })),
             stopped: CancellationToken::new(),
+            instance: uuid::Uuid::new_v4().to_string(),
+            control: Arc::new(DesktopControl::default()),
         };
         let gate = Gate {
             manager: manager.clone(),
@@ -128,6 +146,15 @@ impl Desktop {
             manager,
             task,
         })
+    }
+    pub fn instance(&self) -> &str {
+        &self.manager.instance
+    }
+    pub fn control(&self) -> Arc<DesktopControl> {
+        self.manager.control.clone()
+    }
+    pub fn stop_token(&self) -> CancellationToken {
+        self.manager.stopped.clone()
     }
     pub fn address(&self) -> SocketAddr {
         self.address
@@ -168,10 +195,10 @@ impl Drop for Session {
 
 fn app(gate: Gate) -> Router {
     Router::new()
-        .route(
-            "/manager/identity",
-            get(|| async { Json(json!({"product":"serialhub.desktop.v1"})) }),
-        )
+        .route("/manager/identity", get(identity))
+        .route("/manager/lifecycle", get(lifecycle))
+        .route("/manager/app/locale", post(app_locale))
+        .route("/manager/app/logs", post(app_logs))
         .route("/manager/info", get(info))
         .route("/manager/ports", get(ports))
         .route("/manager/sessions", post(open_session))
@@ -286,6 +313,12 @@ async fn guard(State(gate): State<Gate>, request: Request, next: Next) -> Respon
             );
         }
     }
+    if gate.manager.stopped.is_cancelled()
+        && (path.starts_with("/sessions/")
+            || (request.method() != axum::http::Method::GET && path != "/manager/quit"))
+    {
+        return error(StatusCode::SERVICE_UNAVAILABLE, "SerialHub is stopping");
+    }
     let mut response = next.run(request).await;
     response
         .headers_mut()
@@ -302,6 +335,78 @@ async fn guard(State(gate): State<Gate>, request: Request, next: Next) -> Respon
     );
     response
 }
+async fn identity(State(gate): State<Gate>) -> Json<Value> {
+    Json(
+        json!({"product":"serialhub.desktop.v1", "version":env!("CARGO_PKG_VERSION"), "instance":gate.manager.instance,"stopping":gate.manager.stopped.is_cancelled()}),
+    )
+}
+async fn lifecycle(
+    State(gate): State<Gate>,
+) -> Sse<impl futures_util::Stream<Item = Result<Event, std::convert::Infallible>>> {
+    use futures_util::StreamExt;
+    let stop = gate.manager.stopped.clone();
+    let revoked = if let Some(secret) = &gate.secret {
+        gate.manager
+            .inner
+            .lock()
+            .await
+            .lan
+            .as_ref()
+            .filter(|lan| same_secret(&lan.secret, secret))
+            .map(|lan| lan.cancel.clone())
+            .unwrap_or_else(|| {
+                let token = CancellationToken::new();
+                token.cancel();
+                token
+            })
+    } else {
+        CancellationToken::new()
+    };
+    let initial =
+        futures_util::stream::once(async { Ok(Event::default().event("ready").data("running")) });
+    let stopping = futures_util::stream::once(async move {
+        Ok(tokio::select! {
+            ()=stop.cancelled()=>Event::default().event("stopping").data("stopped"),
+            ()=revoked.cancelled()=>Event::default().event("revoked").data("revoked"),
+        })
+    });
+    Sse::new(initial.chain(stopping)).keep_alive(KeepAlive::default())
+}
+async fn app_locale(State(gate): State<Gate>, Json(body): Json<Value>) -> Response {
+    if gate.secret.is_some() {
+        return error(
+            StatusCode::FORBIDDEN,
+            "Change app settings on the device host",
+        );
+    }
+    let Some(locale) = body["locale"]
+        .as_str()
+        .filter(|s| ["en", "zh-Hant", "zh-Hans", "es", "fr", "ar"].contains(s))
+    else {
+        return error(StatusCode::BAD_REQUEST, "Unsupported interface language");
+    };
+    *gate.manager.control.locale.write() = locale.to_owned();
+    Json(json!({"ok":true})).into_response()
+}
+async fn app_logs(State(gate): State<Gate>) -> Response {
+    if gate.secret.is_some() {
+        return error(StatusCode::FORBIDDEN, "Open diagnostics on the device host");
+    }
+    let path = gate.manager.control.log.read().clone();
+    let Some(path) = path else {
+        return error(
+            StatusCode::CONFLICT,
+            "Diagnostics are available from the desktop launcher",
+        );
+    };
+    match tokio::task::spawn_blocking(move || opener::open(path)).await {
+        Ok(Ok(())) => Json(json!({"ok":true})).into_response(),
+        e => error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            format!("Could not open diagnostics: {e:?}"),
+        ),
+    }
+}
 async fn info(State(gate): State<Gate>) -> Json<Value> {
     let inner = gate.manager.inner.lock().await;
     let sessions: Vec<_> = inner.sessions.iter().map(|(id,s)| {
@@ -309,7 +414,7 @@ async fn info(State(gate): State<Gate>) -> Json<Value> {
         json!({"id": id, "name": s.name, "path": snapshot.port.path, "baud":snapshot.port.baud, "connected":snapshot.port.connected, "detail":snapshot.port.detail, "clients":snapshot.clients.len(), "rx_bytes":snapshot.stats.rx_bytes,"tx_bytes":snapshot.stats.tx_bytes})
     }).collect();
     Json(
-        json!({"product":"serialhub.desktop.v1", "version":env!("CARGO_PKG_VERSION"), "local":gate.secret.is_none(), "limit":MAX_SESSIONS, "supports_pty":cfg!(unix), "sessions":sessions,
+        json!({"product":"serialhub.desktop.v1", "version":env!("CARGO_PKG_VERSION"), "local":gate.secret.is_none(), "app": {"background":gate.manager.control.background.load(Ordering::Relaxed),"tray":gate.manager.control.tray.load(Ordering::Relaxed)}, "limit":MAX_SESSIONS, "supports_pty":cfg!(unix), "sessions":sessions,
         "lan": if gate.secret.is_none() { inner.lan.as_ref().map(|lan| json!({"url":lan.url, "pair_url":format!("{}#pair={}",lan.url,lan.secret),"port":lan.address.port()})) } else {None}}),
     )
 }

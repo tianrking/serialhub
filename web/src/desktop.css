@@ -817,3 +817,59 @@
     display: none;
   }
 }
+
+.manager-brand,
+.app-managed .brand {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  text-align: start;
+}
+.manager-brand:hover,
+.app-managed .brand:hover {
+  background: #20324e;
+}
+.brand-caret {
+  position: absolute;
+  inset-inline-end: -7px;
+  bottom: -3px;
+  font-size: 10px;
+  line-height: 1;
+  color: #9eb6dd;
+}
+.app-menu {
+  width: min(460px, calc(100vw - 32px));
+}
+.app-menu .workspace-dialog-body > button {
+  display: block;
+  width: 100%;
+  text-align: start;
+  margin-block: 8px;
+}
+.app-menu p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.app-menu-status {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.app-menu-status > span:last-child {
+  font-size: 11px;
+  color: var(--muted);
+  margin-inline-start: auto;
+}
+.app-menu-quit {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 16px;
+}
+.app-menu button.danger {
+  background: #c94457;
+  color: white;
+}

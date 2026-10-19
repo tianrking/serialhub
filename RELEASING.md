@@ -77,3 +77,22 @@ required for USB adapters. CI uses mock devices and, on Linux, a pseudoterminal
 for baud-setting tests; Darwin PTYs reject the hardware baud ioctl and cannot
 substitute for a physical macOS adapter. Target-device and long-duration hardware
 acceptance remain separate from cross-platform package validation.
+
+
+## Local builds when hosted CI is unavailable
+
+Commit the reviewed sources with `[skip ci]` when explicitly avoiding hosted
+Actions usage. Build `web/dist` first, then all three Rust binaries. Never attach
+an old executable to a newer source/version manifest and never overwrite a
+published release/tag. Run `scripts/release.py` checks and extracted-package smoke
+tests before a manual upload. GitHub API/Release write authorization is required;
+Git transport access alone does not establish API upload access.
+
+Linux can build Windows x64 GNU candidates with a local MinGW toolchain:
+`cargo build --locked --release --target x86_64-pc-windows-gnu --bins`.
+Set `CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER` and `WINDRES` if the cross tools
+are outside PATH. Package this as `x86_64-pc-windows-gnu`, preserving its actual
+toolchain identity. The six native release targets and `--require-all` gate remain
+unchanged. Static PE/resource/import checks and Wine smoke tests are additional
+checks; they do not replace Windows hardware acceptance. macOS native packages
+require a Mac/Apple SDK and runtime verification before publication.

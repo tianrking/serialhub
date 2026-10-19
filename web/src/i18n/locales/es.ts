@@ -1,6 +1,11 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 import type { Catalog } from "../index.ts";
 const messages = {
+  "Application menu": "Menú de la aplicación",
+  "Running in background": "En segundo plano",
+  "Open diagnostics": "Abrir diagnósticos",
+  "Closing this page keeps devices running. Reopen SerialHub from its launcher or system tray.": "Al cerrar esta página, los dispositivos siguen funcionando. Abre SerialHub desde el lanzador o la bandeja del sistema.",
+
   "Disabled": "Desactivado",
   "External tools (optional)": "Herramientas externas (opcional)",
   "One TCP endpoint accepts multiple local programs. Use browser pairing for LAN access.": "Un puerto TCP admite varios programas locales. Usa la vinculación web para la LAN.",

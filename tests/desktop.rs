@@ -267,7 +267,12 @@ async fn lan_pairing_is_required_revocable_and_cannot_change_host_settings() {
         .2;
     assert_eq!(remote_info["local"], false);
     assert_eq!(remote_info["lan"], Value::Null);
-    for path in ["/manager/lan", "/manager/quit"] {
+    for path in [
+        "/manager/lan",
+        "/manager/quit",
+        "/manager/app/locale",
+        "/manager/app/logs",
+    ] {
         assert_eq!(request(lan, "POST", path, json!({}), &cookie).await.0, 403);
     }
     let mut req = format!("ws://{lan}/sessions/{id}/v1/stream")
@@ -515,4 +520,43 @@ async fn closing_launcher_diagnostic_pipe_does_not_abort_opening_a_device() {
         .unwrap()
         .unwrap()
         .success());
+}
+
+#[tokio::test]
+async fn lifecycle_stream_closes_on_lan_revocation() {
+    let desktop = Desktop::start("127.0.0.1:0".parse().unwrap())
+        .await
+        .unwrap();
+    let address = desktop.address();
+    request(address, "POST", "/manager/lan", json!({}), "").await;
+    let info = request(address, "GET", "/manager/info", Value::Null, "")
+        .await
+        .2;
+    let lan: SocketAddr = format!("127.0.0.1:{}", info["lan"]["port"].as_u64().unwrap())
+        .parse()
+        .unwrap();
+    let link = info["lan"]["pair_url"].as_str().unwrap();
+    let token = link.split_once("#pair=").unwrap().1;
+    let mut stream = TcpStream::connect(lan).await.unwrap();
+    stream.write_all(format!("GET /manager/lifecycle HTTP/1.1\r\nHost: {lan}\r\nAuthorization: Bearer {token}\r\nConnection: close\r\n\r\n").as_bytes()).await.unwrap();
+    let mut received = Vec::new();
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            let mut chunk = [0; 4096];
+            let count = stream.read(&mut chunk).await.unwrap();
+            assert!(count > 0);
+            received.extend_from_slice(&chunk[..count]);
+            if String::from_utf8_lossy(&received).contains("event: ready") {
+                break;
+            }
+        }
+    })
+    .await
+    .unwrap();
+    request(address, "DELETE", "/manager/lan", Value::Null, "").await;
+    tokio::time::timeout(Duration::from_secs(2), stream.read_to_end(&mut received))
+        .await
+        .expect("Revocation must release lifecycle subscribers")
+        .unwrap();
+    desktop.shutdown().await;
 }

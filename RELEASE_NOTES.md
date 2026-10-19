@@ -1,4 +1,17 @@
-# SerialHub v0.2.3
+# SerialHub v0.3.0 candidate
+
+Local candidate builds; platform-specific validation is recorded with each package.
+The public v0.2.3 release remains unchanged until new packages are published.
+
+- Desktop startup is detached from the terminal, with native system-tray/menu-bar
+  actions to reopen the workspace, open diagnostics and quit all owners.
+- The existing SerialHub brand opens an application menu in every workspace.
+  Closing the page keeps device owners running; explicit Quit stops the service.
+- Repeated launches reuse the actual listening address, including fallback ports.
+  Open browsers show a stopped state on exit and ignore stale status replies.
+- Linux application-menu open/quit entries provide a fallback when a desktop
+  does not display tray icons. Browser-side jobs stop when their page closes.
+
 
 Launch the app, choose a serial port in your browser and start debugging.
 No terminal commands, Node.js or Rust installation are needed for downloaded packages.
@@ -20,8 +33,9 @@ No terminal commands, Node.js or Rust installation are needed for downloaded pac
   languages, with English as the default. Existing CLI automation stays available.
 - Unique per-workspace tab/panel and SVG clip identifiers keep keyboard focus
   and plotting independent when multiple device workspaces are mounted.
-- Six native platform packages with GUI launcher checks, manifest/SHA-256 validation,
-  extracted-package smoke tests and release-browser tests.
+- Release tooling supports six native targets with GUI launcher checks,
+  manifest/SHA-256 validation and extracted-package smoke tests. Local candidate
+  downloads list only the targets actually built; they do not imply six-platform acceptance.
 
 Download the matching archive, verify against `SHA256SUMS`, extract and launch.
 Portable packages are unsigned; the OS may require confirmation to run. Linux

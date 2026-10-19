@@ -118,7 +118,7 @@ function downloadTextFile(filename: string, content: string, mime = "text/plain;
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export default function App({ managedConnection, deviceNavigation }: { managedConnection?: ConnectionConfig; deviceNavigation?: ReactNode } = {}) {
+export default function App({ managedConnection, deviceNavigation, onAppMenu }: { managedConnection?: ConnectionConfig; deviceNavigation?: ReactNode; onAppMenu?: () => void } = {}) {
   const workspaceId = useId();
   const locale = useLocale();
   const [tab, setTab] = useState<Tab>("monitor");
@@ -841,13 +841,14 @@ export default function App({ managedConnection, deviceNavigation }: { managedCo
     return { cls: "off", label: translate(locale, "Disconnected") };
   }, [online, wsOpen, phase, retryCount, locale]);
 
+  const Brand = onAppMenu ? "button" : "div";
   const headerStatus = <div className="header-status"><LanguageSelector /><span className="local-badge"><Icon name="shield" size={14} /> {t("Single device owner")}</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>;
 
   return (
     <div className={`app${managedConnection ? " app-managed" : ""}`} data-workspace={tab}>
       <a className="skip-link" href={`#${workspaceId}-main-content`}>{t("Skip to workspace")}</a>
       <header className="sidebar">
-        <div className="brand"><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>{t("DEVICE WORKSPACE")}</small></div></div>
+        <Brand className="brand" onClick={onAppMenu} aria-label={onAppMenu ? t("Application menu") : undefined} aria-haspopup={onAppMenu ? "dialog" : undefined} title={onAppMenu ? t("Application menu") : undefined}><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>{t("DEVICE WORKSPACE")}</small></div>{onAppMenu && <span className="brand-caret" aria-hidden="true">⌄</span>}</Brand>
         <div className="nav-label">{t("Workspace")}</div>
         <nav className="sidebar-nav" aria-label={t("Main navigation")}>
           {([

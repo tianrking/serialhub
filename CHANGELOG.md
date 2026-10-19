@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Desktop lifecycle (0.3.0 candidate)
+
+- Added native Windows notification-area, macOS menu-bar and Linux
+  StatusNotifierItem menus with workspace, private diagnostics and quit actions.
+  Linux uses a pure Rust D-Bus backend and has application-menu launch/quit fallbacks.
+- Detached desktop startup from the terminal, bounded private logs, added verified
+  per-user discovery and singleton locks, and reused actual fallback addresses.
+- Added an application menu to the existing brand area without another header;
+  local language choices also update the native tray menu.
+- Added stopped events for all open browsers, immediate shutdown write rejection,
+  confirmation/cancel behavior, and protection against late status responses.
+- Added macOS Finder reopen handling and branded app/Windows resources with a
+  per-monitor DPI manifest. Preserved explicit foreground and container startup.
+- Added native tray, detached lifecycle and browser shutdown regressions. Local
+  Windows GNU builds can be packaged separately from the six native CI targets.
+
 ## [0.2.3] — 2026-10-19
 
 - Kept the original workbench navigation as the only header in an open device

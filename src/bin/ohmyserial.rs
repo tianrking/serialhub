@@ -1,10 +1,13 @@
-//! Temporary compatibility entry point for the former executable name.
-
+//! Compatibility entry point.
 #[path = "../cli.rs"]
 mod cli;
-
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
+    if let Some(result) = serialhub::launcher::early_command() {
+        return result;
+    }
     eprintln!("warning: `ohmyserial` is a compatibility command; use `serialhub` for new scripts.");
-    cli::run().await
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(cli::run())
 }

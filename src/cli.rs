@@ -34,6 +34,17 @@ enum Commands {
         bind: std::net::SocketAddr,
         #[arg(long)]
         no_browser: bool,
+        /// Keep the desktop in this terminal instead of starting the tray service.
+        #[arg(long, conflicts_with = "background")]
+        foreground: bool,
+        /// Run in the background, including when --no-browser is used.
+        #[arg(long)]
+        background: bool,
+    },
+    /// Stop the desktop service and close its device sessions.
+    Quit {
+        #[arg(long, default_value = "127.0.0.1:8787")]
+        bind: std::net::SocketAddr,
     },
     /// Easiest: share a serial port with multi PTY / TCP / WebSocket (no TOML needed).
     Share {
@@ -209,9 +220,28 @@ pub async fn run() -> anyhow::Result<()> {
     let command = cli.cmd.unwrap_or(Commands::Desktop {
         bind: "127.0.0.1:8787".parse().expect("constant address"),
         no_browser: false,
+        foreground: false,
+        background: false,
     });
     match command {
-        Commands::Desktop { bind, no_browser } => {
+        Commands::Quit { bind } => {
+            tokio::task::spawn_blocking(move || serialhub::launcher::stop(bind)).await?
+        }
+        Commands::Desktop {
+            bind,
+            no_browser,
+            foreground,
+            background,
+        } => {
+            if (background || (!no_browser && !foreground)) && std::process::id() != 1 {
+                let address = tokio::task::spawn_blocking(move || {
+                    serialhub::launcher::launch(bind, !no_browser)
+                })
+                .await??;
+                use std::io::Write;
+                let _=writeln!(std::io::stderr(),"SerialHub is running at http://{address}/ — use the app menu, system tray or --quit to exit");
+                return Ok(());
+            }
             if serialhub::desktop::existing_manager(bind).await {
                 let url = format!("http://{bind}/");
                 eprintln!("SerialHub is already running: {url}");
