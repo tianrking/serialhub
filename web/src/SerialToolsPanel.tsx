@@ -1,5 +1,5 @@
 import { t, getFormattingLocale, localizeStatus } from "./i18n/index.ts";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { QuickCommand, ConnectionProfile } from "./commandUtils";
 import { commandBytes, downloadBlob, encodeText, decodeText, fullHex, hexBytes, MAX_SEND_FILE_BYTES,
   parseWorkspaceBackup, workspaceBackup, type RawCapture, type RunSerialJob, type TextEncoding,
@@ -13,6 +13,7 @@ type Props = {
   notify(message: string, error?: boolean): void;
 };
 export default function SerialToolsPanel(props: Props) {
+  const toolsId = useId();
   const { canWrite, busy, capture, runJob, commands, profiles, encoding, notify } = props;
   const [tab, setTab] = useState("files");
   const [file, setFile] = useState<File | null>(null);
@@ -71,13 +72,13 @@ export default function SerialToolsPanel(props: Props) {
     <div className="tool-heading"><div><span className="eyebrow">{t("SERIAL TOOLKIT")}</span><h2>{t("Serial toolkit")}</h2></div><span className="tag">{t("Files · sequences · profiles")}</span></div>
     <div className="tool-tabs" role="tablist" aria-label={t("Debugging tools")}>
       {[["files", t("Files")], ["sequence", t("Sequences")], ["convert", t("Encoding")], ["backup", t("Backup")]].map(([id, label]) =>
-        <button type="button" role="tab" aria-selected={tab === id} aria-controls={`tool-${id}`} id={`tab-${id}`} tabIndex={tab === id ? 0 : -1}
+        <button type="button" role="tab" aria-selected={tab === id} aria-controls={`${toolsId}-tool-${id}`} id={`${toolsId}-tab-${id}`} tabIndex={tab === id ? 0 : -1}
           key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id!)}
           onKeyDown={event => { const ids = ["files", "sequence", "convert", "backup"]; if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-            event.preventDefault(); const next = ids[(ids.indexOf(tab) + (event.key === "ArrowRight" ? 1 : 3)) % 4]!; setTab(next); document.getElementById(`tab-${next}`)?.focus();
+            event.preventDefault(); const next = ids[(ids.indexOf(tab) + (event.key === "ArrowRight" ? 1 : 3)) % 4]!; setTab(next); document.getElementById(`${toolsId}-tab-${next}`)?.focus();
           } }}>{label}</button>)}
     </div>
-    {tab === "files" && <div className="tool-columns" role="tabpanel" id="tool-files" aria-labelledby="tab-files">
+    {tab === "files" && <div className="tool-columns" role="tabpanel" id={`${toolsId}-tool-files`} aria-labelledby={`${toolsId}-tab-files`}>
       <div className="tool-card"><h3>{t("Send file")} <span>{t("Raw bytes")}</span></h3><p className="hint">{t("No encoding conversion or added line endings. Acknowledged blocks, up to 64 MiB. Renews the existing lease; stops on failure.")}</p>
         <label className="file-picker">{t("Choose file to send")} <input aria-label={t("Choose file to send")} type="file" disabled={busy} onChange={event => {
           setFile(event.target.files?.[0] ?? null); setSent(0);
@@ -101,7 +102,7 @@ export default function SerialToolsPanel(props: Props) {
         <p className="hint">{t("Recording is held in memory; download before closing. Slow-client drops may cause gaps. Check the event ledger for completeness.")}</p>
       </div>
     </div>}
-    {tab === "sequence" && <div role="tabpanel" id="tool-sequence" aria-labelledby="tab-sequence">
+    {tab === "sequence" && <div role="tabpanel" id={`${toolsId}-tool-sequence`} aria-labelledby={`${toolsId}-tab-sequence`}>
       <div className="row sequence-toolbar"><label>{t("Rounds (0 = continuous)")} <input aria-label={t("Sequence rounds")} type="number" min={0} max={100000} value={rounds} disabled={busy} onChange={event => setRounds(Math.min(100000, Math.max(0, Math.trunc(Number(event.target.value) || 0))))} /></label>
         <button type="button" disabled={!canWrite || busy || !commands.length} onClick={sendSequence}>{t("Start sequence")}</button><span className="hint">{sequenceProgress || t("Sends in the order below · text encoding {p0}", { p0: String(encoding.toUpperCase()) })}</span></div>
       <div className="sequence-list">{!commands.length && <p className="muted">{t("Save shortcuts first, then choose the sequence order.")}</p>}
@@ -112,13 +113,13 @@ export default function SerialToolsPanel(props: Props) {
         <div className="row"><button type="button" className="ghost small" aria-label={t("Move {p0} up", { p0: String(command.name) })} disabled={busy || index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="ghost small" aria-label={t("Move {p0} down", { p0: String(command.name) })} disabled={busy || index === commands.length - 1} onClick={() => move(index, 1)}>↓</button></div>
       </div>)}</div><p className="hint">{t("Content and order are fixed at start. Delays begin after each ACK. Renews only the existing lease; stops on expiry, write failure, device or stream loss. Reconnection never resumes sending.")}</p>
     </div>}
-    {tab === "convert" && <div role="tabpanel" id="tool-convert" aria-labelledby="tab-convert" className="tool-columns">
+    {tab === "convert" && <div role="tabpanel" id={`${toolsId}-tool-convert`} aria-labelledby={`${toolsId}-tab-convert`} className="tool-columns">
       <div><label className="block">{t("Conversion input")} <textarea aria-label={t("Conversion input")} rows={4} maxLength={65536} value={conversion} onChange={event => setConversion(event.target.value)} placeholder={t("Text or 41 54 0d 0a")} /></label><div className="row">
         <button type="button" className="ghost" onClick={() => { try { setConverted(fullHex(encodeText(conversion, encoding))); } catch (error) { report(error); } }}>{t("Text → HEX")}</button>
         <button type="button" className="ghost" onClick={() => { try { setConverted(decodeText(hexBytes(conversion), encoding)); } catch (error) { report(error); } }}>{t("HEX → Text")}</button></div></div>
       <label className="block">{t("Conversion result ·")} {encoding.toUpperCase()}<textarea aria-label={t("Conversion result")} rows={6} value={converted} readOnly /><span className="hint">{t("Conversion does not send data. Unsupported characters cause an error.")}</span></label>
     </div>}
-    {tab === "backup" && <div role="tabpanel" id="tool-backup" aria-labelledby="tab-backup" className="tool-columns">
+    {tab === "backup" && <div role="tabpanel" id={`${toolsId}-tool-backup`} aria-labelledby={`${toolsId}-tab-backup`} className="tool-columns">
       <div><h3>{t("Take your debugging setup with you")}</h3><p className="hint">{t("Export")} {commands.length} {t("shortcuts and")} {profiles.length} {t("Hub profiles. Tokens, leases and recordings are excluded.")}</p>
         <button type="button" className="ghost" onClick={() => downloadBlob(`serialhub-workspace-${Date.now()}.json`, new Blob([workspaceBackup(commands, profiles)], { type: "application/json" }))}>{t("Export workspace settings")}</button></div>
       <div><label className="file-picker">{t("Import settings file")} <input aria-label={t("Import settings file")} type="file" accept=".json,application/json" disabled={busy} onChange={async event => {

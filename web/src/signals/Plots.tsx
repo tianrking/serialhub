@@ -1,5 +1,5 @@
 import { t } from "../i18n/index.ts";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { axisTick, calibrated, scopePoints, extent, formatNumber, histogram, plotPath, type Channel, type SignalSample, type Spectrum } from "./math";
 import { downloadBlob } from "../serialTools";
 import { imageRgba, type ImageFrame } from "./store";
@@ -48,6 +48,7 @@ export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cu
   cursors: [number | null, number | null]; onCursor(index: number): void; onPan(amount: number): void; onZoom(amount: number): void;
   stacked: boolean; mode: "pan" | "a" | "b"; svgRef: RefObject<SVGSVGElement | null>;
 }) {
+  const clipId = `scope-${useId().replaceAll(":", "")}`;
   const measuredHeight = usePlotHeight(svgRef, true);
   const height = stacked ? Math.max(measuredHeight, selected.length * 100 + PLOT.top + PLOT.bottom) : measuredHeight;
   const first = samples[0]?.index ?? 0, last = samples.at(-1)?.index ?? 1;
@@ -68,8 +69,8 @@ export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cu
     }} onPointerUp={event => { if (drag.current !== null) { const rect = event.currentTarget.getBoundingClientRect(); onPan(drag.current - (event.clientX - rect.left) / rect.width); drag.current = null; } }}
     onPointerCancel={() => { drag.current = null; }}>
     <PlotGrid xDomain={xDomain} yDomain={yDomain} height={height} hideY={stacked} yLabel={stacked ? t("Tracks · independent channel ranges") : t("Amplitude")} />
-    <defs><clipPath id="scope-clip"><rect x={PLOT.left} y={PLOT.top} width={PLOT.width - PLOT.left - PLOT.right} height={height - PLOT.top - PLOT.bottom} /></clipPath></defs>
-    <g clipPath="url(#scope-clip)">{selected.map((channel, band) => {
+    <defs><clipPath id={clipId}><rect x={PLOT.left} y={PLOT.top} width={PLOT.width - PLOT.left - PLOT.right} height={height - PLOT.top - PLOT.bottom} /></clipPath></defs>
+    <g clipPath={`url(#${clipId})`}>{selected.map((channel, band) => {
       const points = scopePoints(samples, channel, channels[channel]!, sampleRate);
       const domain = extent(points.map(point => point.y));
       const bandHeight = (height - PLOT.top - PLOT.bottom) / Math.max(1, selected.length);
@@ -85,14 +86,15 @@ export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cu
   </svg>;
 }
 export function SpectrumPlot({ result, logarithmic, unit, maxFrequency = 0 }: { maxFrequency?: number; result: Spectrum | null; logarithmic: boolean; unit: string }) {
+  const clipId = `spectrum-${useId().replaceAll(":", "")}`;
   const svg = useRef<SVGSVGElement>(null), height = usePlotHeight(svg);
   const yDomain: [number, number] = logarithmic ? [-120, Math.max(0, ...result?.db ?? []) + 6] : [0, Math.max(.01, ...result?.amplitudes ?? []) * 1.12];
   const nyquist = result?.frequencies.at(-1) || 1;
   const xDomain: [number, number] = [0, maxFrequency > 0 ? Math.min(maxFrequency, nyquist) : nyquist], scale = plotScales(xDomain, yDomain, height);
   return <svg ref={svg} preserveAspectRatio="none" className="signal-spectrum" viewBox={`0 0 ${PLOT.width} ${height}`} role="img" aria-label={t("FFT single-sided amplitude spectrum")}>
     <PlotGrid xDomain={xDomain} yDomain={yDomain} height={height} xLabel={t("Frequency / Hz")} yLabel={logarithmic ? `dB re 1 ${unit || "unit"}` : t("Amplitude {p0}", { p0: String(unit) })} />
-    <defs><clipPath id="spectrum-clip"><rect x={PLOT.left} y={PLOT.top} width={PLOT.width - PLOT.left - PLOT.right} height={height - PLOT.top - PLOT.bottom} /></clipPath></defs>
-    {result && <g clipPath="url(#spectrum-clip)"><path d={plotPath(result.frequencies.map((x, index) => ({ x, y: logarithmic ? result.db[index]! : result.amplitudes[index]! })), scale.x, scale.y)} fill="none" stroke="#a78bfa" strokeWidth="1.6" vectorEffect="non-scaling-stroke" /></g>}
+    <defs><clipPath id={clipId}><rect x={PLOT.left} y={PLOT.top} width={PLOT.width - PLOT.left - PLOT.right} height={height - PLOT.top - PLOT.bottom} /></clipPath></defs>
+    {result && <g clipPath={`url(#${clipId})`}><path d={plotPath(result.frequencies.map((x, index) => ({ x, y: logarithmic ? result.db[index]! : result.amplitudes[index]! })), scale.x, scale.y)} fill="none" stroke="#a78bfa" strokeWidth="1.6" vectorEffect="non-scaling-stroke" /></g>}
   </svg>;
 }
 export function XYPlot({ samples, channels, xChannel, yChannel }: { samples: readonly SignalSample[]; channels: Channel[]; xChannel: number; yChannel: number }) {

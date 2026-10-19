@@ -48,7 +48,7 @@
 
 ## Inicio sin terminal
 
-Desde v0.2.0, descarga y extrae el paquete de tu plataforma. En Windows abre `serialhub-desktop.exe`; en macOS, `SerialHub.app`; en Linux ejecuta `serialhub-desktop` como programa.
+Desde v0.2.1, descarga y extrae el paquete de tu plataforma. En Windows abre `serialhub-desktop.exe`; en macOS, `SerialHub.app`; en Linux ejecuta `serialhub-desktop` como programa.
 El navegador se abre automáticamente. Selecciona y configura un puerto, abre su espacio y añade otras sesiones independientes. Puedes activar el acceso IPv4 por LAN y compartir un enlace de vinculación desde el equipo anfitrión.
 No necesitas Node.js ni Rust. Los paquetes no están firmados; siguen siendo necesarios los permisos y controladores del puerto. Consulta [DESKTOP.md](./DESKTOP.md).
 

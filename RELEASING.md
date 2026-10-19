@@ -16,8 +16,8 @@ Users do not need Node.js or Rust to run these packages.
 3. Create and push an annotated tag matching that exact version, for example:
 
    ```bash
-   git tag -a v0.2.0 -m "SerialHub v0.2.0"
-   git push origin v0.2.0
+   git tag -a v0.2.1 -m "SerialHub v0.2.1"
+   git push origin v0.2.1
    ```
 
 4. Follow the **Release** workflow through publication. A successful tag push
@@ -51,8 +51,8 @@ On Linux:
 
 ```bash
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf serialhub-v0.2.0-x86_64-unknown-linux-gnu.tar.gz
-cd serialhub-v0.2.0-x86_64-unknown-linux-gnu
+tar -xzf serialhub-v0.2.1-x86_64-unknown-linux-gnu.tar.gz
+cd serialhub-v0.2.1-x86_64-unknown-linux-gnu
 ./serialhub --version
 ./serialhub share mock:demo --pty 0 --ui
 ```

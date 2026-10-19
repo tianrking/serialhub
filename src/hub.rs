@@ -355,7 +355,10 @@ pub async fn run_hub(cfg: Config) -> anyhow::Result<HubHandle> {
     );
 
     // Always print a plain human guide (not only tracing).
-    eprint!("{}", cfg.connect_guide());
+    // Desktop launchers and service wrappers may close their output pipes.
+    // Losing a diagnostic sink must never abort a newly opened serial owner.
+    use std::io::Write as _;
+    let _ = std::io::stderr().write_all(cfg.connect_guide().as_bytes());
 
     let (tasks, api_servers) = tasks.finish();
     Ok(HubHandle {

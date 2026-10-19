@@ -1,6 +1,6 @@
-# SerialHub 产品定义与架构（v0.2.0）
+# SerialHub 产品定义与架构（v0.2.1）
 
-> **当前发布基线：** [SerialHub v0.2.0](https://github.com/tianrking/serialhub/releases/tag/v0.2.0)<br>
+> **当前发布基线：** [SerialHub v0.2.1](https://github.com/tianrking/serialhub/releases/tag/v0.2.1)<br>
 > **产品名 / 主命令 / Rust 包：** `SerialHub` / `serialhub` / `serialhub`<br>
 > **许可证：** MIT<br>
 > **适用范围：** 本文定义已发布产品的定位、能力边界、平台承诺和运维原则；不保留预研阶段、待决策事项或过时的 MVP 规划。
@@ -39,7 +39,7 @@
 | Windows 传统 COM 软件 | Hub 持有真实 `COMx`；需要虚拟 COM 时，用现有驱动提供的 COM 对配合 `bridge-com` |
 | 远程协作 | 桌面模式可显式启用带配对凭证的 IPv4 局域网访问；高级部署使用 SSH / TLS 代理 |
 
-以下能力**不是 v0.2.0 的承诺**，不应据此采购、部署或宣传：
+以下能力**不是 v0.2.1 的承诺**，不应据此采购、部署或宣传：
 
 - 自研、内核级 Windows 虚拟 COM 驱动；
 - UDP 传输、完整终端仿真器或通用可编程脚本引擎；
@@ -48,7 +48,7 @@
 
 ---
 
-## 3. v0.2.0 已交付能力
+## 3. v0.2.1 已交付能力
 
 | 能力域 | 已交付内容 | 关键约束 |
 | --- | --- | --- |
@@ -74,7 +74,7 @@
 | macOS x64 / Apple Silicon | 已实现 | 已实现 | 已实现 | 不适用 |
 | Windows x64 / ARM64 | 已实现（`COMx`） | 不支持 | 已实现 | `bridge-com` + 已安装的虚拟 COM 提供方 |
 
-v0.2.0 Release 提供上述六个目标的二进制资产。CI、单元 / 集成测试、mock 传输和跨平台编译证明的是可重复的代码与协议行为；它们**不等同于**对某一 USB 转串口适配器、OS 驱动、RS-232/RS-485 电气层或业务设备命令的实机认证。
+v0.2.1 Release 提供上述六个目标的二进制资产。CI、单元 / 集成测试、mock 传输和跨平台编译证明的是可重复的代码与协议行为；它们**不等同于**对某一 USB 转串口适配器、OS 驱动、RS-232/RS-485 电气层或业务设备命令的实机认证。
 
 在面向生产的设备 / 适配器组合上线前，必须按 [`RELIABILITY_TEST_MATRIX.md`](./RELIABILITY_TEST_MATRIX.md) 做硬件在环验证：端口枚举、串口参数、拔插重连、控制线、真实上位机和实际协议命令都应留存证据。
 

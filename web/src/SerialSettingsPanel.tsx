@@ -1,5 +1,5 @@
 import { t } from "./i18n/index.ts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { SerialSettings, SerialPortInfo } from "./api/types";
 
 type Inspection = { settings: SerialSettings | null; ports: SerialPortInfo[] };
@@ -8,6 +8,7 @@ export default function SerialSettingsPanel({ online, canApply, busy, inspect, a
   inspect(): Promise<Inspection | null>;
   apply(settings: SerialSettings): Promise<boolean>;
 }) {
+  const baudListId = useId();
   const [settings, setSettings] = useState<SerialSettings | null>(null);
   const [ports, setPorts] = useState<SerialPortInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,8 +28,8 @@ export default function SerialSettingsPanel({ online, canApply, busy, inspect, a
   return <details className="hardware-controls serial-settings"><summary>{t("Serial settings & port list")} <span>{t("Devices on the server")}</span></summary>
     <button type="button" className="ghost" disabled={!online || busy || loading} onClick={() => void load()}>{loading ? t("Reading settings…") : t("Read settings & scan ports")}</button>
     {settings && <div className="serial-settings-form">
-      <label>{t("Baud rate")} <input aria-label={t("Device baud rate")} type="number" list="baud-rates" min={1} max={4000000} value={settings.baud} disabled={busy} onChange={event => setSettings({ ...settings, baud: Math.trunc(Number(event.target.value)) })} /></label>
-      <datalist id="baud-rates">{[300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600].map(baud => <option key={baud}>{baud}</option>)}</datalist>
+      <label>{t("Baud rate")} <input aria-label={t("Device baud rate")} type="number" list={baudListId} min={1} max={4000000} value={settings.baud} disabled={busy} onChange={event => setSettings({ ...settings, baud: Math.trunc(Number(event.target.value)) })} /></label>
+      <datalist id={baudListId}>{[300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600].map(baud => <option key={baud}>{baud}</option>)}</datalist>
       <label>{t("Data bits")} <select value={settings.databits} disabled={busy} onChange={event => setSettings({ ...settings, databits: Number(event.target.value) })}>{[5, 6, 7, 8].map(bits => <option key={bits}>{bits}</option>)}</select></label>
       <label>{t("Stop bits")} <select value={settings.stopbits} disabled={busy} onChange={event => setSettings({ ...settings, stopbits: Number(event.target.value) })}><option>1</option><option>2</option></select></label>
       <label>{t("Parity")} <select value={settings.parity} disabled={busy} onChange={event => setSettings({ ...settings, parity: event.target.value as SerialSettings["parity"] })}><option value="none">{t("None")}</option><option value="odd">{t("Odd")}</option><option value="even">{t("Even")}</option></select></label>

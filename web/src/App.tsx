@@ -1,7 +1,7 @@
 import { t, getFormattingLocale, translate } from "./i18n/index.ts";
 import { LanguageSelector } from "./i18n/LanguageSelector";
 import { useLocale } from "./i18n/useLocale";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { hubApi } from "./api/client";
 import type {
   ConnectionConfig,
@@ -118,6 +118,7 @@ function downloadTextFile(filename: string, content: string, mime = "text/plain;
 }
 
 export default function App({ managedConnection }: { managedConnection?: ConnectionConfig } = {}) {
+  const workspaceId = useId();
   const locale = useLocale();
   const [tab, setTab] = useState<Tab>("monitor");
   const [dockTab, setDockTab] = useState("device");
@@ -841,7 +842,7 @@ export default function App({ managedConnection }: { managedConnection?: Connect
 
   return (
     <div className="app" data-workspace={tab}>
-      <a className="skip-link" href="#main-content">{t("Skip to workspace")}</a>
+      <a className="skip-link" href={`#${workspaceId}-main-content`}>{t("Skip to workspace")}</a>
       <aside className="sidebar">
         <div className="brand"><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>{t("DEVICE WORKSPACE")}</small></div></div>
         <div className="nav-label">{t("Workspace")}</div>
@@ -866,7 +867,7 @@ export default function App({ managedConnection }: { managedConnection?: Connect
         </div>
         <div className="header-status"><LanguageSelector /><span className="local-badge"><Icon name="shield" size={14} /> {t("Single device owner")}</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>
       </header>
-      <main id="main-content">
+      <main id={`${workspaceId}-main-content`} className="workspace-main">
       {managedConnection && error && <div className="managed-error" role="alert">{error}<button onClick={() => void connect()}>{t("Reconnect")}</button></div>}
       <section className={`panel connect${managedConnection ? " managed-connect" : ""}`}>
         <div className="connection-heading"><h2><Icon name="layers" size={16} /> {t("Connection profiles")}</h2><span>{online ? (status?.port.path.startsWith("mock:") ? t("Mock device · no hardware required") : t("Device session")) : t("Local Hub or HTTPS reverse proxy")}</span></div>
@@ -1049,14 +1050,14 @@ export default function App({ managedConnection }: { managedConnection?: Connect
           <aside className="workbench-dock" aria-label={t("Workspace tool panel")}>
             <div className="dock-tabs" role="tablist" aria-label={t("Workspace tools")}>
               {([["device", t("Device settings")], ["quick", t("Shortcuts")], ["tools", t("Toolkit")], ["protocol", t("Protocol frames")]] as const).map(([id, label], index, tabs) =>
-                <button type="button" role="tab" key={id} id={`dock-tab-${id}`} aria-controls={`dock-${id}`} aria-selected={dockTab === id} tabIndex={dockTab === id ? 0 : -1}
+                <button type="button" role="tab" key={id} id={`${workspaceId}-dock-tab-${id}`} aria-controls={`${workspaceId}-dock-${id}`} aria-selected={dockTab === id} tabIndex={dockTab === id ? 0 : -1}
                   onClick={() => setDockTab(id)} onKeyDown={event => {
                     const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : event.key === "ArrowRight" ? (index + 1) % tabs.length : event.key === "ArrowLeft" ? (index + tabs.length - 1) % tabs.length : -1;
-                    if (next >= 0) { event.preventDefault(); setDockTab(tabs[next]![0]); document.getElementById(`dock-tab-${tabs[next]![0]}`)?.focus(); }
+                    if (next >= 0) { event.preventDefault(); setDockTab(tabs[next]![0]); document.getElementById(`${workspaceId}-dock-tab-${tabs[next]![0]}`)?.focus(); }
                   }}>{label}</button>)}
             </div>
             <div className="dock-content">
-              <div role="tabpanel" id="dock-device" aria-labelledby="dock-tab-device" hidden={dockTab !== "device"}>
+              <div role="tabpanel" id={`${workspaceId}-dock-device`} aria-labelledby={`${workspaceId}-dock-tab-device`} hidden={dockTab !== "device"}>
           <section className="panel device-panel">
             <h2><Icon name="shield" size={17} /> {t("Device & write permissions")}</h2>
             {status ? (
@@ -1149,7 +1150,7 @@ export default function App({ managedConnection }: { managedConnection?: Connect
           </section>
 
               </div>
-              <div role="tabpanel" id="dock-quick" aria-labelledby="dock-tab-quick" hidden={dockTab !== "quick"}>
+              <div role="tabpanel" id={`${workspaceId}-dock-quick`} aria-labelledby={`${workspaceId}-dock-tab-quick`} hidden={dockTab !== "quick"}>
           <section className="panel quick-panel">
             <div className="log-head">
               <div>
@@ -1222,7 +1223,7 @@ export default function App({ managedConnection }: { managedConnection?: Connect
           </section>
 
               </div>
-              <div role="tabpanel" id="dock-tools" aria-labelledby="dock-tab-tools" hidden={dockTab !== "tools"}>
+              <div role="tabpanel" id={`${workspaceId}-dock-tools`} aria-labelledby={`${workspaceId}-dock-tab-tools`} hidden={dockTab !== "tools"}>
           <SerialToolsPanel canWrite={canWrite} busy={busy} capture={capture} runJob={runJob}
             commands={quickCommands} profiles={connectionProfiles} encoding={textEncoding}
             onCommandsChange={setQuickCommands} notify={(text, failure) => pushLog({ kind: failure ? "err" : "sys", text })}
@@ -1232,7 +1233,7 @@ export default function App({ managedConnection }: { managedConnection?: Connect
               pushLog({ kind: "sys", text: t("Appended {p0} commands and {p1} connection profiles", { p0: String(backup.commands.length), p1: String(backup.profiles.length) }) });
             }} />
               </div>
-              <div role="tabpanel" id="dock-protocol" aria-labelledby="dock-tab-protocol" hidden={dockTab !== "protocol"}>
+              <div role="tabpanel" id={`${workspaceId}-dock-protocol`} aria-labelledby={`${workspaceId}-dock-tab-protocol`} hidden={dockTab !== "protocol"}>
           <ProtocolInspectorPanel
             protocol={streamProtocol}
             frames={protocolFrames}

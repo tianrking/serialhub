@@ -21,13 +21,13 @@ export function MeterCards({ samples, channels, selected }: { samples: readonly 
     </article>;
   })}</div>;
 }
-export function Attitude({ latest, channels, count }: { latest: SignalSample | undefined; channels: Channel[]; count: number }) {
+export function Attitude({ latest, channels, count, idPrefix }: { idPrefix: string; latest: SignalSample | undefined; channels: Channel[]; count: number }) {
   const [mapping, setMapping] = useState([0, 1, 2]);
   const [radians, setRadians] = useState(false);
   const values = mapping.map(index => latest ? calibrated(latest, index, channels[index]!) * (radians ? 180 / Math.PI : 1) : NaN);
   const valid = values.every(Number.isFinite);
   const safe = values.map(value => Number.isFinite(value) ? value % 360 : 0);
-  return <article className="signal-card attitude-card" role="tabpanel" id="analysis-attitude" aria-labelledby="analysis-tab-attitude"><div className="instrument-heading"><div><span className="eyebrow">{t("ORIENTATION")}</span><h3>{t("3-axis attitude")}</h3></div><span className={`signal-tag ${valid ? "" : "warn"}`}>{valid ? "EULER · ZYX" : t("Valid angles unavailable")}</span></div>
+  return <article className="signal-card attitude-card" role="tabpanel" id={`${idPrefix}-analysis-attitude`} aria-labelledby={`${idPrefix}-analysis-tab-attitude`}><div className="instrument-heading"><div><span className="eyebrow">{t("ORIENTATION")}</span><h3>{t("3-axis attitude")}</h3></div><span className={`signal-tag ${valid ? "" : "warn"}`}>{valid ? "EULER · ZYX" : t("Valid angles unavailable")}</span></div>
     <div className="attitude-stage" role="img" aria-label={valid ? t("Roll {p0} degrees, Pitch {p1} degrees, Yaw {p2} degrees", { p0: String(formatNumber(values[0])), p1: String(formatNumber(values[1])), p2: String(formatNumber(values[2])) }) : t("Waiting for 3-axis angles")}>
       <div className="attitude-grid" /><div className="attitude-camera"><div className="attitude-cube" style={{ transform: `rotateZ(${safe[2]}deg) rotateY(${safe[1]}deg) rotateX(${safe[0]}deg)` }}>
         {["front", "back", "left", "right", "top", "bottom"].map(face => <div key={face} className={`cube-face ${face}`}>{face === "front" ? "SERIALHUB" : face.toUpperCase()}</div>)}</div></div>
@@ -38,14 +38,14 @@ export function Attitude({ latest, channels, count }: { latest: SignalSample | u
     <label className="check"><input type="checkbox" checked={radians} onChange={event => setRadians(event.target.checked)} /> {t("Input is in radians")}</label><p className="signal-note">{t("Displays the input Euler angles; does not estimate attitude from acceleration.")}</p>
   </article>;
 }
-export function ControlDeck({ config, onConfig, commands, canWrite, busy, onQuick, onValue }: { config: ControlConfig; onConfig(config: ControlConfig): void; commands: QuickCommand[]; canWrite: boolean; busy: boolean; onQuick(command: QuickCommand): Promise<boolean>; onValue(payload: string): Promise<boolean> }) {
+export function ControlDeck({ config, onConfig, commands, canWrite, busy, onQuick, onValue, idPrefix }: { idPrefix: string; config: ControlConfig; onConfig(config: ControlConfig): void; commands: QuickCommand[]; canWrite: boolean; busy: boolean; onQuick(command: QuickCommand): Promise<boolean>; onValue(payload: string): Promise<boolean> }) {
   const [draft, setDraft] = useState(config);
   const template = config.template;
   useEffect(() => { setDraft(config); }, [config]);
   const [value, setValue] = useState(50);
   const [result, setResult] = useState("");
   useEffect(() => { setValue(previous => Math.min(config.max, Math.max(config.min, previous))); }, [config.min, config.max]);
-  return <article className="signal-card control-deck" role="tabpanel" id="analysis-control" aria-labelledby="analysis-tab-control"><div className="instrument-heading"><div><span className="eyebrow">{t("CONTROL DECK")}</span><h3>{t("Parameters & commands")}</h3></div><span className="signal-tag">{t("Manual send confirmation")}</span></div>
+  return <article className="signal-card control-deck" role="tabpanel" id={`${idPrefix}-analysis-control`} aria-labelledby={`${idPrefix}-analysis-tab-control`}><div className="instrument-heading"><div><span className="eyebrow">{t("CONTROL DECK")}</span><h3>{t("Parameters & commands")}</h3></div><span className="signal-tag">{t("Manual send confirmation")}</span></div>
     <label>{t("Send template (use")} {'{value}'}）<input aria-label={t("Parameter send template")} maxLength={512} value={template} onChange={event => onConfig({ ...config, template: event.target.value })} /></label>
     <div className="control-value"><strong>{value}</strong><input aria-label={t("Parameter value")} type="number" min={config.min} max={config.max} step={config.step} value={value} onChange={event => { const next = Number(event.target.value); if (Number.isFinite(next)) setValue(Math.max(config.min, Math.min(config.max, next))); }} /></div>
     <details className="control-range-settings"><summary>{t("Slider range & step")}</summary><div className="row">{([['min', t("Minimum")], ['max', t("Maximum")], ['step', t("Step")]] as const).map(([key, title]) => <label key={key}>{title}<input aria-label={t("Control {p0}", { p0: String(title) })} type="number" step="any" value={draft[key]} onChange={event => setDraft(previous => ({ ...previous, [key]: Number(event.target.value) }))} /></label>)}</div>

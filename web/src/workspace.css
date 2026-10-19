@@ -45,7 +45,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid #4c83e3; outlin
   .header > div:first-child, .local-badge { display: none; }
   .header-status { margin: 0; }
   .header .lamp { min-height: 0; padding: 3px 8px; font-size: 10px; border-radius: 5px; }
-  #main-content { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; min-width: 0; gap: 7px; overflow: hidden; }
+  .workspace-main { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; min-width: 0; gap: 7px; overflow: hidden; }
   .panel { margin: 0; border-radius: 8px; }
   .connect, .app:has(.signal-workbench) .connect { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; flex-shrink: 0; padding: 7px 10px; margin: 0; }
   .connection-heading, .connection-help { display: none; }

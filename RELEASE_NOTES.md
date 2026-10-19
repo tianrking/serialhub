@@ -1,4 +1,4 @@
-# SerialHub v0.2.0
+# SerialHub v0.2.1
 
 Launch the app, choose a serial port in your browser and start debugging.
 No terminal commands, Node.js or Rust installation are needed for downloaded packages.
@@ -14,6 +14,8 @@ No terminal commands, Node.js or Rust installation are needed for downloaded pac
   LAN because transport is HTTP. LAN settings and application shutdown stay local.
 - Keep the existing serial console, file tools, Signal Studio and six interface
   languages, with English as the default. Existing CLI automation stays available.
+- Unique per-workspace tab/panel and SVG clip identifiers keep keyboard focus
+  and plotting independent when multiple device workspaces are mounted.
 - Six native platform packages with GUI launcher checks, manifest/SHA-256 validation,
   extracted-package smoke tests and release-browser tests.
 

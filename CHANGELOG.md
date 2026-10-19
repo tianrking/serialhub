@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-10-19
+
+- Isolated workspace tab/panel identifiers and SVG clipping paths per mounted
+  device so hidden workspaces cannot capture keyboard focus or chart clipping.
+- Kept device startup successful if a launcher closes its diagnostic pipe.
+- Added a browser regression covering two simultaneous workspaces, unique DOM
+  identifiers, keyboard navigation and plot-local clip references.
+
 ## [0.2.0] — 2026-10-19
 
 - Added no-argument startup, an automatic browser launch, a Windows GUI launcher

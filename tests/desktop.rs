@@ -443,3 +443,51 @@ async fn gui_configured_tcp_really_reads_writes_and_fans_out_to_multiple_clients
         .any(|e| e["kind"] == "tcp" && e["can_read"] == true && e["can_write"] == true));
     desktop.shutdown().await;
 }
+
+#[tokio::test]
+async fn closing_launcher_diagnostic_pipe_does_not_abort_opening_a_device() {
+    let temporary = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = temporary.local_addr().unwrap();
+    drop(temporary);
+    let mut child = tokio::process::Command::new(env!("CARGO_BIN_EXE_serialhub"))
+        .args(["desktop", "--bind", &address.to_string(), "--no-browser"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .unwrap();
+    let mut ready = false;
+    for _ in 0..100 {
+        if serialhub::desktop::existing_manager(address).await {
+            ready = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(ready, "child manager failed to start");
+    drop(child.stderr.take());
+    let id = open(address, "mock:closed-diagnostic-pipe").await;
+    assert_eq!(
+        request(
+            address,
+            "GET",
+            &format!("/sessions/{id}/v1/status"),
+            Value::Null,
+            ""
+        )
+        .await
+        .2["port"]["connected"],
+        true
+    );
+    assert_eq!(
+        request(address, "POST", "/manager/quit", json!({}), "")
+            .await
+            .0,
+        200
+    );
+    assert!(tokio::time::timeout(Duration::from_secs(5), child.wait())
+        .await
+        .unwrap()
+        .unwrap()
+        .success());
+}

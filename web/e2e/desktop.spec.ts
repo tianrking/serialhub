@@ -190,3 +190,40 @@ test("demo and manager remain usable on a narrow screen", async ({ page }) => {
     page.locator(".managed-workspace:not([hidden]) .lamp"),
   ).toContainText("HTTP + WS");
 });
+
+test("mounted workspaces own their keyboard focus and SVG clipping identifiers", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await open(page, "Keyboard A", "mock:keyboard-a");
+  await page.getByRole("tab", { name: /All devices/ }).click();
+  await open(page, "Keyboard B", "mock:keyboard-b");
+  const active = page.locator(".managed-workspace:not([hidden])");
+  const dock = active.locator(".dock-tabs [role=tab]");
+  await dock.first().focus();
+  await dock.first().press("ArrowRight");
+  await expect(dock.nth(1)).toBeFocused();
+  await active
+    .getByRole("button", { name: "Signal studio", exact: true })
+    .click();
+  const analysis = active.locator(".analysis-tabs [role=tab]");
+  await analysis.first().focus();
+  await analysis.first().press("ArrowRight");
+  await expect(analysis.nth(1)).toBeFocused();
+  const ids = await page
+    .locator("[id]")
+    .evaluateAll((nodes) => nodes.map((node) => node.id));
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const svg of await page.locator("svg:has(clipPath)").all()) {
+    const references = await svg
+      .locator("[clip-path]")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("clip-path")),
+      );
+    const definitions = await svg
+      .locator("clipPath[id]")
+      .evaluateAll((nodes) => nodes.map((node) => node.id));
+    for (const reference of references)
+      expect(definitions).toContain(reference!.slice(5, -1));
+  }
+});
