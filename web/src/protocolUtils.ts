@@ -1,3 +1,4 @@
+import { t } from "./i18n/index.ts";
 export type StreamProtocol =
   | "raw"
   | "firewater"
@@ -309,9 +310,9 @@ export function parseModbusRtu(
 export function protocolLabel(protocol: StreamProtocol): string {
   switch (protocol) {
     case "binary":
-      return "自定义数值帧";
+      return t("Custom numeric frames");
     case "image":
-      return "原始图像帧";
+      return t("Raw image frames");
     case "firewater":
       return "FireWater CSV";
     case "justfloat":

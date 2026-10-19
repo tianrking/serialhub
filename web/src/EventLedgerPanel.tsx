@@ -1,3 +1,5 @@
+import { t, getFormattingLocale, translate, type Locale } from "./i18n/index.ts";
+import { useLocale } from "./i18n/useLocale";
 import { memo, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type {
@@ -7,15 +9,15 @@ import type {
   LedgerStatus,
 } from "./api/types";
 
-const EVENT_TYPE_OPTIONS: ReadonlyArray<{
+const eventTypeOptions = (): ReadonlyArray<{
   type: LedgerEventType;
   label: string;
-}> = [
+}> => [
   { type: "rx", label: "RX" },
   { type: "tx", label: "TX" },
-  { type: "connection", label: "連線" },
-  { type: "control", label: "控制" },
-  { type: "gap", label: "缺口" },
+  { type: "connection", label: t("Connection") },
+  { type: "control", label: t("Control") },
+  { type: "gap", label: t("Gap") },
 ];
 
 const BASE64_PATTERN =
@@ -52,36 +54,36 @@ interface DecodedPreview {
   error?: string;
 }
 
-function safeBase64Preview(payload: LedgerBytesPayload): DecodedPreview {
+function safeBase64Preview(payload: LedgerBytesPayload, locale: Locale): DecodedPreview {
   const { data_base64: encoded, len } = payload;
   if (!Number.isSafeInteger(len) || len < 0) {
-    return { hex: "", text: "", truncated: false, error: "無效的位元組長度" };
+    return { hex: "", text: "", truncated: false, error: translate(locale, "Invalid byte length") };
   }
   if (len > MAX_SAFE_DECODE_BYTES) {
     return {
       hex: "",
       text: "",
       truncated: true,
-      error: `內容超過安全預覽上限（${formatBytes(len)}）`,
+      error: translate(locale, "Content exceeds the safe preview limit ({p0})", { p0: String(formatBytes(len)) }),
     };
   }
   if (encoded.length > Math.ceil((MAX_SAFE_DECODE_BYTES * 4) / 3) + 4) {
-    return { hex: "", text: "", truncated: true, error: "Base64 內容過大" };
+    return { hex: "", text: "", truncated: true, error: translate(locale, "Base64 content too large") };
   }
   if (encoded.length % 4 !== 0 || !BASE64_PATTERN.test(encoded)) {
-    return { hex: "", text: "", truncated: false, error: "Base64 格式無效" };
+    return { hex: "", text: "", truncated: false, error: translate(locale, "Invalid Base64 format") };
   }
 
   const padding = encoded.endsWith("==") ? 2 : encoded.endsWith("=") ? 1 : 0;
   const estimatedLength = encoded.length === 0 ? 0 : (encoded.length / 4) * 3 - padding;
   if (estimatedLength !== len) {
-    return { hex: "", text: "", truncated: false, error: "Base64 長度與宣告不符" };
+    return { hex: "", text: "", truncated: false, error: translate(locale, "Base64 length differs from the declared length") };
   }
 
   try {
     const decoded = atob(encoded);
     if (decoded.length !== len) {
-      return { hex: "", text: "", truncated: false, error: "解碼長度與宣告不符" };
+      return { hex: "", text: "", truncated: false, error: translate(locale, "Decoded length differs from the declared length") };
     }
     const previewLength = Math.min(decoded.length, PREVIEW_BYTES);
     const bytes = new Uint8Array(previewLength);
@@ -94,7 +96,7 @@ function safeBase64Preview(payload: LedgerBytesPayload): DecodedPreview {
     const text = visibleUtf8(bytes);
     return { hex: `${hex}${suffix}`, text: `${text}${suffix}`, truncated };
   } catch {
-    return { hex: "", text: "", truncated: false, error: "Base64 解碼失敗" };
+    return { hex: "", text: "", truncated: false, error: translate(locale, "Base64 decoding failed") };
   }
 }
 
@@ -130,7 +132,7 @@ function formatBytes(bytes: number): string {
 function formatTimestamp(value: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString("zh-TW", { hour12: false });
+  return parsed.toLocaleString(getFormattingLocale(), { hour12: false });
 }
 
 function visibleUtf8(bytes: Uint8Array): string {
@@ -152,16 +154,17 @@ function visibleUtf8(bytes: Uint8Array): string {
 }
 
 const BytesPreview = memo(function BytesPreview({ payload }: { payload: LedgerBytesPayload }) {
-  const preview = useMemo(() => safeBase64Preview(payload), [payload]);
+  const locale = useLocale();
+  const preview = useMemo(() => safeBase64Preview(payload, locale), [payload, locale]);
   if (preview.error) {
     return <span className="event-payload-error">{preview.error}</span>;
   }
   return (
     <span className="event-bytes">
-      <span className="event-text">{preview.text || "（空）"}</span>
-      <span className="event-hex">{preview.hex || "（0 bytes）"}</span>
+      <span className="event-text">{preview.text || t("(empty)")}</span>
+      <span className="event-hex">{preview.hex || "(0 B)"}</span>
       <span className="event-length">
-        {formatBytes(payload.len)}{preview.truncated ? "，僅顯示前段" : ""}
+        {formatBytes(payload.len)}{preview.truncated ? t(", preview only") : ""}
       </span>
     </span>
   );
@@ -190,7 +193,7 @@ function eventDetails(event: LedgerEvent): ReactNode {
       );
     case "control": {
       const value = SENSITIVE_CONTROL_NAME.test(event.payload.name)
-        ? "（敏感值已隱藏）"
+        ? t("(sensitive value hidden)")
         : event.payload.value;
       return (
         <span className="event-meta-line">
@@ -220,11 +223,12 @@ function eventDetails(event: LedgerEvent): ReactNode {
 }
 
 const LedgerEventRow = memo(function LedgerEventRow({ event }: { event: LedgerEvent }) {
+  useLocale();
   return (
     <article className={`event-row ${event.type}`}>
       <div className="event-row-head">
         <span className={`event-kind ${event.type}`}>{event.type.toUpperCase()}</span>
-        <strong>#{event.seq.toLocaleString()}</strong>
+        <strong>#{event.seq.toLocaleString(getFormattingLocale())}</strong>
         <span>{formatTimestamp(event.ts_utc)}</span>
         <span>epoch {event.connection_epoch}</span>
       </div>
@@ -268,8 +272,8 @@ export default function EventLedgerPanel({
     <section className="panel ledger-panel">
       <div className="ledger-head">
         <div>
-          <h2>事件账本（只读）</h2>
-          <p className="hint">设备收发与操作的可追溯记录，实时输出见「实时工作台」。</p>
+          <h2>{t("Event ledger (read-only)")}</h2>
+          <p className="hint">{t("Trace device traffic and operations. Live output is in the console.")}</p>
         </div>
         <button
           type="button"
@@ -277,50 +281,47 @@ export default function EventLedgerPanel({
           disabled={!online || loading}
           onClick={onRefresh}
         >
-          {loading ? "读取中…" : "刷新事件"}
+          {loading ? t("Loading…") : t("Refresh events")}
         </button>
-        <button type="button" className="ghost" disabled={!online} onClick={onExport}>
-          导出 NDJSON
-        </button>
+        <button type="button" className="ghost" disabled={!online} onClick={onExport}>{t("Export NDJSON")}</button>
       </div>
 
       {status ? (
         <dl className="ledger-summary">
           <div>
-            <dt>Persistence</dt>
+            <dt>{t("Persistence")}</dt>
             <dd>
               <span className={`tag persistence-${status.persistence}`}>{status.persistence}</span>
               {status.sealed ? " · sealed" : ""}
             </dd>
           </div>
           <div>
-            <dt>Session</dt>
+            <dt>{t("Session")}</dt>
             <dd title={status.session_id}>{status.session_id}</dd>
           </div>
           <div>
-            <dt>Sequence</dt>
+            <dt>{t("Sequence")}</dt>
             <dd>
               {status.oldest_available_seq ?? "—"} → {status.newest_seq}
             </dd>
           </div>
           <div>
-            <dt>Retained</dt>
+            <dt>{t("Retained")}</dt>
             <dd>
-              {status.retained_events.toLocaleString()} events · {formatBytes(status.retained_bytes)}
+              {status.retained_events.toLocaleString(getFormattingLocale())} {t("events ·")} {formatBytes(status.retained_bytes)}
             </dd>
           </div>
           <div>
-            <dt>Evicted</dt>
-            <dd>{status.evicted_events.toLocaleString()}</dd>
+            <dt>{t("Evicted")}</dt>
+            <dd>{status.evicted_events.toLocaleString(getFormattingLocale())}</dd>
           </div>
         </dl>
       ) : (
-        <p className="muted">尚未讀取事件帳本狀態。</p>
+        <p className="muted">{t("Ledger status has not been loaded.")}</p>
       )}
 
       {status?.persistence_error ? (
-        <p className="error" role="status">
-          Persistence degraded：{status.persistence_error}
+        <p className="error" role="status">{t("Persistence degraded:")} {status.persistence_error}
         </p>
       ) : null}
       {error ? (
@@ -330,8 +331,8 @@ export default function EventLedgerPanel({
       ) : null}
 
       <fieldset className="event-filters">
-        <legend>事件類型</legend>
-        {EVENT_TYPE_OPTIONS.map(({ type, label }) => (
+        <legend>{t("Event types")}</legend>
+        {eventTypeOptions().map(({ type, label }) => (
           <label className="check" key={type}>
             <input
               type="checkbox"
@@ -346,17 +347,11 @@ export default function EventLedgerPanel({
       </fieldset>
 
       <div className="event-query-filters">
-        <label>
-          Actor
-          <input value={actor} onChange={(event) => setActor(event.target.value)} placeholder="例如 web-ui" />
+        <label>{t("Actor")} <input value={actor} onChange={(event) => setActor(event.target.value)} placeholder={t("e.g. web-ui")} />
         </label>
-        <label>
-          Epoch
-          <input value={epoch} onChange={(event) => setEpoch(event.target.value)} inputMode="numeric" placeholder="全部" />
+        <label>{t("Epoch")} <input value={epoch} onChange={(event) => setEpoch(event.target.value)} inputMode="numeric" placeholder={t("All")} />
         </label>
-        <label>
-          Hex / evidence
-          <input value={containsHex} onChange={(event) => setContainsHex(event.target.value)} placeholder="例如 55 aa" />
+        <label>{t("Hex / evidence")} <input dir="ltr" value={containsHex} onChange={(event) => setContainsHex(event.target.value)} placeholder={t("e.g. 55 aa")} />
         </label>
         <button
           type="button"
@@ -366,14 +361,10 @@ export default function EventLedgerPanel({
             setEpoch("");
             setContainsHex("");
           }}
-        >
-          清除筛选
-        </button>
+        >{t("Clear filters")}</button>
       </div>
 
-      <div className="event-list-meta" aria-live="polite">
-        顯示 {visibleEvents.length} / {events.length} 筆最近事件
-      </div>
+      <div className="event-list-meta" aria-live="polite">{t("Showing")} {visibleEvents.length} / {events.length} {t("recent events")}</div>
       <div className="event-list">
         {visibleEvents.length ? (
           visibleEvents.map((event) => (
@@ -381,7 +372,7 @@ export default function EventLedgerPanel({
           ))
         ) : (
           <div className="muted event-empty">
-            {loading ? "正在讀取…" : "目前篩選條件下沒有事件。"}
+            {loading ? t("Reading…") : t("No events match the current filters.")}
           </div>
         )}
       </div>

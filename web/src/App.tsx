@@ -1,3 +1,6 @@
+import { t, getFormattingLocale, translate } from "./i18n/index.ts";
+import { LanguageSelector } from "./i18n/LanguageSelector";
+import { useLocale } from "./i18n/useLocale";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { hubApi } from "./api/client";
 import type {
@@ -100,7 +103,7 @@ function loadConn(): ConnectionConfig {
 }
 
 function nowTs(): string {
-  return new Date().toLocaleTimeString("zh-TW", { hour12: false });
+  return new Date().toLocaleTimeString(getFormattingLocale(), { hour12: false });
 }
 
 function downloadTextFile(filename: string, content: string, mime = "text/plain;charset=utf-8") {
@@ -115,6 +118,7 @@ function downloadTextFile(filename: string, content: string, mime = "text/plain;
 }
 
 export default function App() {
+  const locale = useLocale();
   const [tab, setTab] = useState<Tab>("monitor");
   const [dockTab, setDockTab] = useState("device");
   const [conn, setConn] = useState<ConnectionConfig>(loadConn);
@@ -232,7 +236,7 @@ export default function App() {
       id: ++logId.current,
       ts: line.ts ?? nowTs(),
       kind: line.kind,
-      text: line.text.length > 4096 ? `${line.text.slice(0, 4096)} … [显示已截断]` : line.text,
+      text: line.text.length > 4096 ? t("{p0} … [display truncated]", { p0: String(line.text.slice(0, 4096)) }) : line.text,
       hex: line.hex && line.hex.length > 512 ? `${line.hex.slice(0, 512)} …` : line.hex,
     });
   }, [logBuffer]);
@@ -252,7 +256,7 @@ export default function App() {
     const host = hostInput.trim();
     const port = Number(portInput);
     if (!name || !host || !Number.isInteger(port) || port < 1 || port > 65535) {
-      pushLog({ kind: "err", text: "会话配置需要名称、主机和有效端口" });
+      pushLog({ kind: "err", text: t("A profile needs a name, host and valid port") });
       return;
     }
     const profile: ConnectionProfile = {
@@ -265,7 +269,7 @@ export default function App() {
     setConnectionProfiles((previous) => [profile, ...previous.filter((item) => item.id !== profile.id)].slice(0, 50));
     setSelectedProfileId(profile.id);
     setProfileName(profile.name);
-    pushLog({ kind: "sys", text: `已保存会话配置：${profile.name}` });
+    pushLog({ kind: "sys", text: t("Connection profile saved: {p0}", { p0: String(profile.name) }) });
   };
 
   const loadConnectionProfile = (id: string) => {
@@ -276,7 +280,7 @@ export default function App() {
     setHostInput(profile.host);
     setPortInput(String(profile.port));
     setProtocolInput(profile.protocol ?? "http");
-    pushLog({ kind: "sys", text: `已载入会话配置：${profile.name}` });
+    pushLog({ kind: "sys", text: t("Connection profile loaded: {p0}", { p0: String(profile.name) }) });
   };
 
   const deleteConnectionProfile = () => {
@@ -285,7 +289,7 @@ export default function App() {
     setConnectionProfiles((previous) => previous.filter((item) => item.id !== selectedProfileId));
     setSelectedProfileId("");
     setProfileName("");
-    if (profile) pushLog({ kind: "sys", text: `已删除会话配置：${profile.name}` });
+    if (profile) pushLog({ kind: "sys", text: t("Connection profile deleted: {p0}", { p0: String(profile.name) }) });
   };
 
   const consumeProtocolBytes = useCallback((data: Uint8Array) => {
@@ -336,7 +340,7 @@ export default function App() {
       // recent window, so this dependency is intentionally sequential.
       const nextStatus = await hubApi.eventsStatus(cfg, bearerToken, AbortSignal.any([controller.signal, session.signal]));
       if (!Number.isSafeInteger(nextStatus.newest_seq) || nextStatus.newest_seq < 0) {
-        throw new Error("事件序號超出瀏覽器可安全表示的範圍");
+        throw new Error(t("Event sequence exceeds the browser's safe integer range"));
       }
       const oldestCursor = Math.max(0, (nextStatus.oldest_available_seq ?? 1) - 1);
       const recentCursor = Math.max(0, nextStatus.newest_seq - RECENT_EVENT_LIMIT);
@@ -351,7 +355,7 @@ export default function App() {
         AbortSignal.any([controller.signal, session.signal]),
       );
       if (response.session_id !== nextStatus.session_id) {
-        throw new Error("事件帳本 session 已切換，請刷新状态");
+        throw new Error(t("Ledger session changed; refresh the status"));
       }
       if (!isCurrent(session) || controller.signal.aborted) return;
       setLedgerStatus(nextStatus);
@@ -359,9 +363,7 @@ export default function App() {
     } catch (ledgerFailure) {
       if (isCurrent(session) && !controller.signal.aborted && !(ledgerFailure instanceof DOMException && ledgerFailure.name === "AbortError")) {
         setLedgerError(
-          `事件帳本讀取失敗：${
-            ledgerFailure instanceof Error ? ledgerFailure.message : String(ledgerFailure)
-          }`,
+          t("Cannot read the event ledger: {p0}", { p0: String(ledgerFailure instanceof Error ? ledgerFailure.message : String(ledgerFailure)) }),
         );
       }
     } finally {
@@ -405,10 +407,10 @@ export default function App() {
   }, [tab, online, activeSession, refreshLedger, refreshMetrics]);
 
   const disconnect = useCallback(() => {
-    if (operationRef.current) pushLog({ kind: "err", text: "会话已结束，进行中的操作可能已被设备执行。请核对事件记录后再决定是否重试。" });
-    jobRef.current?.abort(new Error("会话已断开"));
-    capture.stop("会话已断开，录制已停止");
-    signalStore.close("浏览器会话已断开");
+    if (operationRef.current) pushLog({ kind: "err", text: t("Session ended. An in-flight operation may have reached the device. Check events before retrying.") });
+    jobRef.current?.abort(new Error(t("Session disconnected")));
+    capture.stop(t("Session disconnected; recording stopped"));
+    signalStore.close(t("Browser session disconnected"));
     stopConnection();
     operationRef.current = null;
     setBusy(false);
@@ -442,13 +444,13 @@ export default function App() {
         resetStreamParsers();
         signalStore.open();
         setProtocolFrames([]);
-        pushLog({ kind: "sys", text: `实时流已连接 ${wsUrl(cfg)}` });
+        pushLog({ kind: "sys", text: t("Live stream connected {p0}", { p0: String(wsUrl(cfg)) }) });
       },
       onClose: () => {
-        jobRef.current?.abort(new Error("实时流已中断"));
-        capture.stop("实时流中断，录制已停止");
+        jobRef.current?.abort(new Error(t("Live stream interrupted")));
+        capture.stop(t("Stream interrupted; recording stopped"));
         signalStore.close();
-        pushLog({ kind: "err", text: "实时流已中断，正在重连；自动发送已停止。重连首包可能包含历史数据。" });
+        pushLog({ kind: "err", text: t("Stream interrupted; reconnecting. Automatic sending stopped. The first packet may contain history.") });
       },
       onServerError: (message) => pushLog({ kind: "err", text: `Hub：${message}` }),
       onBytes: (data, meta) => {
@@ -465,7 +467,7 @@ export default function App() {
           return;
         }
         consumeProtocolBytes(data);
-        pushLog({ kind: "rx", text: `${meta.isHistoryHint ? "[可能含历史] " : ""}${bytesToText(data, textDecoder).replace(/\n/g, "\\n")}`, hex: bytesToHex(data) });
+        pushLog({ kind: "rx", text: `${meta.isHistoryHint ? `${t("[may contain history]")} ` : ""}${bytesToText(data, textDecoder).replace(/\n/g, "\\n")}`, hex: bytesToHex(data) });
       },
     });
     if (!connected) return;
@@ -477,8 +479,8 @@ export default function App() {
   useEffect(() => {
     if (!canWrite) {
       setAutoSend(false);
-      jobRef.current?.abort(new Error("设备或实时流已离线"));
-      capture.stop("设备或实时流已离线，录制已停止");
+      jobRef.current?.abort(new Error(t("Device or live stream offline")));
+      capture.stop(t("Device or stream offline; recording stopped"));
     }
     if (!online || phase === "reconnecting" || !status?.port.connected) {
       setLeaseToken(null);
@@ -489,9 +491,9 @@ export default function App() {
   useEffect(() => {
     setLeaseToken(null);
     setLeaseExpiresAt(0);
-    jobRef.current?.abort(new Error("设备连接代次已改变"));
-    capture.stop("设备连接已更换，录制已停止");
-    if (signalStore.getSnapshot().source === "live") signalStore.clear("设备连接已更换");
+    jobRef.current?.abort(new Error(t("Device connection epoch changed")));
+    capture.stop(t("Device connection changed; recording stopped"));
+    if (signalStore.getSnapshot().source === "live") signalStore.clear(t("Device connection changed"));
   }, [status?.port.epoch, capture, signalStore]);
 
   useEffect(() => {
@@ -530,8 +532,8 @@ export default function App() {
     () => () => {
       ledgerAbortRef.current?.abort();
       metricsAbortRef.current?.abort();
-      jobRef.current?.abort(new Error("页面已关闭"));
-      capture.stop("页面已关闭");
+      jobRef.current?.abort(new Error(t("Page closed")));
+      capture.stop(t("Page closed"));
       signalStore.dispose();
     },
     [capture, signalStore],
@@ -544,23 +546,23 @@ export default function App() {
     const session = beginOperation();
     if (!session) return false;
     try {
-      const bytes = commandBytes({ id: "current", name: "当前指令", mode, payload, lineEnding: ending }, textEncoding, checksum, { start: checksumStart - 1, end: checksumEnd || undefined });
-      if (bytes.length > 65536) throw new Error("单条命令最多 65,536 bytes，请使用文件发送");
+      const bytes = commandBytes({ id: "current", name: t("Current command"), mode, payload, lineEnding: ending }, textEncoding, checksum, { start: checksumStart - 1, end: checksumEnd || undefined });
+      if (bytes.length > 65536) throw new Error(t("Commands are limited to 65,536 bytes; use file transfer"));
       const wire = fullHex(bytes);
       const response = await hubApi.writeHex(session.cfg, wire, { as_client: CLIENT_NAME, lease_token: leaseToken ?? undefined,
         bearer_token: session.bearerToken, signal: session.signal });
       if (!isCurrent(session)) return false;
-      if (!response.ok || response.bytes !== bytes.length) throw new Error(response.error || "写入长度未完全确认，停止发送");
+      if (!response.ok || response.bytes !== bytes.length) throw new Error(response.error || t("Write length not fully acknowledged; sending stopped"));
       trafficRef.current.tx += response.bytes;
       setSendHistory(previous => [{ mode, payload, ending, checksum, encoding: textEncoding, start: checksumStart, end: checksumEnd },
         ...previous.filter(item => item.mode !== mode || item.payload !== payload || item.ending !== ending || item.checksum !== checksum || item.encoding !== textEncoding)].slice(0, 20));
       const display = mode === "text" ? appendLineEnding(payload, ending) : wire;
-      pushLog({ kind: "tx", text: `主机已确认 ${response.bytes} bytes · ${display.replace(/\r/g, "\\r").replace(/\n/g, "\\n")}${checksum !== "none" ? ` · ${checksumLabel(checksum)}` : ""}` });
+      pushLog({ kind: "tx", text: t("Host acknowledged {p0} bytes · {p1}{p2}", { p0: String(response.bytes), p1: String(display.replace(/\r/g, "\\r").replace(/\n/g, "\\n")), p2: String(checksum !== "none" ? ` · ${checksumLabel(checksum)}` : "") }) });
       return true;
     } catch (failure) {
       if (isCurrent(session)) {
         setAutoSend(false);
-        pushLog({ kind: "err", text: `写入未确认：${failure instanceof Error ? failure.message : String(failure)}` });
+        pushLog({ kind: "err", text: t("Write not acknowledged: {p0}", { p0: String(failure instanceof Error ? failure.message : String(failure)) }) });
       }
       return false;
     } finally { endOperation(session); }
@@ -582,7 +584,7 @@ export default function App() {
       const response = await hubApi.lock(session.cfg, CLIENT_NAME, lease, session.bearerToken, session.signal);
       signal.throwIfAborted();
       if (!isCurrent(session) || !response.ok || !response.lock || response.lock.lease_token !== lease) {
-        throw new Error(response.error || "原有写入租约续期失败");
+        throw new Error(response.error || t("Existing write lease renewal failed"));
       }
       renewAt = Date.now() + Math.max(1, response.lock.expires_ms / 2);
       setLeaseToken(lease);
@@ -601,18 +603,18 @@ export default function App() {
         write: async bytes => {
           await maintainLease();
           signal.throwIfAborted();
-          if (!isCurrent(session) || !session.streamOpen || !session.deviceConnected) throw new Error("设备或实时流已离线");
-          if (!bytes.length || bytes.length > 65536) throw new Error("发送块长度必须在 1–65,536 bytes 之间");
+          if (!isCurrent(session) || !session.streamOpen || !session.deviceConnected) throw new Error(t("Device or live stream offline"));
+          if (!bytes.length || bytes.length > 65536) throw new Error(t("Send blocks must contain 1–65,536 bytes"));
           // A user stop waits for this ACK: aborting HTTP does not undo serial TX.
           const response = await hubApi.writeHex(session.cfg, fullHex(bytes), { as_client: CLIENT_NAME,
             lease_token: lease, bearer_token: session.bearerToken, signal: session.signal });
-          if (!response.ok || response.bytes !== bytes.length) throw new Error(response.error || "写入长度未完全确认");
+          if (!response.ok || response.bytes !== bytes.length) throw new Error(response.error || t("Write length not fully acknowledged"));
           if (isCurrent(session)) trafficRef.current.tx += response.bytes;
         },
       });
-      if (isCurrent(session)) pushLog({ kind: "sys", text: `${name} · 已完成` });
+      if (isCurrent(session)) pushLog({ kind: "sys", text: t("{p0} · completed", { p0: String(name) }) });
     } catch (failure) {
-      if (isCurrent(session)) pushLog({ kind: "err", text: `${name} · 已停止：${failure instanceof Error ? failure.message : String(failure)}。已确认的字节不会撤销；未确认的写入请核对事件账本。` });
+      if (isCurrent(session)) pushLog({ kind: "err", text: t("{p0} · stopped: {p1}. Confirmed bytes cannot be undone; check the ledger for unconfirmed writes.", { p0: String(name), p1: String(failure instanceof Error ? failure.message : String(failure)) }) });
     } finally {
       if (jobRef.current === controller) { jobRef.current = null; setJobLabel(""); }
       endOperation(session);
@@ -632,15 +634,15 @@ export default function App() {
     const session = beginOperation();
     if (!session) return false;
     try {
-      if (!leaseToken) throw new Error("请先获取写入租约");
+      if (!leaseToken) throw new Error(t("Acquire a write lease first"));
       const response = await hubApi.configureSerial(session.cfg, settings, CLIENT_NAME, leaseToken, session.bearerToken, session.signal);
-      if (!response.ok) throw new Error(response.error || "串口参数未确认");
+      if (!response.ok) throw new Error(response.error || t("Serial settings not acknowledged"));
       if (!isCurrent(session)) return false;
-      pushLog({ kind: "sys", text: `串口参数已确认：${settings.baud} / ${settings.databits} / ${settings.parity} / ${settings.stopbits} / ${settings.flow}` });
+      pushLog({ kind: "sys", text: t("Serial settings acknowledged: {p0} / {p1} / {p2} / {p3} / {p4}", { p0: String(settings.baud), p1: String(settings.databits), p2: String(settings.parity), p3: String(settings.stopbits), p4: String(settings.flow) }) });
       await refreshMeta();
       return true;
     } catch (failure) {
-      if (isCurrent(session)) pushLog({ kind: "err", text: `参数调整失败：${failure instanceof Error ? failure.message : String(failure)}` });
+      if (isCurrent(session)) pushLog({ kind: "err", text: t("Settings update failed: {p0}", { p0: String(failure instanceof Error ? failure.message : String(failure)) }) });
       return false;
     } finally { endOperation(session); }
   };
@@ -650,13 +652,13 @@ export default function App() {
   const onSendHex = () => void transmit("hex", sendHex, "none", hexChecksum);
 
   const hexPreview = useMemo(() => {
-    if (!sendHex.trim()) return "";
+    if (!sendHex.trim()) return { text: "", invalid: false };
     try {
-      return appendHexChecksum(sendHex, hexChecksum, { start: checksumStart - 1, end: checksumEnd || undefined });
+      return { text: appendHexChecksum(sendHex, hexChecksum, { start: checksumStart - 1, end: checksumEnd || undefined }), invalid: false };
     } catch (e) {
-      return e instanceof Error ? `错误：${e.message}` : `错误：${String(e)}`;
+      return { text: translate(locale, "Error: {p0}", { p0: e instanceof Error ? e.message : String(e) }), invalid: true };
     }
-  }, [hexChecksum, sendHex, checksumStart, checksumEnd]);
+  }, [hexChecksum, sendHex, checksumStart, checksumEnd, locale]);
 
   useEffect(() => {
     if (!autoSend || !canWrite || autoIntervalMs < 50 || !Number.isFinite(autoIntervalMs)) return;
@@ -684,7 +686,7 @@ export default function App() {
   const saveQuickCommand = () => {
     const name = quickName.trim();
     if (!name || !quickPayload.trim()) {
-      pushLog({ kind: "err", text: "快捷指令需要名称和内容" });
+      pushLog({ kind: "err", text: t("A shortcut needs a name and content") });
       return;
     }
     const next: QuickCommand = {
@@ -699,7 +701,7 @@ export default function App() {
       const withoutCurrent = previous.filter((command) => command.id !== next.id);
       return [next, ...withoutCurrent].slice(0, MAX_QUICK_COMMANDS);
     });
-    pushLog({ kind: "sys", text: `${editingCommandId ? "已更新" : "已保存"}快捷指令：${name}` });
+    pushLog({ kind: "sys", text: t("{p0} shortcut: {p1}", { p0: String(editingCommandId ? t("Updated") : t("Saved")), p1: String(name) }) });
     resetQuickEditor();
   };
 
@@ -714,7 +716,7 @@ export default function App() {
   const deleteQuickCommand = (command: QuickCommand) => {
     setQuickCommands((previous) => previous.filter((item) => item.id !== command.id));
     if (editingCommandId === command.id) resetQuickEditor();
-    pushLog({ kind: "sys", text: `已删除快捷指令：${command.name}` });
+    pushLog({ kind: "sys", text: t("Shortcut deleted: {p0}", { p0: String(command.name) }) });
   };
 
   const visibleLogs = useMemo(() => logs.filter((line) =>
@@ -727,7 +729,7 @@ export default function App() {
       .map((line) => `${line.ts}\t${line.kind.toUpperCase()}\t${line.text}${line.hex ? `\t${line.hex}` : ""}`)
       .join("\n");
     downloadTextFile(`serialhub-${new Date().toISOString().replace(/[:.]/g, "-")}.log`, text);
-    pushLog({ kind: "sys", text: `已导出 ${visibleLogs.length} 条页面日志` });
+    pushLog({ kind: "sys", text: t("Exported {p0} page log entries", { p0: String(visibleLogs.length) }) });
   };
 
   const exportLedger = async () => {
@@ -741,9 +743,9 @@ export default function App() {
         ndjson,
         "application/x-ndjson;charset=utf-8",
       );
-      pushLog({ kind: "sys", text: `事件证据已导出 ${ndjson.split("\n").filter(Boolean).length} 条` });
+      pushLog({ kind: "sys", text: t("Exported {p0} event records", { p0: String(ndjson.split("\n").filter(Boolean).length) }) });
     } catch (exportFailure) {
-      pushLog({ kind: "err", text: `事件导出失败：${exportFailure instanceof Error ? exportFailure.message : String(exportFailure)}` });
+      pushLog({ kind: "err", text: t("Event export failed: {p0}", { p0: String(exportFailure instanceof Error ? exportFailure.message : String(exportFailure)) }) });
     }
   };
 
@@ -761,15 +763,15 @@ export default function App() {
     try {
       const response = await hubApi.lock(session.cfg, CLIENT_NAME, leaseToken ?? undefined, session.bearerToken, session.signal);
       if (!isCurrent(session)) return;
-      if (!response.ok || !response.lock) throw new Error(response.error || "服务器未返回写入租约");
+      if (!response.ok || !response.lock) throw new Error(response.error || t("Server did not return a write lease"));
       setLeaseToken(response.lock.lease_token);
       setLeaseExpiresAt(Date.now() + response.lock.expires_ms);
-      pushLog({ kind: "sys", text: `已取得写入租约 · ${response.lock.expires_ms} ms` });
+      pushLog({ kind: "sys", text: t("Write lease acquired · {p0} ms", { p0: String(response.lock.expires_ms) }) });
       await refreshMeta();
     } catch (failure) {
       if (isCurrent(session)) {
         setLeaseToken(null);
-        pushLog({ kind: "err", text: `租约获取失败：${failure instanceof Error ? failure.message : String(failure)}` });
+        pushLog({ kind: "err", text: t("Cannot acquire lease: {p0}", { p0: String(failure instanceof Error ? failure.message : String(failure)) }) });
       }
     } finally { endOperation(session); }
   };
@@ -781,12 +783,12 @@ export default function App() {
     try {
       const response = await hubApi.unlock(session.cfg, leaseToken, session.bearerToken, session.signal);
       if (!isCurrent(session)) return;
-      if (!response.ok) throw new Error(response.error || "释放租约失败");
+      if (!response.ok) throw new Error(response.error || t("Lease release failed"));
       setLeaseToken(null);
-      pushLog({ kind: "sys", text: "写入租约已释放" });
+      pushLog({ kind: "sys", text: t("Write lease released") });
       await refreshMeta();
     } catch (failure) {
-      if (isCurrent(session)) pushLog({ kind: "err", text: `释放失败：${failure instanceof Error ? failure.message : String(failure)}` });
+      if (isCurrent(session)) pushLog({ kind: "err", text: t("Release failed: {p0}", { p0: String(failure instanceof Error ? failure.message : String(failure)) }) });
     } finally { endOperation(session); }
   };
 
@@ -801,103 +803,93 @@ export default function App() {
       const response = await hubApi.control(session.cfg,
         { ...body, as_client: CLIENT_NAME, lease_token: leaseToken }, session.bearerToken, session.signal);
       if (!isCurrent(session)) return;
-      if (!response.ok) throw new Error(response.error || "控制操作失败");
+      if (!response.ok) throw new Error(response.error || t("Control operation failed"));
       pushLog({ kind: "sys", text: body.op === "break"
-        ? `BREAK ${body.duration_ms} ms 已确认` : `${body.op.toUpperCase()} ${body.level ? "ON" : "OFF"} 已确认` });
+        ? t("BREAK {p0} ms acknowledged", { p0: String(body.duration_ms) }) : t("{p0} {p1} acknowledged", { p0: String(body.op.toUpperCase()), p1: String(body.level ? "ON" : "OFF") }) });
     } catch (failure) {
-      if (isCurrent(session)) pushLog({ kind: "err", text: `控制失败：${failure instanceof Error ? failure.message : String(failure)}` });
+      if (isCurrent(session)) pushLog({ kind: "err", text: t("Control failed: {p0}", { p0: String(failure instanceof Error ? failure.message : String(failure)) }) });
     } finally { endOperation(session); }
   };
 
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      pushLog({ kind: "sys", text: `已複製：${text}` });
+      pushLog({ kind: "sys", text: t("Copied: {p0}", { p0: String(text) }) });
     } catch {
-      pushLog({ kind: "err", text: "複製失敗" });
+      pushLog({ kind: "err", text: t("Copy failed") });
     }
   };
 
   const statusLamp = useMemo(() => {
-    if (phase === "connecting") return { cls: "warn", label: "正在连接…" };
-    if (phase === "reconnecting") return { cls: "warn", label: `实时流重连中 · ${retryCount}/5` };
-    if (phase === "error") return { cls: "off", label: "连接异常" };
-    if (online && wsOpen) return { cls: "ok", label: "已连接 · HTTP + WS" };
-    if (online) return { cls: "warn", label: "HTTP 通，WS 未连接" };
-    return { cls: "off", label: "未连接" };
-  }, [online, wsOpen, phase, retryCount]);
+    if (phase === "connecting") return { cls: "warn", label: translate(locale, "Connecting…") };
+    if (phase === "reconnecting") return { cls: "warn", label: translate(locale, "Reconnecting stream · {p0}/5", { p0: String(retryCount) }) };
+    if (phase === "error") return { cls: "off", label: translate(locale, "Connection error") };
+    if (online && wsOpen) return { cls: "ok", label: translate(locale, "Connected · HTTP + WS") };
+    if (online) return { cls: "warn", label: translate(locale, "HTTP ready; WS disconnected") };
+    return { cls: "off", label: translate(locale, "Disconnected") };
+  }, [online, wsOpen, phase, retryCount, locale]);
 
   return (
     <div className="app" data-workspace={tab}>
-      <a className="skip-link" href="#main-content">跳到工作区</a>
+      <a className="skip-link" href="#main-content">{t("Skip to workspace")}</a>
       <aside className="sidebar">
-        <div className="brand"><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>DEVICE WORKSPACE</small></div></div>
-        <div className="nav-label">工作空间</div>
-        <nav className="sidebar-nav" aria-label="主导航">
+        <div className="brand"><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>{t("DEVICE WORKSPACE")}</small></div></div>
+        <div className="nav-label">{t("Workspace")}</div>
+        <nav className="sidebar-nav" aria-label={t("Main navigation")}>
           {([
-            ["monitor", "terminal", "实时工作台", "01"],
-            ["signals", "activity", "信号仪表", "02"],
-            ["events", "activity", "事件与指标", "03"],
-            ["endpoints", "layers", "连接与端点", "04"],
-            ["protocol", "book", "使用指南", "05"],
+            ["monitor", "terminal", t("Live console"), "01"],
+            ["signals", "activity", t("Signal studio"), "02"],
+            ["events", "activity", t("Events & metrics"), "03"],
+            ["endpoints", "layers", t("Connections"), "04"],
+            ["protocol", "book", t("User guide"), "05"],
           ] as const).map(([id, icon, label, number]) => <button type="button" key={id}
             className={tab === id ? "active" : ""} aria-current={tab === id ? "page" : undefined}
-            onClick={() => setTab(id)}><Icon name={icon} /><span>{label}</span><small>{number}</small></button>)}
+            onClick={() => setTab(id)}><Icon name={icon} /><span title={label}>{label}</span><small>{number}</small></button>)}
         </nav>
-        <div className="sidebar-note"><Icon name="shield" /><strong>一个串口，协作有序</strong><p>统一管理设备访问，<br />让每一次操作有据可查。</p><span>OPEN SOURCE · MIT</span></div>
+        <div className="sidebar-note"><Icon name="shield" /><strong>{t("One port, coordinated access")}</strong><p>{t("Manage device access centrally,")} <br /> {t("with a record of every operation.")}</p><span>{t("OPEN SOURCE · MIT")}</span></div>
         <div className="sidebar-footer"><span className="version-dot" />SerialHub <code>v0.0.2</code></div>
       </aside>
       <header className="header">
-        <div><div className="eyebrow">WORKSPACE <span>/</span> {tab === "signals" ? "SIGNAL STUDIO" : tab === "monitor" ? "LIVE CONSOLE" : tab === "events" ? "EVENT EVIDENCE" : tab === "endpoints" ? "CONNECTIONS" : "GUIDE"}</div>
-          <h1>{tab === "signals" ? "信号与可视化" : tab === "monitor" ? "串口工作台" : tab === "events" ? "事件与运行指标" : tab === "endpoints" ? "连接与端点" : "使用指南"}<span className="heading-dot" aria-hidden="true">.</span></h1>
-          <p className="sub">连接设备，观察数据，让调试井然有序。</p>
+        <div><div className="eyebrow">{t("WORKSPACE")} <span>/</span> {tab === "signals" ? "SIGNAL STUDIO" : tab === "monitor" ? "LIVE CONSOLE" : tab === "events" ? "EVENT EVIDENCE" : tab === "endpoints" ? "CONNECTIONS" : "GUIDE"}</div>
+          <h1>{tab === "signals" ? t("Signals & visualization") : tab === "monitor" ? t("Serial workspace") : tab === "events" ? t("Events & runtime metrics") : tab === "endpoints" ? t("Connections") : t("User guide")}<span className="heading-dot" aria-hidden="true">.</span></h1>
+          <p className="sub">{t("Connect, inspect data and keep debugging organized.")}</p>
         </div>
-        <div className="header-status"><span className="local-badge"><Icon name="shield" size={14} /> 单一设备所有者</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>
+        <div className="header-status"><LanguageSelector /><span className="local-badge"><Icon name="shield" size={14} /> {t("Single device owner")}</span><div className={`lamp ${statusLamp.cls}`} role="status">{statusLamp.label}</div></div>
       </header>
       <main id="main-content">
       <section className="panel connect">
-        <div className="connection-heading"><h2><Icon name="layers" size={16} /> 连接配置</h2><span>{online ? (status?.port.path.startsWith("mock:") ? "模拟设备 · 无需硬件" : "设备会话") : "支持本机 Hub 或 HTTPS 反向代理"}</span></div>
+        <div className="connection-heading"><h2><Icon name="layers" size={16} /> {t("Connection profiles")}</h2><span>{online ? (status?.port.path.startsWith("mock:") ? t("Mock device · no hardware required") : t("Device session")) : t("Local Hub or HTTPS reverse proxy")}</span></div>
         <div className="row">
-          <label>
-            主机地址
-            <input
+          <label>{t("Host")} <input
               value={hostInput}
               onChange={(e) => setHostInput(e.target.value)}
               placeholder="127.0.0.1"
             />
           </label>
-          <label>
-            端口
-            <input
+          <label>{t("Port")} <input
               value={portInput}
               onChange={(e) => setPortInput(e.target.value)}
               placeholder="8787"
               className="port"
             />
           </label>
-          <label>协议<select aria-label="连接协议" value={protocolInput} onChange={(event) => setProtocolInput(event.target.value as "http" | "https")}><option value="http">HTTP</option><option value="https">HTTPS</option></select></label>
-          <label>
-            访问令牌（可选）
-            <input
+          <label>{t("Protocol")} <select aria-label={t("Connection protocol")} value={protocolInput} onChange={(event) => setProtocolInput(event.target.value as "http" | "https")}><option value="http">HTTP</option><option value="https">HTTPS</option></select></label>
+          <label>{t("Access token (optional)")} <input
               type="password"
               autoComplete="off"
               value={apiTokenInput}
               onChange={(e) => setApiTokenInput(e.target.value)}
-              placeholder="仅在本次会话使用"
+              placeholder={t("Used only for this session")}
             />
           </label>
           <button type="button" disabled={phase === "connecting"} onClick={() => void connect()}>
-            {phase === "connecting" ? "连接中…" : online ? "重新连接" : "连接 Hub"}
+            {phase === "connecting" ? t("Connecting to Hub…") : online ? t("Reconnect") : t("Connect to Hub")}
           </button>
-          <button type="button" className="ghost" disabled={phase === "idle"} onClick={disconnect}>
-            断开
-          </button>
+          <button type="button" className="ghost" disabled={phase === "idle"} onClick={disconnect}>{t("Disconnect")}</button>
         </div>
-        <WorkspaceDialog label="连接配置" className="profile-settings"><p className="hint">在本机浏览器保存，不包含令牌。</p><div className="row profile-row">
-          <label>
-            会话配置
-            <select value={selectedProfileId} onChange={(e) => loadConnectionProfile(e.target.value)}>
-              <option value="">选择已保存配置</option>
+        <WorkspaceDialog label={t("Connection profiles")} className="profile-settings"><p className="hint">{t("Saved in this browser without tokens.")}</p><div className="row profile-row">
+          <label>{t("Connection profile")} <select value={selectedProfileId} onChange={(e) => loadConnectionProfile(e.target.value)}>
+              <option value="">{t("Select a saved profile")}</option>
               {connectionProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name} · {profile.host}:{profile.port}
@@ -905,73 +897,60 @@ export default function App() {
               ))}
             </select>
           </label>
-          <label>
-            配置名称
-            <input
+          <label>{t("Profile name")} <input
               value={profileName}
               onChange={(e) => setProfileName(e.target.value)}
-              placeholder="例如 本机 Hub"
+              placeholder={t("e.g. Local Hub")}
             />
           </label>
-          <button type="button" className="ghost" onClick={saveConnectionProfile}>
-            保存配置
-          </button>
+          <button type="button" className="ghost" onClick={saveConnectionProfile}>{t("Save profile")}</button>
           <button
             type="button"
             className="ghost"
             disabled={!selectedProfileId}
             onClick={deleteConnectionProfile}
-          >
-            删除配置
-          </button>
+          >{t("Delete profile")}</button>
         </div>
         </WorkspaceDialog>
-        {!online && !error && <p className="connection-help">首次使用？在设备所在主机运行 <code>serialhub share mock:demo</code> 即可体验模拟回环。</p>}
-        {error && <p className="error connection-error" role="alert">{error}<span>检查地址、令牌与 Hub 运行状态后重新连接。写入请求不会自动重试。</span></p>}
+        {!online && !error && <p className="connection-help">{t("First time? On the device host, run")} <code>serialhub share mock:demo</code> {t("to try mock loopback.")}</p>}
+        {error && <p className="error connection-error" role="alert">{error}<span>{t("Check the address, token and Hub, then reconnect. Writes are never retried automatically.")}</span></p>}
       </section>
-      <section className="overview" aria-label="设备概览">
-        <div className="overview-device"><span className={`device-indicator ${canWrite ? "ready" : ""}`}><Icon name="terminal" size={23} /></span><div><small>当前设备</small><strong>{online ? status?.port.path : "等待连接"}</strong><span>{online ? `${status?.port.baud.toLocaleString()} baud · ${status?.port.connected ? "设备已打开" : "设备离线"}` : "选择一个 Hub 开始调试"}</span></div>{online && status?.port.path.startsWith("mock:") && <b className="simulation-label">MOCK</b>}</div>
-        <div><small>接收 RX</small><strong>{online ? status?.stats.rx_bytes.toLocaleString() : "—"}<span>bytes</span></strong></div>
-        <div><small>发送 TX</small><strong>{online ? status?.stats.tx_bytes.toLocaleString() : "—"}<span>bytes</span></strong></div>
-        <div><small>在线客户端</small><strong>{online ? status?.clients.length : "—"}<span>clients</span></strong></div>
-        <div className={status?.stats.rx_drops ? "has-drops" : ""}><small>分发丢弃</small><strong>{online ? status?.stats.rx_drops.toLocaleString() : "—"}<span>chunks</span></strong></div>
+      <section className="overview" aria-label={t("Device overview")}>
+        <div className="overview-device"><span className={`device-indicator ${canWrite ? "ready" : ""}`}><Icon name="terminal" size={23} /></span><div><small>{t("Device")}</small><strong>{online ? status?.port.path : t("Waiting for connection")}</strong><span>{online ? `${status?.port.baud.toLocaleString(getFormattingLocale())} baud · ${status?.port.connected ? t("Device open") : t("Device offline")}` : t("Choose a Hub to start debugging")}</span></div>{online && status?.port.path.startsWith("mock:") && <b className="simulation-label">MOCK</b>}</div>
+        <div><small>{t("RX received")}</small><strong>{online ? status?.stats.rx_bytes.toLocaleString(getFormattingLocale()) : "—"}<span>{t("bytes")}</span></strong></div>
+        <div><small>{t("TX sent")}</small><strong>{online ? status?.stats.tx_bytes.toLocaleString(getFormattingLocale()) : "—"}<span>{t("bytes")}</span></strong></div>
+        <div><small>{t("Clients online")}</small><strong>{online ? status?.clients.length : "—"}<span>{t("clients")}</span></strong></div>
+        <div className={status?.stats.rx_drops ? "has-drops" : ""}><small>{t("RX drops")}</small><strong>{online ? status?.stats.rx_drops.toLocaleString(getFormattingLocale()) : "—"}<span>{t("chunks")}</span></strong></div>
             <div className="lease-actions">
-              <button type="button" disabled={!canWrite || busy} onClick={() => void onLock()}>
-                获取写入租约
-              </button>
+              <button type="button" disabled={!canWrite || busy} onClick={() => void onLock()}>{t("Acquire write lease")}</button>
               <button
                 type="button"
                 className="ghost"
                 disabled={!canWrite || busy || !leaseToken}
                 onClick={() => void onUnlock()}
-              >
-                释放租约
-              </button>
+              >{t("Release lease")}</button>
               <button
                 type="button"
                 className="ghost"
                 disabled={!canWrite || busy}
-                onClick={() => void refreshMeta().catch((failure) => pushLog({ kind: "err", text: `状态读取失败：${failure instanceof Error ? failure.message : String(failure)}` }))}
-              >
-                刷新状态
-              </button>
+                onClick={() => void refreshMeta().catch((failure) => pushLog({ kind: "err", text: t("Status read failed: {p0}", { p0: String(failure instanceof Error ? failure.message : String(failure)) }) }))}
+              >{t("Refresh status")}</button>
             </div>
       </section>
-      {jobLabel && <div className="job-status" role="status"><span className="stream-dot live" /><strong>{jobLabel}</strong><span>串口发送任务进行中</span><button type="button" onClick={() => { jobRef.current?.abort(new Error("用户停止")); }}>停止发送任务</button><small>当前块确认后停止，不自动重发</small></div>}
-      <div className="workspace-heading"><div><span className="section-index">{({ monitor: "01", signals: "02", events: "03", endpoints: "04", protocol: "05" })[tab]}</span><h2>{tab === "signals" ? "信号仪表" : tab === "monitor" ? "实时监控" : tab === "events" ? "事件证据" : tab === "endpoints" ? "共享端点" : "协议与操作"}</h2></div><span>{online ? httpBase(conn) : "尚未建立会话"}</span></div>
+      {jobLabel && <div className="job-status" role="status"><span className="stream-dot live" /><strong>{jobLabel}</strong><span>{t("Serial send job running")}</span><button type="button" onClick={() => { jobRef.current?.abort(new Error(t("Stopped by user"))); }}>{t("Stop send job")}</button><small>{t("Stops after the current block ACK; no automatic retry")}</small></div>}
+      <div className="workspace-heading"><div><span className="section-index">{({ monitor: "01", signals: "02", events: "03", endpoints: "04", protocol: "05" })[tab]}</span><h2>{tab === "signals" ? t("Signal studio") : tab === "monitor" ? t("Live monitoring") : tab === "events" ? t("Event evidence") : tab === "endpoints" ? t("Shared endpoints") : t("Protocol & operations")}</h2></div><span>{online ? httpBase(conn) : t("No active session")}</span></div>
       {(
         <div className="grid" hidden={tab !== "monitor"}>
           <section className="panel composer-panel">
-            <div className="composer-heading"><h2>发送命令</h2><span>主机确认写入</span></div>{sendHistory.length > 0 && <label className="send-history">最近发送<select aria-label="最近发送" value="" onChange={event => {
+            <div className="composer-heading"><h2>{t("Send command")}</h2><span>{t("Host write acknowledgement")}</span></div>{sendHistory.length > 0 && <label className="send-history">{t("Recent sends")} <select aria-label={t("Recent sends")} value="" onChange={event => {
               const item = sendHistory[Number(event.target.value)];
               if (!item) return;
               setSendMode(item.mode); setTextEncoding(item.encoding); setLineEnding(item.ending); setHexChecksum(item.checksum);
               setChecksumStart(item.start); setChecksumEnd(item.end);
               if (item.mode === "text") setSendText(item.payload); else setSendHex(item.payload);
-            }}><option value="">载入历史内容（不会自动发送）</option>{sendHistory.map((item, index) => <option key={index} value={index}>{item.mode.toUpperCase()} · {item.payload.slice(0, 35)}</option>)}</select></label>}<div className="segmented" role="group" aria-label="发送格式"><button type="button" className={sendMode === "text" ? "active" : ""} aria-pressed={sendMode === "text"} onClick={() => setSendMode("text")}>Text 文本</button><button type="button" className={sendMode === "hex" ? "active" : ""} aria-pressed={sendMode === "hex"} onClick={() => setSendMode("hex")}>HEX 字节</button></div><div hidden={sendMode !== "text"}>
-            <label className="block">
-              文字
-              <textarea
+            }}><option value="">{t("Load history (does not send)")}</option>{sendHistory.map((item, index) => <option key={index} value={index}>{item.mode.toUpperCase()} · {item.payload.slice(0, 35)}</option>)}</select></label>}<div className="segmented" role="group" aria-label={t("Send format")}><button type="button" className={sendMode === "text" ? "active" : ""} aria-pressed={sendMode === "text"} onClick={() => setSendMode("text")}>{t("Text")}</button><button type="button" className={sendMode === "hex" ? "active" : ""} aria-pressed={sendMode === "hex"} onClick={() => setSendMode("hex")}>{t("HEX bytes")}</button></div><div hidden={sendMode !== "text"}>
+            <label className="block">{t("Message")} <textarea
+                dir="auto"
                 rows={3}
                 maxLength={65536}
                 value={sendText}
@@ -982,45 +961,38 @@ export default function App() {
                     onSendText();
                   }
                 }}
-                placeholder="例如 AT 或任意指令"
+                placeholder={t("e.g. AT or a device command")}
               />
             </label>
             <div className="row composer-options">
-              <label>文本编码<select aria-label="发送文本编码" value={textEncoding} onChange={event => setTextEncoding(event.target.value as TextEncoding)}><option value="utf-8">UTF-8</option><option value="gbk">GBK / ANSI 中文</option><option value="ascii">ASCII（严格）</option></select></label>
-              <label>
-                行尾
-                <select
+              <label>{t("Text encoding")} <select aria-label={t("Send text encoding")} value={textEncoding} onChange={event => setTextEncoding(event.target.value as TextEncoding)}><option value="utf-8">UTF-8</option><option value="gbk">{t("GBK / ANSI Chinese")}</option><option value="ascii">{t("ASCII (strict)")}</option></select></label>
+              <label>{t("Line ending")} <select
                   value={lineEnding}
                   onChange={(e) => setLineEnding(e.target.value as LineEnding)}
                 >
-                  <option value="none">无结尾</option>
+                  <option value="none">{t("No line ending")}</option>
                   <option value="lf">LF (\\n)</option>
                   <option value="cr">CR (\\r)</option>
                   <option value="crlf">CRLF (\\r\\n)</option>
                 </select>
               </label>
-              <span className="hint inline-hint">Ctrl/⌘ + Enter 发送</span>
+              <span className="hint inline-hint">{t("Ctrl/⌘ + Enter to send")}</span>
             </div>
-            <button type="button" className="send-button" disabled={!canWrite || busy || !sendText.length} onClick={() => void onSendText()}>
-              发送文本
-            </button>
-            </div><div hidden={sendMode !== "hex"}><label className="block">
-              十六进制
-              <input
+            <button type="button" className="send-button" disabled={!canWrite || busy || !sendText.length} onClick={() => void onSendText()}>{t("Send text")}</button>
+            </div><div hidden={sendMode !== "hex"}><label className="block">{t("Hexadecimal")} <input
                 value={sendHex}
+                dir="ltr"
                 maxLength={196608}
                 onChange={(e) => setSendHex(e.target.value)}
                 placeholder="41 54 0d 0a"
               />
             </label>
             <div className="row composer-options">
-              <label>
-                校验和
-                <select
+              <label>{t("Checksum")} <select
                   value={hexChecksum}
                   onChange={(e) => setHexChecksum(e.target.value as HexChecksum)}
                 >
-                  <option value="none">不添加校验</option>
+                  <option value="none">{t("No checksum")}</option>
                   <option value="sum8">SUM8</option>
                   <option value="sum16">SUM16 (Lo/Hi)</option>
                   <option value="crc32">CRC32/ISO-HDLC (Lo/Hi)</option>
@@ -1029,36 +1001,27 @@ export default function App() {
                   <option value="crc16-ccitt">CRC16-CCITT (Hi/Lo)</option>
                 </select>
               </label>
-              {hexChecksum !== "none" && <div className="checksum-range"><label>校验起始字节<input aria-label="校验起始字节" type="number" min={1} value={checksumStart} onChange={event => setChecksumStart(Math.max(1, Math.trunc(Number(event.target.value) || 1)))} /></label><label>结束字节（0 = 末尾）<input aria-label="校验结束字节" type="number" min={0} value={checksumEnd} onChange={event => setChecksumEnd(Math.max(0, Math.trunc(Number(event.target.value) || 0)))} /></label><small>从 1 计数，包含首尾字节</small></div>}
-              {hexPreview && (
-                <span className={`hint inline-hint ${hexPreview.startsWith("错误") ? "error" : ""}`}>
-                  发送预览：<code>{hexPreview}</code>
+              {hexChecksum !== "none" && <div className="checksum-range"><label>{t("Checksum start byte")} <input aria-label={t("Checksum start byte")} type="number" min={1} value={checksumStart} onChange={event => setChecksumStart(Math.max(1, Math.trunc(Number(event.target.value) || 1)))} /></label><label>{t("End byte (0 = last)")} <input aria-label={t("Checksum end byte")} type="number" min={0} value={checksumEnd} onChange={event => setChecksumEnd(Math.max(0, Math.trunc(Number(event.target.value) || 0)))} /></label><small>{t("One-based, inclusive range")}</small></div>}
+              {hexPreview.text && (
+                <span className={`hint inline-hint ${hexPreview.invalid ? "error" : ""}`}>{t("Send preview:")} <code dir="ltr">{hexPreview.text}</code>
                 </span>
               )}
             </div>
-            <button type="button" className="send-button" disabled={!canWrite || busy || !sendHex.trim() || hexPreview.startsWith("错误")} onClick={() => void onSendHex()}>
-              发送 Hex
-            </button>
-            </div><details className="auto-send-settings"><summary>定时发送 <span>断流或写入失败时自动停止</span></summary><div className="row auto-send-row">
+            <button type="button" className="send-button" disabled={!canWrite || busy || !sendHex.trim() || hexPreview.invalid} onClick={() => void onSendHex()}>{t("Send Hex")}</button>
+            </div><details className="auto-send-settings"><summary>{t("Scheduled sending")} <span>{t("Stops on stream loss or write failure")}</span></summary><div className="row auto-send-row">
               <label className="check">
                 <input
                   type="checkbox"
                   checked={autoSend}
                   onChange={(e) => setAutoSend(e.target.checked)}
                   disabled={!canWrite || (busy && !autoSend)}
-                />
-                定时发送当前内容
-              </label>
-              <label>
-                模式
-                <select value={autoMode} onChange={(e) => setAutoMode(e.target.value as CommandMode)}>
-                  <option value="text">文本</option>
+                /> {t("Repeat current content")}</label>
+              <label>{t("Mode")} <select value={autoMode} onChange={(e) => setAutoMode(e.target.value as CommandMode)}>
+                  <option value="text">{t("Plain text")}</option>
                   <option value="hex">Hex</option>
                 </select>
               </label>
-              <label>
-                间隔 (ms)
-                <input
+              <label>{t("Interval (ms)")} <input
                   className="interval-input"
                   type="number"
                   min={50}
@@ -1069,12 +1032,12 @@ export default function App() {
                 />
               </label>
             </div>
-            </details><p className="composer-note"><Icon name="shield" size={14} /> 经过统一写入仲裁；主机确认不等于设备应答。</p>
+            </details><p className="composer-note"><Icon name="shield" size={14} /> {t("Shared TX arbitration; a host ACK is not a device response.")}</p>
           </section>
 
-          <aside className="workbench-dock" aria-label="工作台工具面板">
-            <div className="dock-tabs" role="tablist" aria-label="工作台工具">
-              {([["device", "设备参数"], ["quick", "快捷指令"], ["tools", "工具箱"], ["protocol", "协议帧"]] as const).map(([id, label], index, tabs) =>
+          <aside className="workbench-dock" aria-label={t("Workspace tool panel")}>
+            <div className="dock-tabs" role="tablist" aria-label={t("Workspace tools")}>
+              {([["device", t("Device settings")], ["quick", t("Shortcuts")], ["tools", t("Toolkit")], ["protocol", t("Protocol frames")]] as const).map(([id, label], index, tabs) =>
                 <button type="button" role="tab" key={id} id={`dock-tab-${id}`} aria-controls={`dock-${id}`} aria-selected={dockTab === id} tabIndex={dockTab === id ? 0 : -1}
                   onClick={() => setDockTab(id)} onKeyDown={event => {
                     const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : event.key === "ArrowRight" ? (index + 1) % tabs.length : event.key === "ArrowLeft" ? (index + tabs.length - 1) % tabs.length : -1;
@@ -1084,44 +1047,44 @@ export default function App() {
             <div className="dock-content">
               <div role="tabpanel" id="dock-device" aria-labelledby="dock-tab-device" hidden={dockTab !== "device"}>
           <section className="panel device-panel">
-            <h2><Icon name="shield" size={17} /> 设备与写入权限</h2>
+            <h2><Icon name="shield" size={17} /> {t("Device & write permissions")}</h2>
             {status ? (
               <dl className="kv">
-                <dt>设备路径</dt>
+                <dt>{t("Device path")}</dt>
                 <dd>
                   {status.port.path}{" "}
                   <span className={status.port.connected ? "tag ok" : "tag off"}>
-                    {status.port.connected ? "已打开" : "未连接"}
+                    {status.port.connected ? t("Open") : t("Disconnected")}
                   </span>
                 </dd>
-                <dt>波特率</dt>
+                <dt>{t("Baud rate")}</dt>
                 <dd>{status.port.baud}</dd>
-                <dt>连接详情</dt>
+                <dt>{t("Connection details")}</dt>
                 <dd>{status.port.detail}</dd>
-                <dt>TX 模式</dt>
+                <dt>{t("TX mode")}</dt>
                 <dd>
                   <code>{status.tx_mode}</code>
                 </dd>
-                <dt>写入租约</dt>
+                <dt>{t("Write lease")}</dt>
                 <dd>
                   {status.lock_owner
-                    ? `${status.lock_owner}（剩余 ${status.lock_expires_ms ?? "?"} ms）`
-                    : "未持有"}
+                    ? t("{p0} ({p1} ms remaining)", { p0: String(status.lock_owner), p1: String(status.lock_expires_ms ?? "?") })
+                    : t("Not held")}
                 </dd>
-                <dt>统计</dt>
+                <dt>{t("Statistics")}</dt>
                 <dd>
                   RX {status.stats.rx_bytes} · TX {status.stats.tx_bytes} · drop{" "}
                   {status.stats.rx_drops} · deny {status.stats.tx_denies}
                 </dd>
-                <dt>客户端数</dt>
+                <dt>{t("Client count")}</dt>
                 <dd>{status.clients.length}</dd>
               </dl>
             ) : (
-              <p className="muted">尚未连接</p>
+              <p className="muted">{t("Not connected yet")}</p>
             )}
             <SerialSettingsPanel online={online} busy={busy} canApply={canWrite && !!leaseToken && !status?.port.path.startsWith("mock:")}
               inspect={inspectSerial} apply={applySerial} sessionKey={activeSession()} />
-            {leaseToken && <p className="lease-countdown" role="status">本页写入租约有效 · 剩余 {(leaseRemaining / 1000).toFixed(1)} 秒</p>}<details className="hardware-controls"><summary>硬件控制线 <span>{status?.port.path.startsWith("mock:") ? "模拟设备不支持" : "需要服务端授权与有效租约"}</span></summary><div className="row control-row">
+            {leaseToken && <p className="lease-countdown" role="status">{t("This page holds the lease · remaining")} {(leaseRemaining / 1000).toFixed(1)} {t("seconds")}</p>}<details className="hardware-controls"><summary>{t("Hardware control lines")} <span>{status?.port.path.startsWith("mock:") ? t("Unsupported by mock devices") : t("Requires server permission and a valid lease")}</span></summary><div className="row control-row">
               <button
                 type="button"
                 className="ghost"
@@ -1170,9 +1133,7 @@ export default function App() {
                 className="ghost"
                 disabled={!canWrite || busy || !leaseToken || status?.port.path.startsWith("mock:")}
                 onClick={() => void onControl({ op: "break", duration_ms: breakDurationMs })}
-              >
-                發送 BREAK
-              </button>
+              >{t("Send BREAK")}</button>
             </div></details>
           </section>
 
@@ -1181,48 +1142,39 @@ export default function App() {
           <section className="panel quick-panel">
             <div className="log-head">
               <div>
-                <h2>快捷指令</h2>
-                <p className="hint">把常用 ASCII/Hex 命令保存到本浏览器，一键发送。</p>
+                <h2>{t("Shortcuts")}</h2>
+                <p className="hint">{t("Save common ASCII/Hex commands in this browser for one-click sending.")}</p>
               </div>
               {editingCommandId && (
-                <button type="button" className="ghost" onClick={resetQuickEditor}>
-                  取消编辑
-                </button>
+                <button type="button" className="ghost" onClick={resetQuickEditor}>{t("Cancel edit")}</button>
               )}
             </div>
             <div className="quick-editor">
-              <label>
-                名称
-                <input
+              <label>{t("Name")} <input
                   value={quickName}
                   onChange={(e) => setQuickName(e.target.value)}
-                  placeholder="例如 读取版本"
+                  placeholder={t("e.g. Read version")}
                 />
               </label>
-              <label>
-                类型
-                <select value={quickMode} onChange={(e) => setQuickMode(e.target.value as CommandMode)}>
-                  <option value="text">文本</option>
+              <label>{t("Type")} <select value={quickMode} onChange={(e) => setQuickMode(e.target.value as CommandMode)}>
+                  <option value="text">{t("Plain text")}</option>
                   <option value="hex">Hex</option>
                 </select>
               </label>
-              <label className="quick-payload">
-                内容
-                <input
+              <label className="quick-payload">{t("Content")} <input
                   value={quickPayload}
+                  dir={quickMode === "hex" ? "ltr" : "auto"}
                   maxLength={65536}
                   onChange={(e) => setQuickPayload(e.target.value)}
                   placeholder={quickMode === "text" ? "AT+VERSION?" : "AA 55 01 00"}
                 />
               </label>
               {quickMode === "text" && (
-                <label>
-                  行尾
-                  <select
+                <label>{t("Line ending")} <select
                     value={quickLineEnding}
                     onChange={(e) => setQuickLineEnding(e.target.value as LineEnding)}
                   >
-                    <option value="none">无结尾</option>
+                    <option value="none">{t("No line ending")}</option>
                     <option value="lf">LF</option>
                     <option value="cr">CR</option>
                     <option value="crlf">CRLF</option>
@@ -1230,16 +1182,16 @@ export default function App() {
                 </label>
               )}
               <button type="button" disabled={busy} onClick={saveQuickCommand}>
-                {editingCommandId ? "更新指令" : "保存指令"}
+                {editingCommandId ? t("Update command") : t("Save command")}
               </button>
             </div>
             <div className="quick-list">
-              {quickCommands.length === 0 && <p className="muted">还没有快捷指令。</p>}
+              {quickCommands.length === 0 && <p className="muted">{t("No shortcuts saved yet.")}</p>}
               {quickCommands.map((command) => (
                 <div className="quick-item" key={command.id}>
                   <div className="quick-item-main">
                     <strong>{command.name}</strong>
-                    <span className="tag">{command.mode === "text" ? "文本" : "Hex"}</span>
+                    <span className="tag">{command.mode === "text" ? t("Plain text") : "Hex"}</span>
                     <code>{command.payload}</code>
                     {command.mode === "text" && <span className="muted">{command.lineEnding}</span>}
                   </div>
@@ -1249,15 +1201,9 @@ export default function App() {
                       className="small"
                       disabled={!canWrite || busy}
                       onClick={() => void transmit(command.mode, command.payload, command.lineEnding)}
-                    >
-                      发送
-                    </button>
-                    <button type="button" className="ghost small" onClick={() => editQuickCommand(command)}>
-                      编辑
-                    </button>
-                    <button type="button" className="ghost small" onClick={() => deleteQuickCommand(command)}>
-                      删除
-                    </button>
+                    >{t("Send")}</button>
+                    <button type="button" className="ghost small" onClick={() => editQuickCommand(command)}>{t("Edit")}</button>
+                    <button type="button" className="ghost small" onClick={() => deleteQuickCommand(command)}>{t("Delete")}</button>
                   </div>
                 </div>
               ))}
@@ -1272,7 +1218,7 @@ export default function App() {
             onImport={backup => {
               setQuickCommands(previous => [...previous, ...backup.commands.map(command => ({ ...command, id: newCommandId() }))]);
               setConnectionProfiles(previous => [...previous, ...backup.profiles.map(profile => ({ ...profile, id: newProfileId() }))]);
-              pushLog({ kind: "sys", text: `已追加导入 ${backup.commands.length} 条指令、${backup.profiles.length} 个连接配置` });
+              pushLog({ kind: "sys", text: t("Appended {p0} commands and {p1} connection profiles", { p0: String(backup.commands.length), p1: String(backup.profiles.length) }) });
             }} />
               </div>
               <div role="tabpanel" id="dock-protocol" aria-labelledby="dock-tab-protocol" hidden={dockTab !== "protocol"}>
@@ -1281,50 +1227,42 @@ export default function App() {
             frames={protocolFrames}
             onClear={() => setProtocolFrames([])}
           />
-                {["raw", "firewater", "justfloat", "binary", "image"].includes(streamProtocol) && <p className="hint dock-empty">在终端的“解析”中选择 NMEA、SLIP、COBS 或 Modbus 查看协议帧。数值与图像分析请打开信号仪表。</p>}
+                {["raw", "firewater", "justfloat", "binary", "image"].includes(streamProtocol) && <p className="hint dock-empty">{t("Select NMEA, SLIP, COBS or Modbus in the terminal parser to inspect frames. Use Signal studio for numbers and images.")}</p>}
               </div>
             </div>
           </aside>
           <section className="panel log-panel">
             <div className="log-head">
-              <div className="terminal-title"><span className={`stream-dot ${wsOpen ? "live" : ""}`} /><h2>实时终端</h2><span className="terminal-transport">WS /v1/stream</span></div>
+              <div className="terminal-title"><span className={`stream-dot ${wsOpen ? "live" : ""}`} /><h2>{t("Live terminal")}</h2><span className="terminal-transport">WS /v1/stream</span></div>
               <div className="row">
                 <label className="check">
                   <input
                     type="checkbox"
                     checked={paused}
                     onChange={(e) => setPaused(e.target.checked)}
-                  />
-                  暂停显示
-                </label>
+                  /> {t("Pause display")}</label>
                 <label className="check">
                   <input
                     type="checkbox"
                     checked={autoScroll}
                     onChange={(e) => setAutoScroll(e.target.checked)}
-                  />
-                  自动滚动
-                </label>
-                <label>
-                  显示
-                  <select value={displayMode} onChange={(e) => setDisplayMode(e.target.value as typeof displayMode)}>
-                    <option value="both">文本 + Hex</option>
-                    <option value="text">仅文本</option>
-                    <option value="hex">仅 Hex</option>
+                  /> {t("Auto-scroll")}</label>
+                <label>{t("Display")} <select value={displayMode} onChange={(e) => setDisplayMode(e.target.value as typeof displayMode)}>
+                    <option value="both">{t("Text + Hex")}</option>
+                    <option value="text">{t("Text only")}</option>
+                    <option value="hex">{t("Hex only")}</option>
                   </select>
                 </label>
-                <label>接收编码<select aria-label="接收文本编码" value={receiveEncoding} onChange={event => setReceiveEncoding(event.target.value)}><option value="utf-8">UTF-8</option><option value="gbk">GBK</option><option value="gb18030">GB18030</option><option value="windows-1252">Western ANSI</option></select></label>
-                <label>
-                  解析
-                  <select
+                <label>{t("RX encoding")} <select aria-label={t("Receive text encoding")} value={receiveEncoding} onChange={event => setReceiveEncoding(event.target.value)}><option value="utf-8">UTF-8</option><option value="gbk">GBK</option><option value="gb18030">GB18030</option><option value="windows-1252">Western ANSI</option></select></label>
+                <label>{t("Parser")} <select
                     value={streamProtocol}
                     onChange={(e) => setStreamProtocol(e.target.value as StreamProtocol)}
                   >
                     <option value="raw">RawData</option>
                     <option value="firewater">FireWater CSV</option>
                     <option value="justfloat">JustFloat LE</option>
-                    <option value="binary">自定义数值帧</option>
-                    <option value="image">原始图像帧</option>
+                    <option value="binary">{t("Custom numeric frames")}</option>
+                    <option value="image">{t("Raw image frames")}</option>
                     <option value="nmea0183">NMEA 0183</option>
                     <option value="slip">SLIP / RFC 1055</option>
                     <option value="cobs">COBS</option>
@@ -1336,33 +1274,27 @@ export default function App() {
                     type="checkbox"
                     checked={showTimestamp}
                     onChange={(e) => setShowTimestamp(e.target.checked)}
-                  />
-                  时间戳
-                </label>
+                  /> {t("Timestamps")}</label>
                 <button type="button" className="ghost" onClick={() => {
                   logBuffer.clear();
                   setLogs([]);
-                }}>
-                  清空
-                </button>
-                <button type="button" className="ghost" onClick={exportVisibleLogs}>
-                  导出日志
-                </button>
+                }}>{t("Clear")}</button>
+                <button type="button" className="ghost" onClick={exportVisibleLogs}>{t("Export log")}</button>
               </div>
             </div>
-            <div className="log-filter"><Icon name="search" size={16} /><input aria-label="搜索终端日志" placeholder="搜索文本或 Hex…" value={logSearch} onChange={(event) => setLogSearch(event.target.value)} /><select aria-label="日志类型" value={logKind} onChange={(event) => setLogKind(event.target.value)}><option value="all">全部类型</option><option value="rx">RX 接收</option><option value="tx">TX 发送</option><option value="err">错误</option><option value="sys">系统</option></select><span>{visibleLogs.length} 条记录</span></div>
-            <div className="log" ref={logBoxRef} role="region" aria-label="实时终端记录" tabIndex={0}>
-              {visibleLogs.length === 0 && <div className="terminal-empty"><span className="empty-terminal-icon">⌁</span><strong>{logs.length ? "没有匹配的记录" : "等待设备数据"}</strong><span>{online ? "发送命令，或等待设备输出。" : "连接 Hub 后，设备输出会显示在这里。"}</span></div>}
+            <div className="log-filter"><Icon name="search" size={16} /><input aria-label={t("Search terminal log")} placeholder={t("Search text or Hex…")} value={logSearch} onChange={(event) => setLogSearch(event.target.value)} /><select aria-label={t("Log type")} value={logKind} onChange={(event) => setLogKind(event.target.value)}><option value="all">{t("All types")}</option><option value="rx">{t("RX received data")}</option><option value="tx">{t("TX sent data")}</option><option value="err">{t("Error")}</option><option value="sys">{t("System")}</option></select><span>{visibleLogs.length} {t("records")}</span></div>
+            <div className="log" ref={logBoxRef} role="region" aria-label={t("Live terminal records")} tabIndex={0}>
+              {visibleLogs.length === 0 && <div className="terminal-empty"><span className="empty-terminal-icon">⌁</span><strong>{logs.length ? t("No matching records") : t("Waiting for device data")}</strong><span>{online ? t("Send a command or wait for device output.") : t("Device output will appear here after connecting to the Hub.")}</span></div>}
               {visibleLogs.map((l) => (
                 <div key={l.id} className={`line ${l.kind}`}>
                   <span className="ts">{showTimestamp ? l.ts : ""}</span>
                   <span className="kind">{l.kind.toUpperCase()}</span>
-                  {displayMode !== "hex" && <span className="msg">{l.text}</span>}
+                  {displayMode !== "hex" && <span className="msg" dir={l.kind === "rx" || l.kind === "tx" ? "ltr" : "auto"}>{l.text}</span>}
                   {displayMode !== "text" && l.hex && <span className="hex">{l.hex}</span>}
                 </div>
               ))}
             </div>
-            <div className="terminal-statusbar"><span>{paused ? "显示已暂停，后端采集继续" : wsOpen ? "实时流接收中" : "等待实时流"}</span><span>显示最多 2,000 条 · 长包截断 · 完整记录见事件账本</span></div>
+            <div className="terminal-statusbar"><span>{paused ? t("Display paused; acquisition continues") : wsOpen ? t("Receiving live stream") : t("Waiting for live stream")}</span><span>{t("Up to 2,000 records · long packets truncated · full records in the ledger")}</span></div>
           </section>
 
           <WaveformPanel connected={canWrite} store={signalStore} protocolLabel={protocolLabel(streamProtocol)} onOpen={() => setTab("signals")} />
@@ -1398,27 +1330,23 @@ export default function App() {
 
       {tab === "endpoints" && (
         <section className="panel auxiliary-workspace">
-          <h2>並聯端點（一個真串口 → 多路出口）</h2>
-          <p className="hint">
-            上位機開 SERIAL（PTY）路徑；腳本連 TCP；Agent / 本頁用 WebSocket。
-          </p>
+          <h2>{t("Shared endpoints (one physical port → multiple clients)")}</h2>
+          <p className="hint">{t("Serial applications use PTY paths; scripts use TCP; agents and this page use WebSocket.")}</p>
           <table>
             <thead>
               <tr>
-                <th>類型</th>
-                <th>名稱</th>
-                <th>位址</th>
-                <th>讀/寫</th>
-                <th>說明</th>
+                <th>{t("Endpoint type")}</th>
+                <th>{t("Endpoint name")}</th>
+                <th>{t("Address")}</th>
+                <th>{t("Read/write")}</th>
+                <th>{t("Description")}</th>
                 <th />
               </tr>
             </thead>
             <tbody>
               {endpoints.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="muted">
-                    暂无数据，请先连接
-                  </td>
+                  <td colSpan={6} className="muted">{t("No data; connect first")}</td>
                 </tr>
               )}
               {endpoints.map((ep) => (
@@ -1439,22 +1367,20 @@ export default function App() {
                       type="button"
                       className="ghost small"
                       onClick={() => void copy(ep.address)}
-                    >
-                      複製
-                    </button>
+                    >{t("Copy")}</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
-          <h3>目前 fan-out 客戶端</h3>
+          <h3>{t("Current fan-out clients")}</h3>
           <table>
             <thead>
               <tr>
-                <th>名稱</th>
-                <th>類型</th>
-                <th>讀/寫</th>
+                <th>{t("Endpoint name")}</th>
+                <th>{t("Endpoint type")}</th>
+                <th>{t("Read/write")}</th>
                 <th>id</th>
               </tr>
             </thead>
@@ -1478,24 +1404,20 @@ export default function App() {
 
       {tab === "protocol" && (
         <section className="panel protocol auxiliary-workspace">
-          <h2>協定精要（繁中）</h2>
-          <p>
-            完整文件：倉庫內 <code>web/PROTOCOL.zh-TW.md</code>
+          <h2>{t("Protocol essentials")}</h2>
+          <p>{t("Full documentation in the repository:")} <code>web/PROTOCOL.zh-TW.md</code>
           </p>
           <h3>HTTP</h3>
           <ul>
             <li>
-              <code>GET /v1/health</code> — 探活
-            </li>
+              <code>GET /v1/health</code> {t("— health check")}</li>
             <li>
-              <code>GET /v1/status</code> — 埠、鎖、统计、客戶端
-            </li>
+              <code>GET /v1/status</code> {t("— port, lease, counters and clients")}</li>
             <li>
-              <code>GET /v1/endpoints</code> — 並聯端點清單
-            </li>
+              <code>GET /v1/endpoints</code> {t("— shared endpoint list")}</li>
             <li>
               <code>POST /v1/write</code> —{" "}
-              <code>{`{"text":"...","newline":true,"as_client":"web-ui"}`}</code> 或{" "}
+              <code>{`{"text":"...","newline":true,"as_client":"web-ui"}`}</code> {t("or")} {" "}
               <code>hex</code>
             </li>
             <li>
@@ -1505,27 +1427,24 @@ export default function App() {
           <h3>WebSocket <code>/v1/stream</code></h3>
           <ul>
             <li>
-              <strong>下行 Binary</strong>：裝置 RX 原始位元組（可能含歷史首包）
-            </li>
+              <strong>{t("Downstream binary")}</strong> {t(": raw device RX bytes (first packet may include history)")}</li>
             <li>
-              <strong>上行 Text</strong>：當 TX，無 <code>\n</code> 時 hub 自動補行
-            </li>
+              <strong>{t("Upstream text")}</strong> {t(": sent as TX; without")} <code>\n</code> {t("the Hub appends a line ending")}</li>
             <li>
-              <strong>上行 Binary</strong>：原樣進入 TX 策略
-            </li>
-            <li>可靠寫入請優先 HTTP <code>/v1/write</code>（有 ok/error）</li>
+              <strong>{t("Upstream binary")}</strong> {t(": forwarded unchanged through the TX policy")}</li>
+            <li>{t("For acknowledged writes, use HTTP")} <code>/v1/write</code> {t("(returns ok/error)")}</li>
           </ul>
-          <h3>使用提醒</h3>
+          <h3>{t("Usage notes")}</h3>
           <ul>
-            <li>一個真串口可並聯多 PTY / 多 TCP / 多 WS，RX 全廣播</li>
-            <li>TX 預設按行排隊，避免位元組交錯</li>
-            <li>HTTPS 網頁連本機 ws:// 可能被瀏覽器封鎖</li>
+            <li>{t("One physical port supports multiple PTY/TCP/WS clients; RX is broadcast to all readers")}</li>
+            <li>{t("TX defaults to line queues to prevent interleaved bytes")}</li>
+            <li>{t("An HTTPS page may be blocked from using local ws:// connections")}</li>
           </ul>
         </section>
       )}
 
       </main><footer className="footer">
-        <TrafficCounters counters={trafficRef} /><span className="footer-caption">SerialHub · 本地设备共享工作台</span>
+        <TrafficCounters counters={trafficRef} /><span className="footer-caption">{t("SerialHub · Local device sharing workspace")}</span>
       </footer>
     </div>
   );

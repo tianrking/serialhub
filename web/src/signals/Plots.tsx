@@ -1,10 +1,11 @@
+import { t } from "../i18n/index.ts";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { axisTick, calibrated, scopePoints, extent, formatNumber, histogram, plotPath, type Channel, type SignalSample, type Spectrum } from "./math";
 import { downloadBlob } from "../serialTools";
 import { imageRgba, type ImageFrame } from "./store";
 
 const PLOT = { width: 1000, height: 330, left: 65, right: 24, top: 24, bottom: 40 };
-export function PlotGrid({ xDomain, yDomain, xLabel = "时间 / s", yLabel = "幅值", height = PLOT.height, hideY = false }: { xDomain: [number, number]; yDomain: [number, number]; xLabel?: string; yLabel?: string; height?: number; hideY?: boolean }) {
+export function PlotGrid({ xDomain, yDomain, xLabel = t("Time / s"), yLabel = t("Amplitude"), height = PLOT.height, hideY = false }: { xDomain: [number, number]; yDomain: [number, number]; xLabel?: string; yLabel?: string; height?: number; hideY?: boolean }) {
   const { width: w, left: l, right: r, top: t, bottom: b } = PLOT;
   const h = height;
   return <g fontFamily="ui-monospace,monospace" fontSize="10" fill="#758aa9">
@@ -57,7 +58,7 @@ export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cu
     const wheel = (event: WheelEvent) => { if (event.ctrlKey) { event.preventDefault(); onZoom(event.deltaY < 0 ? .7 : 1.4); } };
     node.addEventListener("wheel", wheel, { passive: false }); return () => node.removeEventListener("wheel", wheel);
   }, [svgRef, onZoom]);
-  return <svg ref={svgRef} preserveAspectRatio="none" className={`signal-scope interaction-${mode}`} viewBox={`0 0 ${PLOT.width} ${height}`} role="img" aria-label="多通道示波图" tabIndex={0}
+  return <svg ref={svgRef} preserveAspectRatio="none" className={`signal-scope interaction-${mode}`} viewBox={`0 0 ${PLOT.width} ${height}`} role="img" aria-label={t("Multichannel oscilloscope")} tabIndex={0}
     onKeyDown={event => { if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); onPan(event.key === "ArrowLeft" ? -.2 : .2); }
       if (event.key === "+" || event.key === "=") onZoom(.5); if (event.key === "-") onZoom(2); }}
     onPointerDown={event => { if (!samples.length) return; event.currentTarget.setPointerCapture(event.pointerId);
@@ -66,7 +67,7 @@ export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cu
       else onCursor(Math.round(first + Math.max(0, Math.min(1, (fraction * PLOT.width - PLOT.left) / (PLOT.width - PLOT.left - PLOT.right))) * (last - first)));
     }} onPointerUp={event => { if (drag.current !== null) { const rect = event.currentTarget.getBoundingClientRect(); onPan(drag.current - (event.clientX - rect.left) / rect.width); drag.current = null; } }}
     onPointerCancel={() => { drag.current = null; }}>
-    <PlotGrid xDomain={xDomain} yDomain={yDomain} height={height} hideY={stacked} yLabel={stacked ? "分轨 · 各通道独立量程" : "幅值"} />
+    <PlotGrid xDomain={xDomain} yDomain={yDomain} height={height} hideY={stacked} yLabel={stacked ? t("Tracks · independent channel ranges") : t("Amplitude")} />
     <defs><clipPath id="scope-clip"><rect x={PLOT.left} y={PLOT.top} width={PLOT.width - PLOT.left - PLOT.right} height={height - PLOT.top - PLOT.bottom} /></clipPath></defs>
     <g clipPath="url(#scope-clip)">{selected.map((channel, band) => {
       const points = scopePoints(samples, channel, channels[channel]!, sampleRate);
@@ -80,7 +81,7 @@ export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cu
     })}
     {cursors.map((index, cursor) => index !== null && index >= first && index <= last && <g key={cursor}><line x1={scale.x(index / sampleRate)} x2={scale.x(index / sampleRate)} y1={PLOT.top} y2={height - PLOT.bottom} stroke={cursor ? "#fbbf24" : "#e2e8f0"} strokeDasharray="4 4" />
       <text x={scale.x(index / sampleRate) + 5} y={PLOT.top + 12} fontSize="12" fill={cursor ? "#fbbf24" : "#e2e8f0"}>{cursor ? "B" : "A"}</text></g>)}</g>
-    {!samples.length && <text x="500" y={height / 2} textAnchor="middle" fill="#7691b6" fontSize="13">选择 FireWater / JustFloat 并接收数据，或导入 CSV</text>}
+    {!samples.length && <text x="500" y={height / 2} textAnchor="middle" fill="#7691b6" fontSize="13">{t("Receive FireWater / JustFloat data, or import CSV")}</text>}
   </svg>;
 }
 export function SpectrumPlot({ result, logarithmic, unit, maxFrequency = 0 }: { maxFrequency?: number; result: Spectrum | null; logarithmic: boolean; unit: string }) {
@@ -88,8 +89,8 @@ export function SpectrumPlot({ result, logarithmic, unit, maxFrequency = 0 }: { 
   const yDomain: [number, number] = logarithmic ? [-120, Math.max(0, ...result?.db ?? []) + 6] : [0, Math.max(.01, ...result?.amplitudes ?? []) * 1.12];
   const nyquist = result?.frequencies.at(-1) || 1;
   const xDomain: [number, number] = [0, maxFrequency > 0 ? Math.min(maxFrequency, nyquist) : nyquist], scale = plotScales(xDomain, yDomain, height);
-  return <svg ref={svg} preserveAspectRatio="none" className="signal-spectrum" viewBox={`0 0 ${PLOT.width} ${height}`} role="img" aria-label="FFT 单边幅度谱">
-    <PlotGrid xDomain={xDomain} yDomain={yDomain} height={height} xLabel="频率 / Hz" yLabel={logarithmic ? `dB re 1 ${unit || "unit"}` : `幅值 ${unit}`} />
+  return <svg ref={svg} preserveAspectRatio="none" className="signal-spectrum" viewBox={`0 0 ${PLOT.width} ${height}`} role="img" aria-label={t("FFT single-sided amplitude spectrum")}>
+    <PlotGrid xDomain={xDomain} yDomain={yDomain} height={height} xLabel={t("Frequency / Hz")} yLabel={logarithmic ? `dB re 1 ${unit || "unit"}` : t("Amplitude {p0}", { p0: String(unit) })} />
     <defs><clipPath id="spectrum-clip"><rect x={PLOT.left} y={PLOT.top} width={PLOT.width - PLOT.left - PLOT.right} height={height - PLOT.top - PLOT.bottom} /></clipPath></defs>
     {result && <g clipPath="url(#spectrum-clip)"><path d={plotPath(result.frequencies.map((x, index) => ({ x, y: logarithmic ? result.db[index]! : result.amplitudes[index]! })), scale.x, scale.y)} fill="none" stroke="#a78bfa" strokeWidth="1.6" vectorEffect="non-scaling-stroke" /></g>}
   </svg>;
@@ -101,13 +102,13 @@ export function XYPlot({ samples, channels, xChannel, yChannel }: { samples: rea
   const stride = Math.max(1, Math.ceil(points.length / 2000));
   // Keep gap sentinels when reducing XY data too.
   const reduced = points.filter((point, index) => index % stride === 0 || !Number.isFinite(point.x) || !Number.isFinite(point.y) || index === points.length - 1);
-  return <svg viewBox={`0 0 ${PLOT.width} ${PLOT.height}`} role="img" aria-label="XY 轨迹图"><PlotGrid xDomain={xDomain} yDomain={yDomain} xLabel={`${channels[xChannel]!.name} ${channels[xChannel]!.unit}`} yLabel={`${channels[yChannel]!.name} ${channels[yChannel]!.unit}`} />
+  return <svg viewBox={`0 0 ${PLOT.width} ${PLOT.height}`} role="img" aria-label={t("XY trajectory plot")}><PlotGrid xDomain={xDomain} yDomain={yDomain} xLabel={`${channels[xChannel]!.name} ${channels[xChannel]!.unit}`} yLabel={`${channels[yChannel]!.name} ${channels[yChannel]!.unit}`} />
     <path d={plotPath(reduced, scale.x, scale.y)} fill="none" stroke="#34d399" strokeWidth="1.5" />
     {!!points.length && Number.isFinite(points.at(-1)!.x) && Number.isFinite(points.at(-1)!.y) && <circle cx={scale.x(points.at(-1)!.x)} cy={scale.y(points.at(-1)!.y)} r="4" fill="#d1fae5" />}</svg>;
 }
 export function HistogramPlot({ values }: { values: number[] }) {
   const result = histogram(values), maximum = Math.max(1, ...result.counts);
-  return <svg viewBox="0 0 600 180" role="img" aria-label="采样值直方图"><rect width="600" height="180" rx="8" fill="#0e1b2e" />
+  return <svg viewBox="0 0 600 180" role="img" aria-label={t("Sample histogram")}><rect width="600" height="180" rx="8" fill="#0e1b2e" />
     {result.counts.map((count, index) => <rect key={index} x={35 + index * 22} y={145 - count / maximum * 120} width="18" height={count / maximum * 120} rx="2" fill="#38bdf8" opacity=".75" />)}
     <text x="35" y="165" fill="#8096b6" fontSize="11">{formatNumber(result.min)}</text><text x="560" y="165" textAnchor="end" fill="#8096b6" fontSize="11">{formatNumber(result.max)}</text>
   </svg>;
@@ -125,7 +126,7 @@ export function Waterfall({ rows }: { rows: readonly number[][] }) {
     }
     context.putImageData(image, 0, 0);
   }, [rows]);
-  return <canvas ref={canvas} width={256} height={64} className="waterfall-canvas" aria-label="频谱瀑布图，最新窗口在顶部" role="img" />;
+  return <canvas ref={canvas} width={256} height={64} className="waterfall-canvas" aria-label={t("Spectrum waterfall; newest window at top")} role="img" />;
 }
 export function FrameViewer({ frame }: { frame: ImageFrame | null }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -134,7 +135,7 @@ export function FrameViewer({ frame }: { frame: ImageFrame | null }) {
   const shown = held ?? frame;
   useEffect(() => { if (!frame) setHeld(null); }, [frame]);
   useEffect(() => { if (shown) canvas.current?.getContext("2d")?.putImageData(new ImageData(imageRgba(shown), shown.width, shown.height), 0, 0); }, [shown]);
-  return <><div className="image-viewer-tools"><button type="button" className="ghost" disabled={!frame} onClick={() => setHeld(held ? null : frame)}>{held ? "恢复图像流" : "冻结图像"}</button>
-    <button type="button" className="ghost" disabled={!shown} onClick={() => canvas.current?.toBlob(blob => { if (blob) downloadBlob(`serialhub-frame-${Date.now()}.png`, blob); }, "image/png")}>保存图像 PNG</button><label className="check"><input type="checkbox" checked={fit} onChange={event => setFit(event.target.checked)} />适应画布</label><span>{held ? `冻结第 ${held.count} 帧` : "显示最新完整帧"}</span></div>
-    <div className="image-frame-viewer">{shown ? <canvas className={fit ? "fit" : ""} ref={canvas} width={shown.width} height={shown.height} aria-label="收到的原始图像帧" role="img" /> : <div className="image-empty">等待完整图像帧<br /><small>GRAY8 / RGB565 LE / RGB888</small></div>}</div></>;
+  return <><div className="image-viewer-tools"><button type="button" className="ghost" disabled={!frame} onClick={() => setHeld(held ? null : frame)}>{held ? t("Resume image stream") : t("Freeze image")}</button>
+    <button type="button" className="ghost" disabled={!shown} onClick={() => canvas.current?.toBlob(blob => { if (blob) downloadBlob(`serialhub-frame-${Date.now()}.png`, blob); }, "image/png")}>{t("Save image PNG")}</button><label className="check"><input type="checkbox" checked={fit} onChange={event => setFit(event.target.checked)} /> {t("Fit to frame")}</label><span>{held ? t("Frame {p0} frozen", { p0: String(held.count) }) : t("Showing latest complete frame")}</span></div>
+    <div className="image-frame-viewer">{shown ? <canvas className={fit ? "fit" : ""} ref={canvas} width={shown.width} height={shown.height} aria-label={t("Received raw image frame")} role="img" /> : <div className="image-empty">{t("Waiting for a complete image frame")} <br /><small>GRAY8 / RGB565 LE / RGB888</small></div>}</div></>;
 }

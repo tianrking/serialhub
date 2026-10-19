@@ -1,3 +1,4 @@
+import { t, number } from "../i18n/index.ts";
 export type SignalSample = { index: number; receivedAt: number; values: readonly number[] };
 export type Channel = { name: string; unit: string; color: string; gain: number; offset: number; min: number; max: number; visible: boolean };
 export const COLORS = ["#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#fb7185", "#22d3ee", "#f472b6", "#a3e635"];
@@ -10,7 +11,9 @@ export function calibrated(sample: SignalSample, channel: number, config: Channe
 }
 export function formatNumber(value: number | undefined, digits = 4): string {
   if (value === undefined || !Number.isFinite(value)) return "—";
-  return Math.abs(value) >= 1e6 || (value !== 0 && Math.abs(value) < 0.001) ? value.toExponential(2) : Number(value.toPrecision(digits)).toString();
+  return Math.abs(value) >= 1e6 || (value !== 0 && Math.abs(value) < 0.001)
+    ? number(value, { notation: "scientific", maximumFractionDigits: 2, useGrouping: false })
+    : number(value, { maximumSignificantDigits: digits, useGrouping: false });
 }
 export function statistics(values: readonly number[]) {
   let min = Infinity, max = -Infinity, mean = 0, m2 = 0, count = 0;
@@ -74,12 +77,12 @@ export function findTrigger(samples: readonly SignalSample[], channel: number, l
 export type Spectrum = { frequencies: number[]; amplitudes: number[]; db: number[]; peakFrequency: number; peakAmplitude: number; resolution: number };
 /** One-sided amplitude spectrum; coherent-gain corrected, including DC/Nyquist. */
 export function spectrum(samples: readonly SignalSample[], channel: number, config: Channel, sampleRate: number, size: number, window: "hann" | "rectangular", removeDC = true): Spectrum {
-  if (!Number.isFinite(sampleRate) || sampleRate <= 0 || sampleRate > 1e9) throw new Error("请设置有效的设备采样率");
-  if (!Number.isInteger(size) || size < 32 || size > 4096 || (size & (size - 1)) !== 0) throw new Error("FFT 长度必须为 32–4096 的 2 次幂");
-  if (samples.length < size) throw new Error(`还需 ${size - samples.length} 个采样点`);
+  if (!Number.isFinite(sampleRate) || sampleRate <= 0 || sampleRate > 1e9) throw new Error(t("Set a valid device sample rate"));
+  if (!Number.isInteger(size) || size < 32 || size > 4096 || (size & (size - 1)) !== 0) throw new Error(t("FFT size must be a power of two from 32 to 4096"));
+  if (samples.length < size) throw new Error(t("Need {p0} more samples", { p0: String(size - samples.length) }));
   const input = samples.slice(-size);
   const values = input.map(sample => calibrated(sample, channel, config));
-  if (values.some(value => !Number.isFinite(value)) || input.some((sample, index) => index > 0 && sample.index !== input[index - 1]!.index + 1)) throw new Error("FFT 窗口含缺失或无效采样，等待连续有效数据");
+  if (values.some(value => !Number.isFinite(value)) || input.some((sample, index) => index > 0 && sample.index !== input[index - 1]!.index + 1)) throw new Error(t("FFT window contains gaps or invalid samples; waiting for contiguous valid data"));
   const mean = removeDC ? values.reduce((sum, value) => sum + value / size, 0) : 0;
   const real = new Float64Array(size), imag = new Float64Array(size);
   let windowSum = 0;
@@ -109,7 +112,7 @@ export function spectrum(samples: readonly SignalSample[], channel: number, conf
   let peak = removeDC ? 1 : 0;
   for (let bin = 0; bin <= size / 2; bin++) {
     const amplitude = Math.hypot(real[bin]!, imag[bin]!) / windowSum * (bin === 0 || bin === size / 2 ? 1 : 2);
-    if (!Number.isFinite(amplitude)) throw new Error("频谱幅度超出数值范围，请调整通道增益");
+    if (!Number.isFinite(amplitude)) throw new Error(t("Spectrum amplitude overflow; adjust channel gain"));
     frequencies.push(bin * sampleRate / size); amplitudes.push(amplitude); db.push(Math.max(-160, 20 * Math.log10(Math.max(1e-8, amplitude))));
     if ((bin > 0 || !removeDC) && amplitude > (amplitudes[peak] ?? -1)) peak = bin;
   }
@@ -157,8 +160,8 @@ export function channelExtent(samples: readonly SignalSample[], selected: readon
 
 export function axisTick(value: number, step: number): string {
   if (!Number.isFinite(value) || !Number.isFinite(step) || step <= 0) return "—";
-  if (Math.abs(value) < step / 1000) return "0";
-  if (Math.abs(value) >= 1e6 || step < 1e-7) return Number(value.toPrecision(5)).toString();
+  if (Math.abs(value) < step / 1000) return number(0);
+  if (Math.abs(value) >= 1e6 || step < 1e-7) return number(value, { maximumSignificantDigits: 5, useGrouping: false });
   const digits = Math.max(0, Math.min(8, Math.ceil(-Math.log10(step)) + 1));
-  return Number(value.toFixed(digits)).toString();
+  return number(Number(value.toFixed(digits)), { maximumFractionDigits: digits, useGrouping: false });
 }

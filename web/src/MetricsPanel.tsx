@@ -1,3 +1,4 @@
+import { t } from "./i18n/index.ts";
 import { useMemo } from "react";
 
 type MetricsPanelProps = {
@@ -33,14 +34,14 @@ export default function MetricsPanel({ text, loading, error, online, onRefresh, 
     <section className="panel metrics-panel">
       <div className="log-head">
         <div>
-          <h2>Prometheus 指标</h2>
-          <p className="hint">无用户可控标签，适合本机 Prometheus / Grafana 抓取；原始文本可导出留证。</p>
+          <h2>{t("Prometheus metrics")}</h2>
+          <p className="hint">{t("No user-controlled labels. Scrape locally with Prometheus/Grafana, or export the raw text.")}</p>
         </div>
         <div className="row">
           <button type="button" className="ghost" disabled={!online || loading} onClick={onRefresh}>
-            {loading ? "读取中…" : "刷新指标"}
+            {loading ? t("Loading…") : t("Refresh metrics")}
           </button>
-          <button type="button" className="ghost" disabled={!text} onClick={onExport}>下载文本</button>
+          <button type="button" className="ghost" disabled={!text} onClick={onExport}>{t("Download text")}</button>
         </div>
       </div>
       {error ? <p className="error" role="alert">{error}</p> : null}
@@ -53,7 +54,7 @@ export default function MetricsPanel({ text, loading, error, online, onRefresh, 
             </div>
           ))}
         </div>
-      ) : <p className="muted">连接 Hub 后刷新即可查看指标。</p>}
+      ) : <p className="muted">{t("Connect to the Hub, then refresh to see metrics.")}</p>}
     </section>
   );
 }

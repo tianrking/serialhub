@@ -1,4 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
+
+// Keep established wire/safety fixtures stable; i18n.spec.ts tests the English default.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("serialhub.ui.locale.v1", "zh-Hans"));
+});
 import { readFile } from "node:fs/promises";
 async function connect(page: Page) {
   await page.goto("/"); await page.getByRole("button", { name: "连接 Hub", exact: true }).click();
@@ -71,7 +76,7 @@ test("offline CSV supports FFT, scrubbing, stepping, export, and no device write
 test("waveform cursors, zoom, panning, and PNG export operate on the frozen view", async ({ page }) => {
   await connect(page); await page.getByLabel("信号解析协议", { exact: true }).selectOption("firewater");
   await write(page, tones(2048));
-  await expect(page.locator(".scope-status")).toContainText("1,024 points");
+  await expect(page.locator(".scope-status")).toContainText("1,024 点");
   await page.getByRole("button", { name: "放大波形", exact: true }).click();
   await expect(page.getByLabel("波形窗口点数", { exact: true })).toHaveValue("512");
   await expect(page.locator(".scope-status")).toContainText("已冻结");
@@ -102,7 +107,7 @@ test("single trigger captures only a future rising edge with post-trigger sample
   await write(page, "imu:-1,0\n".repeat(10) + "imu:1,0\n".repeat(40));
   await expect(page.locator(".signal-trigger")).toContainText("已捕获");
   await expect(page.locator(".scope-status")).toContainText("已冻结");
-  await expect(page.locator(".scope-status")).toContainText("32 points");
+  await expect(page.locator(".scope-status")).toContainText("32 点");
 });
 
 test("JustFloat binary data decodes across real HTTP writes", async ({ page }) => {

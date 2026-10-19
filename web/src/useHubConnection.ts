@@ -1,3 +1,4 @@
+import { t } from "./i18n/index.ts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hubApi } from "./api/client";
 import type { ConnectionConfig, Endpoint, StatusSnapshot } from "./api/types";
@@ -57,7 +58,7 @@ export function useHubConnection() {
         || !nextStatus.stats || ![nextStatus.stats.rx_bytes, nextStatus.stats.tx_bytes,
           nextStatus.stats.rx_drops, nextStatus.stats.tx_denies].every(Number.isFinite)
         || !Array.isArray(nextStatus.clients) || !Array.isArray(nextEndpoints?.endpoints)) {
-      throw new Error("服务返回了不兼容的状态数据，请确认目标是 SerialHub Hub。");
+      throw new Error(t("Incompatible status data; confirm this service is a SerialHub Hub."));
     }
     setStatus(nextStatus);
     session.deviceConnected = nextStatus.port.connected;
@@ -73,7 +74,7 @@ export function useHubConnection() {
     try {
       validated = validateConnection(cfg);
       if (window.location.protocol === "https:" && validated.protocol !== "https") {
-        throw new Error("HTTPS 页面请使用 HTTPS Hub，避免浏览器混合内容拦截。");
+        throw new Error(t("Use an HTTPS Hub from an HTTPS page to avoid mixed-content blocking."));
       }
     } catch (failure) {
       setPhase("error");
@@ -141,7 +142,7 @@ export function useHubConnection() {
         session.streamOpen = false;
         setWsOpen(false);
         if (attempts >= 5) {
-          fail(new Error("实时流连接中断，多次重连未成功。请检查 Hub 后重新连接。"));
+          fail(new Error(t("Live stream reconnection failed repeatedly. Check the Hub and reconnect.")));
           return;
         }
         setPhase("reconnecting");
@@ -179,7 +180,7 @@ export function useHubConnection() {
     };
     try {
       const health = await hubApi.health(validated, controller.signal);
-      if (!health.ok) throw new Error("Hub 健康检查未通过");
+      if (!health.ok) throw new Error(t("Hub health check failed"));
       await refreshMeta();
       if (!isCurrent(session)) return false;
       openStream();

@@ -1,3 +1,4 @@
+import { t, getFormattingLocale, localizeStatus } from "./i18n/index.ts";
 import { useEffect, useState } from "react";
 import type { QuickCommand, ConnectionProfile } from "./commandUtils";
 import { commandBytes, downloadBlob, encodeText, decodeText, fullHex, hexBytes, MAX_SEND_FILE_BYTES,
@@ -31,7 +32,7 @@ export default function SerialToolsPanel(props: Props) {
     if (!file || file.size < 1 || file.size > MAX_SEND_FILE_BYTES) return;
     const source = file, size = chunkSize, gap = interval;
     setSent(0);
-    void runJob(`发送文件 · ${source.name}`, async context => {
+    void runJob(t("File transfer · {p0}", { p0: String(source.name) }), async context => {
       for (let offset = 0; offset < source.size; offset += size) {
         context.signal.throwIfAborted();
         const bytes = new Uint8Array(await source.slice(offset, offset + size).arrayBuffer());
@@ -47,14 +48,14 @@ export default function SerialToolsPanel(props: Props) {
       const sequence = commands.filter(command => command.enabled !== false).map(command => ({
         name: command.name, bytes: commandBytes(command, encoding), delay: command.delayMs ?? 1000,
       }));
-      if (!sequence.length || sequence.some(row => !row.bytes.length || row.bytes.length > 65536)) throw new Error("请选择非空指令，单条指令最多 65,536 bytes");
+      if (!sequence.length || sequence.some(row => !row.bytes.length || row.bytes.length > 65536)) throw new Error(t("Select nonempty commands; maximum 65,536 bytes per command"));
       const count = rounds;
-      void runJob(`轮发 · ${sequence.length} 条 × ${count || "持续"} 轮`, async context => {
+      void runJob(t("Sequence · {p0} commands × {p1} rounds", { p0: String(sequence.length), p1: String(count || t("Continuous")) }), async context => {
         for (let round = 1; count === 0 || round <= count; round++) {
           for (let index = 0; index < sequence.length; index++) {
             const row = sequence[index];
             await context.write(row.bytes);
-            setSequenceProgress(`第 ${round} 轮 · ${index + 1}/${sequence.length} · ${row.name}`);
+            setSequenceProgress(t("Round {p0} · {p1}/{p2} · {p3}", { p0: String(round), p1: String(index + 1), p2: String(sequence.length), p3: String(row.name) }));
             if (index < sequence.length - 1 || count === 0 || round < count) await context.pause(row.delay);
           }
         }
@@ -67,9 +68,9 @@ export default function SerialToolsPanel(props: Props) {
     props.onCommandsChange(next);
   };
   return <section className="panel serial-tools-panel">
-    <div className="tool-heading"><div><span className="eyebrow">SERIAL TOOLKIT</span><h2>调试工具箱</h2></div><span className="tag">文件 · 多条发送 · 配置</span></div>
-    <div className="tool-tabs" role="tablist" aria-label="调试工具">
-      {[["files", "文件收发"], ["sequence", "多条轮发"], ["convert", "编码转换"], ["backup", "配置迁移"]].map(([id, label]) =>
+    <div className="tool-heading"><div><span className="eyebrow">{t("SERIAL TOOLKIT")}</span><h2>{t("Serial toolkit")}</h2></div><span className="tag">{t("Files · sequences · profiles")}</span></div>
+    <div className="tool-tabs" role="tablist" aria-label={t("Debugging tools")}>
+      {[["files", t("Files")], ["sequence", t("Sequences")], ["convert", t("Encoding")], ["backup", t("Backup")]].map(([id, label]) =>
         <button type="button" role="tab" aria-selected={tab === id} aria-controls={`tool-${id}`} id={`tab-${id}`} tabIndex={tab === id ? 0 : -1}
           key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id!)}
           onKeyDown={event => { const ids = ["files", "sequence", "convert", "backup"]; if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
@@ -77,57 +78,57 @@ export default function SerialToolsPanel(props: Props) {
           } }}>{label}</button>)}
     </div>
     {tab === "files" && <div className="tool-columns" role="tabpanel" id="tool-files" aria-labelledby="tab-files">
-      <div className="tool-card"><h3>发送文件 <span>原始字节</span></h3><p className="hint">不转换编码、不追加行尾。逐块确认，最多 64 MiB。任务期间续期现有租约，失败即停止。</p>
-        <label className="file-picker">选择发送文件<input aria-label="选择发送文件" type="file" disabled={busy} onChange={event => {
+      <div className="tool-card"><h3>{t("Send file")} <span>{t("Raw bytes")}</span></h3><p className="hint">{t("No encoding conversion or added line endings. Acknowledged blocks, up to 64 MiB. Renews the existing lease; stops on failure.")}</p>
+        <label className="file-picker">{t("Choose file to send")} <input aria-label={t("Choose file to send")} type="file" disabled={busy} onChange={event => {
           setFile(event.target.files?.[0] ?? null); setSent(0);
         }} /></label>
-        {file && <p className={file.size > MAX_SEND_FILE_BYTES ? "error" : "file-info"}>{file.name} · {file.size.toLocaleString()} bytes{file.size > MAX_SEND_FILE_BYTES ? " · 超出 64 MiB 上限" : ""}</p>}
-        <div className="row"><label>每块字节<select aria-label="文件每块字节" disabled={busy} value={chunkSize} onChange={event => setChunkSize(Number(event.target.value))}>
+        {file && <p className={file.size > MAX_SEND_FILE_BYTES ? "error" : "file-info"}>{file.name} · {file.size.toLocaleString(getFormattingLocale())} {t("bytes")} {file.size > MAX_SEND_FILE_BYTES ? t("· exceeds the 64 MiB limit") : ""}</p>}
+        <div className="row"><label>{t("Block size")} <select aria-label={t("File block size")} disabled={busy} value={chunkSize} onChange={event => setChunkSize(Number(event.target.value))}>
           {[64, 256, 1024, 4096].map(size => <option key={size}>{size}</option>)}</select></label>
-          <label>块间隔 (ms)<input aria-label="文件块间隔" type="number" min={0} max={60000} disabled={busy} value={interval} onChange={event => setIntervalMs(Math.min(60000, Math.max(0, Number(event.target.value) || 0)))} /></label>
-          <button type="button" disabled={!canWrite || busy || !file?.size || file.size > MAX_SEND_FILE_BYTES} onClick={sendFile}>发送文件</button></div>
-        <progress aria-label="文件发送进度" max={file?.size || 1} value={sent} /><span className="hint">已确认 {sent.toLocaleString()} / {(file?.size ?? 0).toLocaleString()} bytes</span>
+          <label>{t("Block delay (ms)")} <input aria-label={t("File block delay")} type="number" min={0} max={60000} disabled={busy} value={interval} onChange={event => setIntervalMs(Math.min(60000, Math.max(0, Number(event.target.value) || 0)))} /></label>
+          <button type="button" disabled={!canWrite || busy || !file?.size || file.size > MAX_SEND_FILE_BYTES} onClick={sendFile}>{t("Send file")}</button></div>
+        <progress aria-label={t("File send progress")} max={file?.size || 1} value={sent} /><span className="hint">{t("Acknowledged")} {sent.toLocaleString(getFormattingLocale())} / {(file?.size ?? 0).toLocaleString(getFormattingLocale())} {t("bytes")}</span>
       </div>
-      <div className="tool-card"><h3>原始接收录制 <span className={capture.active ? "recording" : ""}>{capture.active ? "● REC" : "BIN"}</span></h3>
-        <p className="hint">保存本页收到的完整字节，独立于暂停显示和日志过滤。最多 16 MiB，断流自动停止。</p>
-        <div className="capture-size">{capture.bytes.toLocaleString()} <small>bytes</small></div><p className="capture-reason">{capture.reason}</p>
+      <div className="tool-card"><h3>{t("Raw RX recording")} <span className={capture.active ? "recording" : ""}>{capture.active ? "● REC" : "BIN"}</span></h3>
+        <p className="hint">{t("Save full received bytes independently of display pause and filters. Up to 16 MiB; stops on stream loss.")}</p>
+        <div className="capture-size">{capture.bytes.toLocaleString(getFormattingLocale())} <small>{t("bytes")}</small></div><p className="capture-reason">{localizeStatus(capture.reason)}</p>
         <div className="row"><button type="button" disabled={!canWrite || capture.active} onClick={() => {
-          if (capture.bytes) { notify("请先下载上一段录制，再开始新录制", true); return; }
+          if (capture.bytes) { notify(t("Download the previous recording before starting another"), true); return; }
           capture.start(); repaint(value => value + 1);
-        }}>开始录制</button><button type="button" className="ghost" disabled={!capture.active} onClick={() => { capture.stop(); repaint(value => value + 1); }}>停止录制</button>
-        <button type="button" className="ghost" disabled={!capture.bytes || capture.active} onClick={() => downloadBlob(`serialhub-rx-${Date.now()}.bin`, capture.blob())}>下载接收文件</button>
-        <button type="button" className="ghost" disabled={capture.active || !capture.bytes} onClick={() => { capture.start(); capture.stop("已清除，可开始新录制"); repaint(value => value + 1); }}>清除录制</button></div>
-        <p className="hint">录制保存在内存中，关闭页面前请下载。它不保证慢客户端分发期间的数据完整性，完整性请核对事件账本。</p>
+        }}>{t("Start recording")}</button><button type="button" className="ghost" disabled={!capture.active} onClick={() => { capture.stop(); repaint(value => value + 1); }}>{t("Stop recording")}</button>
+        <button type="button" className="ghost" disabled={!capture.bytes || capture.active} onClick={() => downloadBlob(`serialhub-rx-${Date.now()}.bin`, capture.blob())}>{t("Download RX file")}</button>
+        <button type="button" className="ghost" disabled={capture.active || !capture.bytes} onClick={() => { capture.start(); capture.stop(t("Cleared; ready for a new recording")); repaint(value => value + 1); }}>{t("Clear recording")}</button></div>
+        <p className="hint">{t("Recording is held in memory; download before closing. Slow-client drops may cause gaps. Check the event ledger for completeness.")}</p>
       </div>
     </div>}
     {tab === "sequence" && <div role="tabpanel" id="tool-sequence" aria-labelledby="tab-sequence">
-      <div className="row sequence-toolbar"><label>循环轮数（0 = 持续）<input aria-label="循环轮数" type="number" min={0} max={100000} value={rounds} disabled={busy} onChange={event => setRounds(Math.min(100000, Math.max(0, Math.trunc(Number(event.target.value) || 0))))} /></label>
-        <button type="button" disabled={!canWrite || busy || !commands.length} onClick={sendSequence}>开始轮发</button><span className="hint">{sequenceProgress || `按下方顺序发送 · 文本编码 ${encoding.toUpperCase()}`}</span></div>
-      <div className="sequence-list">{!commands.length && <p className="muted">先在快捷指令中保存命令，再选择轮发顺序。</p>}
+      <div className="row sequence-toolbar"><label>{t("Rounds (0 = continuous)")} <input aria-label={t("Sequence rounds")} type="number" min={0} max={100000} value={rounds} disabled={busy} onChange={event => setRounds(Math.min(100000, Math.max(0, Math.trunc(Number(event.target.value) || 0))))} /></label>
+        <button type="button" disabled={!canWrite || busy || !commands.length} onClick={sendSequence}>{t("Start sequence")}</button><span className="hint">{sequenceProgress || t("Sends in the order below · text encoding {p0}", { p0: String(encoding.toUpperCase()) })}</span></div>
+      <div className="sequence-list">{!commands.length && <p className="muted">{t("Save shortcuts first, then choose the sequence order.")}</p>}
       {commands.map((command, index) => <div className="sequence-row" key={command.id}>
-        <label className="check"><input type="checkbox" aria-label={`轮发 ${command.name}`} checked={command.enabled !== false} disabled={busy} onChange={event => props.onCommandsChange(commands.map(row => row.id === command.id ? { ...row, enabled: event.target.checked } : row))} /><span>{String(index + 1).padStart(2, "0")}</span></label>
+        <label className="check"><input type="checkbox" aria-label={t("Sequence {p0}", { p0: String(command.name) })} checked={command.enabled !== false} disabled={busy} onChange={event => props.onCommandsChange(commands.map(row => row.id === command.id ? { ...row, enabled: event.target.checked } : row))} /><span>{String(index + 1).padStart(2, "0")}</span></label>
         <div className="sequence-command"><strong>{command.name}</strong><code>{command.payload}</code></div><span className="tag">{command.mode.toUpperCase()}</span>
-        <label>发送后延时 (ms)<input aria-label={`${command.name} 延时`} type="number" min={50} max={60000} value={command.delayMs ?? 1000} disabled={busy} onChange={event => props.onCommandsChange(commands.map(row => row.id === command.id ? { ...row, delayMs: Math.min(60000, Math.max(50, Number(event.target.value) || 50)) } : row))} /></label>
-        <div className="row"><button type="button" className="ghost small" aria-label={`上移 ${command.name}`} disabled={busy || index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="ghost small" aria-label={`下移 ${command.name}`} disabled={busy || index === commands.length - 1} onClick={() => move(index, 1)}>↓</button></div>
-      </div>)}</div><p className="hint">开始时固定内容与顺序；每条确认后再计时。任务期间续期现有租约，失效时停止，不会重新抢占；写入失败、设备离线或断流都会停止，重连不会续发。</p>
+        <label>{t("Delay after send (ms)")} <input aria-label={t("{p0} delay", { p0: String(command.name) })} type="number" min={50} max={60000} value={command.delayMs ?? 1000} disabled={busy} onChange={event => props.onCommandsChange(commands.map(row => row.id === command.id ? { ...row, delayMs: Math.min(60000, Math.max(50, Number(event.target.value) || 50)) } : row))} /></label>
+        <div className="row"><button type="button" className="ghost small" aria-label={t("Move {p0} up", { p0: String(command.name) })} disabled={busy || index === 0} onClick={() => move(index, -1)}>↑</button><button type="button" className="ghost small" aria-label={t("Move {p0} down", { p0: String(command.name) })} disabled={busy || index === commands.length - 1} onClick={() => move(index, 1)}>↓</button></div>
+      </div>)}</div><p className="hint">{t("Content and order are fixed at start. Delays begin after each ACK. Renews only the existing lease; stops on expiry, write failure, device or stream loss. Reconnection never resumes sending.")}</p>
     </div>}
     {tab === "convert" && <div role="tabpanel" id="tool-convert" aria-labelledby="tab-convert" className="tool-columns">
-      <div><label className="block">转换输入<textarea aria-label="转换输入" rows={4} maxLength={65536} value={conversion} onChange={event => setConversion(event.target.value)} placeholder="文本或 41 54 0d 0a" /></label><div className="row">
-        <button type="button" className="ghost" onClick={() => { try { setConverted(fullHex(encodeText(conversion, encoding))); } catch (error) { report(error); } }}>文本 → HEX</button>
-        <button type="button" className="ghost" onClick={() => { try { setConverted(decodeText(hexBytes(conversion), encoding)); } catch (error) { report(error); } }}>HEX → 文本</button></div></div>
-      <label className="block">转换结果 · {encoding.toUpperCase()}<textarea aria-label="转换结果" rows={6} value={converted} readOnly /><span className="hint">转换不会发送数据。不可表示的字符会报错。</span></label>
+      <div><label className="block">{t("Conversion input")} <textarea aria-label={t("Conversion input")} rows={4} maxLength={65536} value={conversion} onChange={event => setConversion(event.target.value)} placeholder={t("Text or 41 54 0d 0a")} /></label><div className="row">
+        <button type="button" className="ghost" onClick={() => { try { setConverted(fullHex(encodeText(conversion, encoding))); } catch (error) { report(error); } }}>{t("Text → HEX")}</button>
+        <button type="button" className="ghost" onClick={() => { try { setConverted(decodeText(hexBytes(conversion), encoding)); } catch (error) { report(error); } }}>{t("HEX → Text")}</button></div></div>
+      <label className="block">{t("Conversion result ·")} {encoding.toUpperCase()}<textarea aria-label={t("Conversion result")} rows={6} value={converted} readOnly /><span className="hint">{t("Conversion does not send data. Unsupported characters cause an error.")}</span></label>
     </div>}
     {tab === "backup" && <div role="tabpanel" id="tool-backup" aria-labelledby="tab-backup" className="tool-columns">
-      <div><h3>带走你的调试配置</h3><p className="hint">导出 {commands.length} 条快捷指令、{profiles.length} 个 Hub 连接。不包含令牌、租约或录制文件。</p>
-        <button type="button" className="ghost" onClick={() => downloadBlob(`serialhub-workspace-${Date.now()}.json`, new Blob([workspaceBackup(commands, profiles)], { type: "application/json" }))}>导出工作区配置</button></div>
-      <div><label className="file-picker">导入配置文件<input aria-label="导入配置文件" type="file" accept=".json,application/json" disabled={busy} onChange={async event => {
+      <div><h3>{t("Take your debugging setup with you")}</h3><p className="hint">{t("Export")} {commands.length} {t("shortcuts and")} {profiles.length} {t("Hub profiles. Tokens, leases and recordings are excluded.")}</p>
+        <button type="button" className="ghost" onClick={() => downloadBlob(`serialhub-workspace-${Date.now()}.json`, new Blob([workspaceBackup(commands, profiles)], { type: "application/json" }))}>{t("Export workspace settings")}</button></div>
+      <div><label className="file-picker">{t("Import settings file")} <input aria-label={t("Import settings file")} type="file" accept=".json,application/json" disabled={busy} onChange={async event => {
         setPendingImport(null);
         const source = event.target.files?.[0]; event.target.value = ""; if (!source) return;
-        try { if (source.size > 1024 * 1024) throw new Error("配置文件不能超过 1 MiB"); setPendingImport(parseWorkspaceBackup(await source.text())); } catch (error) { report(error); }
+        try { if (source.size > 1024 * 1024) throw new Error(t("Settings file must not exceed 1 MiB")); setPendingImport(parseWorkspaceBackup(await source.text())); } catch (error) { report(error); }
       }} /></label>
-      {pendingImport && <div className="import-preview"><strong>预览：{pendingImport.commands.length} 条指令 · {pendingImport.profiles.length} 个连接</strong><p>追加到当前工作区；现有配置保留。</p>
-        <div className="row"><button type="button" disabled={busy || commands.length + pendingImport.commands.length > 200 || profiles.length + pendingImport.profiles.length > 50} onClick={() => { props.onImport(pendingImport); setPendingImport(null); }}>确认追加导入</button><button type="button" className="ghost" onClick={() => setPendingImport(null)}>取消导入</button></div>
-        {(commands.length + pendingImport.commands.length > 200 || profiles.length + pendingImport.profiles.length > 50) && <p className="error">超出容量，请先删除部分现有配置。</p>}</div>}</div>
+      {pendingImport && <div className="import-preview"><strong>{t("Preview:")} {pendingImport.commands.length} {t("commands ·")} {pendingImport.profiles.length} {t("connections")}</strong><p>{t("Append to this workspace; existing settings stay.")}</p>
+        <div className="row"><button type="button" disabled={busy || commands.length + pendingImport.commands.length > 200 || profiles.length + pendingImport.profiles.length > 50} onClick={() => { props.onImport(pendingImport); setPendingImport(null); }}>{t("Confirm append import")}</button><button type="button" className="ghost" onClick={() => setPendingImport(null)}>{t("Cancel import")}</button></div>
+        {(commands.length + pendingImport.commands.length > 200 || profiles.length + pendingImport.profiles.length > 50) && <p className="error">{t("Capacity exceeded; remove some existing settings first.")}</p>}</div>}</div>
     </div>}
   </section>;
 }

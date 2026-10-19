@@ -1,10 +1,11 @@
+import { t } from "./i18n/index.ts";
 export type HexChecksum = "none" | "sum8" | "xor8" | "crc16-modbus" | "crc16-ccitt" | "crc32" | "sum16";
 
 function parseHex(input: string): number[] {
   const compact = input.replace(/0x/gi, "").replace(/[\s,;:_-]+/g, "");
   if (!compact) return [];
   if (!/^[0-9a-f]+$/i.test(compact) || compact.length % 2 !== 0) {
-    throw new Error("Hex 必须是偶数位十六进制字节");
+    throw new Error(t("Hex must contain complete hexadecimal bytes"));
   }
   const bytes: number[] = [];
   for (let offset = 0; offset < compact.length; offset += 2) {
@@ -44,10 +45,10 @@ export interface ChecksumRange { start: number; end?: number }
 export function appendHexChecksum(input: string, checksum: HexChecksum, range?: ChecksumRange): string {
   const bytes = parseHex(input);
   if (checksum === "none") return formatHex(bytes);
-  if (bytes.length === 0) throw new Error("添加校验和前请先输入 Hex 数据");
+  if (bytes.length === 0) throw new Error(t("Enter Hex data before adding a checksum"));
   const start = range?.start ?? 0, end = range?.end ?? bytes.length;
   if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end > bytes.length || start >= end) {
-    throw new Error("校验范围必须位于数据内，且起始字节不能晚于结束字节");
+    throw new Error(t("Checksum range must be within the data, with start no later than end"));
   }
   const checked = bytes.slice(start, end);
   if (checksum === "sum8") {
@@ -78,18 +79,18 @@ export function appendHexChecksum(input: string, checksum: HexChecksum, range?: 
 export function checksumLabel(checksum: HexChecksum): string {
   switch (checksum) {
     case "sum16":
-      return "SUM16（低字节在前）";
+      return t("SUM16 (low byte first)");
     case "crc32":
-      return "CRC32/ISO-HDLC（低字节在前）";
+      return t("CRC32/ISO-HDLC (low byte first)");
     case "sum8":
-      return "SUM8（低 8 位）";
+      return t("SUM8 (low 8 bits)");
     case "xor8":
       return "XOR8";
     case "crc16-modbus":
-      return "CRC16-Modbus（低字节在前）";
+      return t("CRC16-Modbus (low byte first)");
     case "crc16-ccitt":
-      return "CRC16-CCITT（高字节在前）";
+      return t("CRC16-CCITT (high byte first)");
     default:
-      return "不添加校验";
+      return t("No checksum");
   }
 }

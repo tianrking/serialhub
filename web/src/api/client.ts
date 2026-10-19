@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.ts";
 import type {
   ConnectionConfig,
   SerialSettings,
@@ -40,8 +41,8 @@ async function request<T>(url: string, init: RequestInit, decode: (response: Res
   } catch (error) {
     if (timeout.aborted && !init.signal?.aborted) {
       throw new Error(mutation
-        ? "请求超时，设备可能已执行。请核对事件记录后再决定是否重试。"
-        : "连接超时，请检查 Hub 地址和网络。");
+        ? t("Request timed out; the device may have executed it. Check events before retrying.")
+        : t("Connection timed out; check the Hub address and network."));
     }
     throw error;
   }

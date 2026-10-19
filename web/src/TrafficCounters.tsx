@@ -1,3 +1,4 @@
+import { t, getFormattingLocale } from "./i18n/index.ts";
 import { useEffect, useRef, useState, type RefObject } from "react";
 export default function TrafficCounters({ counters }: { counters: RefObject<{ rx: number; tx: number }> }) {
   const baseline = useRef({ rx: 0, tx: 0 });
@@ -22,7 +23,7 @@ export default function TrafficCounters({ counters }: { counters: RefObject<{ rx
     }, 1000);
     return () => clearInterval(timer);
   }, [counters]);
-  return <div className="traffic-counters" aria-label="本页收发统计"><span>本页统计</span><strong>RX <b data-testid="session-rx">{view.rx.toLocaleString()}</b> B</strong><small>{view.rxRate.toFixed(0)} B/s</small>
-    <strong>TX <b data-testid="session-tx">{view.tx.toLocaleString()}</b> B</strong><small>{view.txRate.toFixed(0)} B/s</small>
-    <button type="button" className="ghost small" onClick={reset}>统计清零</button><span className="hint">接收含历史流；发送按主机确认计数</span></div>;
+  return <div className="traffic-counters" aria-label={t("Page traffic counters")}><span>{t("Page traffic")}</span><strong>RX <b data-testid="session-rx">{view.rx.toLocaleString(getFormattingLocale())}</b> B</strong><small>{view.rxRate.toFixed(0)} B/s</small>
+    <strong>TX <b data-testid="session-tx">{view.tx.toLocaleString(getFormattingLocale())}</b> B</strong><small>{view.txRate.toFixed(0)} B/s</small>
+    <button type="button" className="ghost small" onClick={reset}>{t("Reset counters")}</button><span className="hint">{t("RX may include history; TX counts host ACKs")}</span></div>;
 }

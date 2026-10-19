@@ -1,3 +1,4 @@
+import { t } from "./i18n/index.ts";
 export type CommandMode = "text" | "hex";
 export type LineEnding = "none" | "lf" | "cr" | "crlf";
 
@@ -38,7 +39,7 @@ export function lineEndingLabel(ending: LineEnding): string {
     case "crlf":
       return "CRLF (\\r\\n)";
     default:
-      return "无结尾";
+      return t("No line ending");
   }
 }
 

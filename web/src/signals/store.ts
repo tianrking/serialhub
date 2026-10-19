@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.ts";
 import { parseFireWater, parseJustFloat, type StreamProtocol, type WaveSample } from "../protocolUtils.ts";
 import type { SignalSample } from "./math.ts";
 
@@ -15,18 +16,18 @@ const BYTE_SIZES: Record<BinaryType, number> = { float32: 4, float64: 8, int16: 
 export const DEFAULT_BINARY: BinaryConfig = { type: "float32", channels: 3, littleEndian: true, header: "" };
 export const DEFAULT_IMAGE: ImageConfig = { width: 128, height: 128, format: "gray8", header: "" };
 export function parseHeader(text: string): Uint8Array<ArrayBuffer> {
-  if (typeof text !== "string") throw new Error("帧头须为 Hex 文本");
+  if (typeof text !== "string") throw new Error(t("Frame header must be Hex text"));
   const hex = text.replace(/\s+/g, "");
-  if (!/^(?:[0-9a-f]{2}){0,16}$/i.test(hex)) throw new Error("帧头须为最多 16 字节的 Hex");
+  if (!/^(?:[0-9a-f]{2}){0,16}$/i.test(hex)) throw new Error(t("Frame header must be Hex, up to 16 bytes"));
   return new Uint8Array(hex.match(/../g)?.map(byte => Number.parseInt(byte, 16)) ?? []);
 }
 export function validateBinary(config: BinaryConfig): BinaryConfig {
-  if (!config || typeof config !== "object" || !Object.hasOwn(BYTE_SIZES, config.type) || !Number.isInteger(config.channels) || config.channels < 1 || config.channels > 64 || typeof config.littleEndian !== "boolean") throw new Error("自定义帧需要 1–64 通道和有效数据类型");
+  if (!config || typeof config !== "object" || !Object.hasOwn(BYTE_SIZES, config.type) || !Number.isInteger(config.channels) || config.channels < 1 || config.channels > 64 || typeof config.littleEndian !== "boolean") throw new Error(t("Custom frames need 1–64 channels and a valid data type"));
   parseHeader(config.header);
   return { type: config.type, channels: config.channels, littleEndian: config.littleEndian, header: config.header };
 }
 export function validateImage(config: ImageConfig): ImageConfig {
-  if (!config || typeof config !== "object" || ![config.width, config.height].every(value => Number.isInteger(value) && value > 0 && value <= 512) || !["gray8", "rgb565le", "rgb888"].includes(config.format)) throw new Error("图像宽高须为 1–512，像素格式须有效");
+  if (!config || typeof config !== "object" || ![config.width, config.height].every(value => Number.isInteger(value) && value > 0 && value <= 512) || !["gray8", "rgb565le", "rgb888"].includes(config.format)) throw new Error(t("Image dimensions must be 1–512 with a valid pixel format"));
   parseHeader(config.header); return { width: config.width, height: config.height, format: config.format, header: config.header };
 }
 export function imageRgba(frame: ImageFrame): Uint8ClampedArray<ArrayBuffer> {
@@ -66,7 +67,7 @@ export class SignalStore {
   constructor(capacity = SIGNAL_CAPACITY) {
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 65536) throw new Error("Invalid signal buffer capacity");
     this.capacity = capacity; this.ring = new Array(capacity);
-    this.meta = { generation: 0, protocol: "raw", source: "live", channels: 0, total: 0, invalid: 0, evicted: 0, reason: "等待数据", image: null, connected: false };
+    this.meta = { generation: 0, protocol: "raw", source: "live", channels: 0, total: 0, invalid: 0, evicted: 0, reason: t("Waiting for data"), image: null, connected: false };
     this.view = { ...this.meta, revision: 0, samples: [] };
   }
   getSnapshot = (): SignalSnapshot => this.view;
@@ -79,7 +80,7 @@ export class SignalStore {
   };
   private schedule() { if (this.timer === undefined) this.timer = setTimeout(this.publish, 50); }
   private resetParser() { this.text = ""; this.decoder = new TextDecoder(); this.bytes = new Uint8Array(); this.overflowLine = false; this.pendingGap = false; }
-  clear(reason = "缓存已清空") {
+  clear(reason = t("Cache cleared")) {
     this.ring.fill(undefined); this.start = this.count = this.nextIndex = 0;
     this.resetParser(); this.meta = { ...this.meta, generation: this.meta.generation + 1, channels: 0, total: 0, invalid: 0, evicted: 0, image: null, reason };
     this.publish();
@@ -88,25 +89,25 @@ export class SignalStore {
     if (protocol === this.meta.protocol) return;
     this.meta.protocol = protocol; this.configureHeader();
     if (this.meta.source === "replay") { this.resetParser(); this.publish(); }
-    else this.clear("解析协议已切换，等待新数据");
+    else this.clear(t("Parser changed; waiting for new data"));
   }
   configure(binary: BinaryConfig, image: ImageConfig) {
     this.binary = validateBinary(binary); this.imageConfig = validateImage(image); this.configureHeader();
     if (this.meta.source === "replay") { this.resetParser(); this.publish(); }
-    else this.clear("帧配置已应用，等待帧头或完整帧");
+    else this.clear(t("Frame settings applied; waiting for header or complete frame"));
   }
   private configureHeader() { this.header = parseHeader(this.meta.protocol === "image" ? this.imageConfig.header : this.binary.header); }
-  open() { this.meta.connected = true; if (this.meta.source === "live") this.clear("实时采集中"); else this.publish(); }
-  close(reason = "实时流已断开") { this.meta.connected = false; this.resetParser(); if (this.meta.source === "live") { this.meta.generation++; this.meta.reason = reason; } this.publish(); }
+  open() { this.meta.connected = true; if (this.meta.source === "live") this.clear(t("Acquiring live data")); else this.publish(); }
+  close(reason = t("Live stream disconnected")) { this.meta.connected = false; this.resetParser(); if (this.meta.source === "live") { this.meta.generation++; this.meta.reason = reason; } this.publish(); }
   markGap(reason: string) {
     if (this.meta.source === "replay") return;
     this.resetParser(); this.append({ values: Array.from({ length: Math.max(1, this.meta.channels) }, () => NaN) }, Date.now());
     this.meta.reason = reason; this.schedule();
   }
-  live() { this.meta.source = "live"; this.clear(this.meta.connected ? "实时采集中" : "等待连接"); }
+  live() { this.meta.source = "live"; this.clear(this.meta.connected ? t("Acquiring live data") : t("Waiting for connection")); }
   replay(samples: readonly SignalSample[]) {
-    if (!samples.length || samples.length > this.capacity) throw new Error(`回放需要 1–${this.capacity} 个采样点`);
-    this.meta.source = "replay"; this.clear("离线回放，不会发送设备命令");
+    if (!samples.length || samples.length > this.capacity) throw new Error(t("Replay requires 1–{p0} samples", { p0: String(this.capacity) }));
+    this.meta.source = "replay"; this.clear(t("Offline replay; no device commands are sent"));
     for (const sample of samples) this.append({ values: [...sample.values] }, sample.receivedAt, sample.index);
     this.publish();
   }
@@ -121,7 +122,7 @@ export class SignalStore {
   }
   feed(incoming: Uint8Array, history = false, receivedAt = Date.now()) {
     if (this.meta.source === "replay") return;
-    if (history) { this.markGap("已忽略可能的历史数据，等待实时帧"); return; }
+    if (history) { this.markGap(t("Possible history ignored; waiting for live frames")); return; }
     const protocol = this.meta.protocol;
     if (!["firewater", "justfloat", "binary", "image"].includes(protocol)) return;
     if (protocol === "firewater") {
@@ -144,7 +145,7 @@ export class SignalStore {
       for (const sample of parsed.samples) this.append(sample, receivedAt);
     } else this.feedFixed(incoming, receivedAt);
     const latest = this.count ? this.ring[(this.start + this.count - 1) % this.capacity] : undefined;
-    if (this.meta.connected && (latest?.values.some(Number.isFinite) || this.meta.image)) this.meta.reason = "实时采集中";
+    if (this.meta.connected && (latest?.values.some(Number.isFinite) || this.meta.image)) this.meta.reason = t("Acquiring live data");
     this.schedule();
   }
   private feedFixed(incoming: Uint8Array, receivedAt: number) {
@@ -177,7 +178,7 @@ export class SignalStore {
       offset += frameBytes;
     }
     this.bytes = combined.slice(offset);
-    if (discarded) { this.pendingGap = true; this.meta.reason = "跳过帧头之前的字节，已重新同步"; this.meta.invalid++; }
+    if (discarded) { this.pendingGap = true; this.meta.reason = t("Skipped bytes before header; synchronized again"); this.meta.invalid++; }
   }
   flush() { this.publish(); }
   dispose() { clearTimeout(this.timer); this.timer = undefined; this.listeners.clear(); }

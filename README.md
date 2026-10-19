@@ -1,5 +1,9 @@
 # SerialHub
 
+The web workspace defaults to English and supports Traditional Chinese, Spanish,
+French and Arabic with RTL, plus the existing Simplified Chinese interface.
+See [localization and deployment controls](./I18N.md).
+
 <p align="center">
   <img alt="serialhub" src="https://img.shields.io/badge/serialhub-serial%20hub-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
 </p>

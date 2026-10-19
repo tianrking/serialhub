@@ -1,0 +1,41 @@
+.language-selector { display: inline-flex; flex-direction: row; align-items: center; gap: 5px; color: #8197bc; }
+.language-selector > span { font-size: 18px; line-height: 1; }
+.language-selector select { min-width: 0; width: 112px; min-height: 28px; font-size: 11px; padding: 3px 5px; }
+/* Codes, addresses and charts keep their logical order independently of UI flow. */
+code, pre, .hex, .event-hex, .ts, .line .kind, input[type="number"], input[type="password"], input.port, input[placeholder="127.0.0.1"], .signal-frame-settings input, .signal-scope, .signal-spectrum, .waveform, .xy-card svg, .histogram-card svg { direction: ltr; unicode-bidi: isolate; }
+.line { direction: ltr; }
+.line .msg { unicode-bidi: plaintext; }
+.line .hex, .event-hex { text-align: left; }
+html[lang="ar"] { font-family: "Noto Sans Arabic", Tahoma, system-ui, sans-serif; }
+html[lang="ar"] .eyebrow, html[lang="ar"] button, html[lang="ar"] .nav-label { letter-spacing: 0; }
+html[dir="rtl"] th, html[dir="rtl"] td { text-align: start; }
+html[dir="rtl"] .signal-import-actions { margin-left: 0; margin-inline-start: auto; }
+html[dir="rtl"] .signal-cursors button, html[dir="rtl"] .job-status button { margin-left: 0; margin-inline-start: auto; }
+html[dir="rtl"] .signal-meter .meter-title > span:last-child { margin-left: 0; margin-inline-start: auto; }
+html[dir="rtl"] .spectrum-peak small { text-align: start; }
+@media (min-width: 1000px) {
+  .header { right: auto; inset-inline-end: 25px; }
+  .header-status { gap: 8px; }
+  .language-selector select { width: 102px; min-height: 26px; height: 26px; background: #20324e; border-color: #34445d; color: #e1e9f5; }
+  .brand { margin: 0; margin-inline-end: 20px; flex-shrink: 0; }
+  .sidebar-nav { flex: 1; min-width: 0; margin: 0; margin-inline-end: 325px; }
+  .sidebar-nav button { min-width: 0; padding-inline: 9px; }
+  .sidebar-nav button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sidebar-nav button svg { flex-shrink: 0; }
+  .overview small { max-width: 98px; overflow: hidden; text-overflow: ellipsis; }
+  .overview-device small { flex-shrink: 0; }
+  .footer-caption { max-width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  html[dir="rtl"] .header { right: auto; }
+  html[dir="rtl"] .connect > .row input { direction: ltr; text-align: left; }
+  html[dir="rtl"] .signal-source-bar .signal-top-actions { margin-left: 0; margin-inline-start: auto; }
+  html[dir="rtl"] .signal-source-bar .signal-import-actions { margin: 0; }
+  html[dir="rtl"] .scope-status, html[dir="rtl"] .scope-bottom > span { direction: ltr; unicode-bidi: isolate; }
+}
+@media (max-width: 999px) {
+  .header-status { flex-wrap: wrap; gap: 8px; }
+  .header .local-badge { display: none; }
+  .sidebar-nav button { min-width: 0; }
+  .sidebar-nav button span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .signal-source-bar > .signal-top-actions { flex-wrap: wrap; }
+  .scope-status { flex-wrap: wrap; }
+}

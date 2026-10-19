@@ -1,5 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
+// Keep established wire/safety fixtures stable; i18n.spec.ts tests the English default.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("serialhub.ui.locale.v1", "zh-Hans"));
+});
+
 async function connect(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "连接 Hub", exact: true }).click();

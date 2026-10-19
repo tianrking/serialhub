@@ -6,9 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run check:i18n",
     "build": "tsc -b && vite build",
     "lint": "oxlint src",
-    "test": "node --experimental-strip-types --test",
+    "check:i18n": "node --experimental-strip-types scripts/check-i18n.ts",
+    "test": "node --experimental-strip-types --import ./locale-fixture.ts --test",
     "test:e2e": "playwright test",
     "preview": "vite preview"
   },

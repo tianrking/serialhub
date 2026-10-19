@@ -1,5 +1,7 @@
 # SerialHub
 
+Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉伯语 RTL，并保留简体中文。可在界面切换、记忆偏好，也可在构建时限制开放语言；参见 [i18n 配置与维护](./I18N.md)。
+
 <p align="center">
   <img alt="serialhub" src="https://img.shields.io/badge/serialhub-串口共享中枢-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
 </p>

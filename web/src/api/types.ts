@@ -1,3 +1,4 @@
+import { t } from "../i18n/index.ts";
 /** serialhub hub API 型別（對應 PROTOCOL.zh-TW.md） */
 
 export type EndpointKind = "http" | "websocket" | "tcp" | "pty" | string;
@@ -183,18 +184,18 @@ export interface ConnectionConfig {
 
 export function validateConnection(value: ConnectionConfig): ConnectionConfig {
   const host = value.host.trim();
-  if (!host || /[\s/?#@\\]/.test(host)) throw new Error("请输入有效主机名或 IP，不含协议和路径");
+  if (!host || /[\s/?#@\\]/.test(host)) throw new Error(t("Enter a hostname or IP without a protocol or path"));
   if (!Number.isInteger(value.port) || value.port < 1 || value.port > 65535) {
-    throw new Error("端口必须是 1 到 65535 之间的整数");
+    throw new Error(t("Port must be an integer from 1 to 65535"));
   }
   if (value.protocol !== undefined && value.protocol !== "http" && value.protocol !== "https") {
-    throw new Error("连接协议仅支持 HTTP 或 HTTPS");
+    throw new Error(t("Only HTTP and HTTPS connection protocols are supported"));
   }
   const authority = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
   try {
     new URL(`${value.protocol ?? "http"}://${authority}:${value.port}`);
   } catch {
-    throw new Error("主机名或 IP 格式无效");
+    throw new Error(t("Invalid hostname or IP address"));
   }
   return { host, port: value.port, protocol: value.protocol ?? "http" };
 }

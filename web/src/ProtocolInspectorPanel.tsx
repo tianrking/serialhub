@@ -1,3 +1,4 @@
+import { t, getFormattingLocale } from "./i18n/index.ts";
 import { useMemo } from "react";
 import { bytesToHex } from "./api/wsStream";
 import type { ProtocolFrame, StreamProtocol } from "./protocolUtils";
@@ -21,17 +22,14 @@ export default function ProtocolInspectorPanel({
     <section className="panel protocol-inspector">
       <div className="log-head">
         <div>
-          <h2>协议分析</h2>
+          <h2>{t("Protocol inspector")}</h2>
           <p className="hint">
-            {protocolLabel(protocol)} · {frames.length.toLocaleString()} frames · 浏览器本地解析，RX 原始字节不变
-          </p>
+            {protocolLabel(protocol)} · {frames.length.toLocaleString(getFormattingLocale())} {t("frames · parsed locally; raw RX bytes are unchanged")}</p>
         </div>
-        <button type="button" className="ghost" onClick={onClear}>
-          清空分析
-        </button>
+        <button type="button" className="ghost" onClick={onClear}>{t("Clear analysis")}</button>
       </div>
       {recent.length === 0 ? (
-        <p className="muted">等待完整帧。跨 WebSocket 分片的半帧会保留在有界缓冲区中。</p>
+        <p className="muted">{t("Waiting for complete frames. Partial WebSocket frames remain in a bounded buffer.")}</p>
       ) : (
         <div className="analysis-list">
           {recent.map((frame, index) => (

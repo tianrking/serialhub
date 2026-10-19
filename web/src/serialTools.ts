@@ -1,3 +1,4 @@
+import { t } from "./i18n/index.ts";
 import { appendLineEnding, type QuickCommand, type ConnectionProfile } from "./commandUtils.ts";
 import { appendHexChecksum, type HexChecksum, type ChecksumRange } from "./checksumUtils.ts";
 import { validateConnection } from "./api/types.ts";
@@ -30,7 +31,7 @@ export function encodeText(text: string, encoding: TextEncoding): Uint8Array {
     if (code <= 0x7f) bytes.push(code);
     else {
       const encoded = encoding === "gbk" ? gbkMap?.get(character) : undefined;
-      if (!encoded) throw new Error(`${encoding.toUpperCase()} 无法编码字符 ${character}，请选择 UTF-8 或 Hex`);
+      if (!encoded) throw new Error(t("{p0} cannot encode {p1}; choose UTF-8 or Hex", { p0: String(encoding.toUpperCase()), p1: String(character) }));
       bytes.push(...encoded);
     }
   }
@@ -38,7 +39,7 @@ export function encodeText(text: string, encoding: TextEncoding): Uint8Array {
 }
 
 export function decodeText(bytes: Uint8Array, encoding: TextEncoding): string {
-  if (encoding === "ascii" && bytes.some(byte => byte > 0x7f)) throw new Error("ASCII 无法解码大于 7F 的字节");
+  if (encoding === "ascii" && bytes.some(byte => byte > 0x7f)) throw new Error(t("ASCII cannot decode bytes above 7F"));
   return new TextDecoder(encoding, { fatal: true }).decode(bytes);
 }
 
@@ -60,15 +61,15 @@ export class RawCapture {
   private chunks: Uint8Array<ArrayBuffer>[] = [];
   bytes = 0;
   active = false;
-  reason = "尚未开始";
+  reason = t("Not started");
   readonly limit: number;
   constructor(limit = MAX_CAPTURE_BYTES) { this.limit = limit; }
-  start() { this.chunks = []; this.bytes = 0; this.reason = "正在录制"; this.active = true; }
-  stop(reason = "已停止") { if (this.active) { this.active = false; this.reason = reason; } }
+  start() { this.chunks = []; this.bytes = 0; this.reason = t("Recording"); this.active = true; }
+  stop(reason = t("Stopped")) { if (this.active) { this.active = false; this.reason = reason; } }
   add(bytes: Uint8Array, history = false) {
     if (!this.active) return;
-    if (history) { this.stop("收到可能的历史数据，录制已停止"); return; }
-    if (this.bytes + bytes.byteLength > this.limit) { this.stop("已到容量上限，未保存超限数据包"); return; }
+    if (history) { this.stop(t("Possible historical data received; recording stopped")); return; }
+    if (this.bytes + bytes.byteLength > this.limit) { this.stop(t("Capacity reached; oversized packet was not saved")); return; }
     let offset = 0;
     while (offset < bytes.length) {
       const position = this.bytes % 65536;
@@ -110,20 +111,20 @@ export function workspaceBackup(commands: QuickCommand[], profiles: ConnectionPr
   }, null, 2);
 }
 export function parseWorkspaceBackup(text: string): WorkspaceBackup {
-  if (text.length > 1024 * 1024) throw new Error("配置文件不能超过 1 MiB");
+  if (text.length > 1024 * 1024) throw new Error(t("Settings file must not exceed 1 MiB"));
   const value = JSON.parse(text);
   if (!value || value.format !== "serialhub-workspace" || value.version !== 1 || !Array.isArray(value.commands)
-      || !Array.isArray(value.profiles) || value.commands.length > 200 || value.profiles.length > 50) throw new Error("配置格式或数量无效（最多 200 条指令、50 个连接）");
+      || !Array.isArray(value.profiles) || value.commands.length > 200 || value.profiles.length > 50) throw new Error(t("Invalid settings format or count (max. 200 commands, 50 profiles)"));
   const commands: QuickCommand[] = value.commands.map((item: QuickCommand, index: number) => {
     if (!item || typeof item.name !== "string" || !item.name.trim() || item.name.length > 128
         || typeof item.payload !== "string" || !item.payload.length || item.payload.length > 65536
-        || !["text", "hex"].includes(item.mode) || !["none", "lf", "cr", "crlf"].includes(item.lineEnding)) throw new Error(`第 ${index + 1} 条指令格式无效`);
-    if ((item.enabled !== undefined && typeof item.enabled !== "boolean") || (item.delayMs !== undefined && (!Number.isInteger(item.delayMs) || item.delayMs < 50 || item.delayMs > 60000))) throw new Error("轮发参数无效");
+        || !["text", "hex"].includes(item.mode) || !["none", "lf", "cr", "crlf"].includes(item.lineEnding)) throw new Error(t("Command {p0} has an invalid format", { p0: String(index + 1) }));
+    if ((item.enabled !== undefined && typeof item.enabled !== "boolean") || (item.delayMs !== undefined && (!Number.isInteger(item.delayMs) || item.delayMs < 50 || item.delayMs > 60000))) throw new Error(t("Invalid sequence settings"));
     if (item.mode === "hex") hexBytes(item.payload);
     return { id: `import-command-${index}`, name: item.name, mode: item.mode, payload: item.payload, lineEnding: item.lineEnding, ...(item.enabled !== undefined ? { enabled: item.enabled } : {}), ...(item.delayMs !== undefined ? { delayMs: item.delayMs } : {}) };
   });
   const profiles: ConnectionProfile[] = value.profiles.map((item: ConnectionProfile, index: number) => {
-    if (!item || typeof item.name !== "string" || !item.name.trim() || item.name.length > 128) throw new Error("连接配置名称无效");
+    if (!item || typeof item.name !== "string" || !item.name.trim() || item.name.length > 128) throw new Error(t("Invalid connection profile name"));
     const cfg = validateConnection(item);
     return { id: `import-profile-${index}`, name: item.name, ...cfg };
   });
