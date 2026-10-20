@@ -2,7 +2,7 @@
 """Linux package preflight using real OS serial handles over isolated PTYs.
 
 Checks the browser opener callback, repeated launches, exact binary I/O,
-reconnection and synchronous quit. Never opens physical hardware.
+device loss, reopening and synchronous quit. Never opens physical hardware.
 """
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -53,6 +53,7 @@ def main():
         env["BROWSER"] = str(browser)
         base = None
         masters = []
+        slaves = []
 
         def run(*options):
             result = subprocess.run([binary, *options], env=env, capture_output=True,
@@ -69,8 +70,11 @@ def main():
         def new_pty():
             master, slave = pty.openpty()
             masters.append(master)
+            # Keep the slave reference until its owner stops. After master loss
+            # this pins the PTY index so a reconnect cannot open another user's
+            # newly allocated terminal under a recycled /dev/pts name.
+            slaves.append(slave)
             device = os.ttyname(slave)
-            os.close(slave)
             return master, device
 
         def open_device(device):
@@ -125,20 +129,21 @@ def main():
             until(lambda: not request(status)["port"]["connected"])
             assert request(f"/sessions/{other}/v1/status")["port"]["connected"]
             print("PASS device loss is reported while the other owner stays connected", flush=True)
-            # Recreate the same name as a reconnected adapter retaining its path.
-            # This simulates I/O loss; it does not qualify USB hotplug or a driver.
-            master, replacement = new_pty()
-            assert replacement == device, ("PTY name changed during isolated test", device, replacement)
-            until(lambda: request(status)["port"]["connected"])
+            # Stop the lost owner before allowing its PTY index to be reused.
+            # USB auto-reconnect acceptance remains a separate hardware check.
+            request(f"/manager/sessions/{session}", method="DELETE")
+            os.close(slaves.pop())
+            master, device = new_pty()
+            session, status = open_device(device)
             before = request(status)["stats"]["rx_bytes"]
             os.write(master, rx)
             until(lambda: request(status)["stats"]["rx_bytes"] == before + len(rx))
-            assert not select.select([master], [], [], 0.1)[0], "Unexpected output on reconnect"
+            assert not select.select([master], [], [], 0.1)[0], "Unexpected output after reopening"
             request(f"/manager/sessions/{session}", method="DELETE")
             probe(device)
             assert request(f"/sessions/{other}/v1/status")["port"]["connected"]
             open_device(device)
-            print("PASS reconnect resumes RX; closing one device releases it and preserves the other", flush=True)
+            print("PASS reopening resumes RX; closing one device releases it and preserves the other", flush=True)
 
             run("quit", "--bind", "127.0.0.1:0")
             # No polling here: success must already follow OS handle cleanup.
@@ -157,6 +162,8 @@ def main():
                     pass
             for master in masters:
                 os.close(master)
+            for slave in slaves:
+                os.close(slave)
 
 
 if __name__ == "__main__":
