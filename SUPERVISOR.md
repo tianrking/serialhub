@@ -1,5 +1,7 @@
 # Multi-profile supervision
 
+> Current source: **0.0.4**. Documentation index and publication/validation status: [DOCS.md](DOCS.md).
+
 Run one process with independent serial hubs:
 
 ```bash

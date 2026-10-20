@@ -1,5 +1,9 @@
 # SerialHub v0.0.4 candidate
 
+- Added independent interface (80–160%) and serial log/send-editor (10–28 px) text sizing, immediate preview, reset and browser-origin persistence across tabs; six-language labels and RTL layout. See [DISPLAY.md](DISPLAY.md).
+- Kept multi-port terminal columns and HEX commands left-to-right in Arabic; text editors follow their contents without rewriting bytes.
+- Reconciled current-source README/version, uncapped multi-port and runtime-setting descriptions; retained historical release/changelog identities. See [DOCS.md](DOCS.md).
+
 Local candidate builds; platform-specific validation is recorded with each package.
 The public v0.2.3 release remains unchanged until new packages are published.
 

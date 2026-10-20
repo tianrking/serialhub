@@ -1,8 +1,11 @@
-# serialhub Web 控制台（繁體中文）
+# SerialHub Web 控制台（繁體中文，當前原始碼 0.0.4）
 
 本目錄為 **React + Vite + TypeScript** 前端，連線本機 **serialhub hub** 的 HTTP / WebSocket。
 
-## 功能清單（完整）
+桌面啟動器 `serialhub-desktop` 會開啟裝置管理網頁，可開關多個實體埠及平鋪多路終端；參見 [DESKTOP.md](../DESKTOP.md) 和 [MULTIPORT.md](../MULTIPORT.md)。
+點選語言選單旁的 **Aa**，可獨立調整介面文字（80–160%）與串口日誌/傳送編輯器（10–28 px）；六種語言立即生效。參見 [DISPLAY.md](../DISPLAY.md)。
+
+## 功能清單
 
 | 功能 | 狀態 |
 |------|------|
@@ -39,9 +42,7 @@
 - 即時日誌可分開查看文字與 Hex、顯示/隱藏時間戳，並匯出目前頁面保留的日誌。
 - 即時日誌支援暫停、自動捲動和清空；波形解析只在瀏覽器本地進行，不改寫 RX 原始位元組。
 
-串口的 baud、data bits、parity、stop bits、flow control 仍由 `run` / `share`
-的 TOML/CLI 設定，在 Hub 重新開啟實體埠時套用；控制台顯示目前埠與 baud，避免
-網頁偷偷改變硬體參數。
+串口初始參數由 CLI/TOML 或裝置管理頁指定。裝置參數分頁可在明確確認後修改 baud、data bits、parity、stop bits、flow control；需要 `api.can_control` 與有效寫入租約，等候 owner 的驅動確認，僅在目前程序內生效，不寫回 TOML。
 
 例如 Windows 可直接使用：
 
@@ -54,7 +55,10 @@ serialhub share COM3 --baud 115200 --data-bits 8 --parity none --stop-bits 1 --f
 先建置前端，再編譯 Rust（會把 `web/dist` 嵌進二進位）：
 
 ```bash
-cd web && npm install && npm run build && cd ..
+cd web
+npm ci
+npm run build
+cd ..
 cargo build --release
 
 # 一鍵共享並開啟瀏覽器控制台
@@ -93,7 +97,7 @@ vercel --prod
 ```
 
 > **注意**：HTTPS 的 Vercel 頁連 `ws://127.0.0.1` 可能被瀏覽器封鎖。  
-> **實務請優先用本機** `http://127.0.0.1:8787/`。詳見 `PROTOCOL.zh-TW.md` §2.4。
+> **實務請優先用本機** `http://127.0.0.1:8787/`。詳見 `PROTOCOL.zh-TW.md` §2.5。
 
 ## 目錄
 
@@ -112,6 +116,6 @@ web/
 
 | 方式 | 用途 |
 |------|------|
-| `serialhub share ...` | 本機高效能 hub（必須） |
+| `serialhub share ...` | 獨立串口 Hub；也可用桌面管理器開啟多埠 |
 | 本 React 頁 | 可選人機監控 / 除錯面板 |
 | Agent | 同一套 WS/HTTP 協定 |

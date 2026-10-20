@@ -1,13 +1,16 @@
 # Building and publishing SerialHub
 
-Releases contain portable archives for Linux x86_64 / ARM64, macOS Intel /
+The native release workflow targets portable archives for Linux x86_64 / ARM64, macOS Intel /
 Apple Silicon, and Windows x86_64 / ARM64. Each archive includes the primary
-`serialhub` executable, the 0.x `ohmyserial` compatibility executable, offline
+`serialhub` executable, the 0.x `ohmyserial` compatibility executable, the `serialhub-desktop` launcher, offline
 documentation, a sample profile, and a per-file SHA-256 provenance manifest.
 The web interface and all six language catalogs are embedded in each executable.
 Users do not need Node.js or Rust to run these packages.
 
 ## Release acceptance
+
+The current source/local candidate is **0.0.4**. This is not a published six-platform release.
+With hosted CI paused, use the local-build path below; do not tag or dispatch Actions.
 
 1. Update `Cargo.toml`, `Cargo.lock`, `web/package.json`, and
    `web/package-lock.json` to the same version. Update the changelog, current
@@ -16,8 +19,8 @@ Users do not need Node.js or Rust to run these packages.
 3. Create and push an annotated tag matching that exact version, for example:
 
    ```bash
-   git tag -a v0.2.1 -m "SerialHub v0.2.1"
-   git push origin v0.2.1
+   git tag -a v0.0.4 -m "SerialHub v0.0.4"
+   git push origin v0.0.4
    ```
 
 4. Follow the **Release** workflow through publication. A successful tag push
@@ -31,7 +34,7 @@ building the branch from which the workflow was dispatched.
 
 CI checks both Node.js 22 and 24, translation coverage, frontend tests, lint,
 committed production assets, release-validator tests, Rust formatting and clippy.
-All six native runners execute applicable Rust tests, build with `--locked`,
+The workflow requires all six native runners to execute applicable Rust tests, build with `--locked`,
 validate executable architecture, and extract and run the actual archive.
 Package smoke checks cover all three executable versions and the macOS app launcher, the embedded English UI
 and local JS/CSS/language assets, shared binary RX and token-protected TX.
@@ -51,8 +54,8 @@ On Linux:
 
 ```bash
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf serialhub-v0.2.1-x86_64-unknown-linux-gnu.tar.gz
-cd serialhub-v0.2.1-x86_64-unknown-linux-gnu
+tar -xzf serialhub-v0.0.4-x86_64-unknown-linux-gnu.tar.gz
+cd serialhub-v0.0.4-x86_64-unknown-linux-gnu
 ./serialhub --version
 ./serialhub share mock:demo --pty 0 --ui
 ```
@@ -70,7 +73,7 @@ python3 scripts/smoke-sharing.py --binary ./serialhub
 Use `python` and `.\serialhub.exe` on Windows.
 
 The GNU/Linux packages are built and tested on Ubuntu 24.04 (glibc 2.39); build
-from source for older distributions. Native macOS acceptance runs on macOS 15.
+from source for older distributions. The configured native macOS runners use macOS 15. A configured job is not evidence that it ran for this candidate.
 Archives are not signed/notarized installers; normal operating-system trust
 and serial-device permissions still apply. Hardware-specific drivers may be
 required for USB adapters. CI uses mock devices and, on Linux, a pseudoterminal
@@ -96,3 +99,8 @@ toolchain identity. The six native release targets and `--require-all` gate rema
 unchanged. Static PE/resource/import checks and Wine smoke tests are additional
 checks; they do not replace Windows hardware acceptance. macOS native packages
 require a Mac/Apple SDK and runtime verification before publication.
+
+Current local candidate coverage: Linux x86_64 GNU and Windows x86_64 GNU only.
+Check the manifest source commit and `SHA256SUMS`; Wine compatibility tests do not
+qualify Windows 10/11 USB hardware. No macOS/ARM64 candidate is supplied by this
+Linux environment. GitHub Release upload has not completed.

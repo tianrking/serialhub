@@ -1,4 +1,4 @@
-# serialhub Web Console
+# SerialHub Web Console — source 0.0.4
 
 The `web/` directory contains the React + Vite + TypeScript console embedded
 into the Rust binary as `web/dist`. It connects to the hub's HTTP and
@@ -27,8 +27,18 @@ serialhub share COM3 --baud 115200 --data-bits 8 --parity none \
   --stop-bits 1 --flow-control none --ui
 ```
 
-The browser console does not silently reconfigure an already-open UART. Baud,
-data bits, parity, stop bits, and flow control remain Hub CLI/TOML settings.
+The Device settings tab can change baud, data bits, parity, stop bits and flow
+control after explicit confirmation when `api.can_control` and a live write lease
+allow it. The owner acknowledges the driver result; changes are process-local
+and do not rewrite TOML. Desktop mode also scans and opens/closes independent
+physical devices; standalone share/run changes its device path through restart.
+
+## Display and desktop mode
+
+For no-command startup use `serialhub-desktop`; the browser manager includes
+independent devices and a tiled multi-port workspace. See [DESKTOP.md](../DESKTOP.md)
+and [MULTIPORT.md](../MULTIPORT.md). The **Aa** button beside the six-language
+selector adjusts interface/log font sizes; see [DISPLAY.md](../DISPLAY.md).
 
 ## Console capabilities
 
@@ -83,7 +93,8 @@ validate the embedded asset before committing.
 - [`../WORKFLOWS.md`](../WORKFLOWS.md) — bounded Agent workflow contract.
 - [`README.zh-TW.md`](./README.zh-TW.md) — Traditional Chinese UI guide.
 
-Plain HTTP/WS/TCP listeners are loopback-only. For remote use, follow the Hub
+Standalone CLI/TOML HTTP/WS/TCP listeners are loopback-only. Desktop mode can
+explicitly enable paired IPv4 LAN HTTP/WS; this exception does not expose raw TCP. For remote use, follow the Hub
 documentation for an SSH tunnel or TLS reverse proxy; do not put API tokens in
 URLs.
 

@@ -1,5 +1,7 @@
 # Windows COM bridge
 
+> Current source: **0.0.4**. Documentation index and publication/validation status: [DOCS.md](DOCS.md).
+
 `serialhub` can own a physical `COMx` port directly. Some legacy programs,
 however, can only open a local COM device and cannot speak TCP, WebSocket, or
 RFC2217. The `bridge-com` command covers that workflow by forwarding an

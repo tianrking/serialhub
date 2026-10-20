@@ -18,7 +18,7 @@
   --rx: #afc7b9;
   --tx: #b8b0d5;
   --sys: #a2adbb;
-  font-size: 12px;
+  font-size: calc(12px * var(--ui-font-scale, 1));
   line-height: 1.45;
 }
 body {
@@ -172,7 +172,7 @@ code,
   border: 1px solid transparent;
   background: var(--chrome);
   color: var(--muted);
-  font-size: 13px;
+  font-size: 1.08333333rem;
   opacity: 0;
   user-select: none;
 }
@@ -191,7 +191,7 @@ code,
 }
 .copy-feedback {
   color: var(--ok);
-  font-size: 11px;
+  font-size: 0.91666667rem;
   white-space: nowrap;
 }
 .copy-feedback:empty {
@@ -205,11 +205,11 @@ code,
   min-width: 0;
   min-height: 140px;
   margin-block: 8px;
-  font-size: 12px;
+  font-size: 1rem;
 }
 .clipboard-dialog p {
   color: var(--text);
-  font-size: 12px;
+  font-size: 1rem;
 }
 .workspace-dialog {
   border-radius: 4px;
@@ -241,7 +241,7 @@ code,
   width: 18px;
 }
 .manager-brand strong {
-  font-size: 14px;
+  font-size: 1.16666667rem;
   letter-spacing: 0;
 }
 .manager-brand small {
@@ -262,7 +262,7 @@ code,
   align-items: baseline;
 }
 .manager-intro h1 {
-  font-size: 16px;
+  font-size: 1.33333333rem;
   letter-spacing: 0;
   margin: 0 0 3px;
 }
@@ -270,7 +270,7 @@ code,
   display: none;
 }
 .manager-intro p {
-  font-size: 12px;
+  font-size: 1rem;
 }
 .manager-count {
   display: flex;
@@ -280,12 +280,12 @@ code,
 }
 .manager-count strong {
   font:
-    16px ui-monospace,
+    1.33333333rem ui-monospace,
     monospace;
   color: var(--text);
 }
 .manager-count span {
-  font-size: 11px;
+  font-size: 0.91666667rem;
 }
 .manager-grid {
   grid-template-columns: minmax(300px, 0.75fr) minmax(0, 1.5fr);
@@ -299,7 +299,7 @@ code,
 }
 .manager-card-title h2,
 .manager-sharing h2 {
-  font-size: 13px;
+  font-size: 1.08333333rem;
 }
 .manager-step {
   width: auto;
@@ -352,14 +352,14 @@ code,
   gap: 8px;
 }
 .manager-session-main strong {
-  font-size: 12px;
+  font-size: 1rem;
 }
 .manager-session-stats {
   grid-column: 1;
   gap: 12px;
   margin: 2px 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.91666667rem;
 }
 .manager-session-actions {
   grid-column: 2;
@@ -370,7 +370,7 @@ code,
 }
 .manager-session-actions button {
   min-height: 27px;
-  font-size: 11px;
+  font-size: 0.91666667rem;
   padding: 3px 7px;
 }
 .manager-detail {
@@ -392,11 +392,11 @@ code,
 }
 .manager-footer {
   padding: 0;
-  font-size: 11px;
+  font-size: 0.91666667rem;
 }
 .manager-sharing p,
 .manager-demo p {
-  font-size: 11px;
+  font-size: 0.91666667rem;
   line-height: 1.5;
 }
 .metrics-grid {
@@ -417,12 +417,12 @@ code,
   border-radius: 0;
 }
 .metric-card code {
-  font-size: 12px;
+  font-size: 1rem;
   overflow-wrap: anywhere;
 }
 .metric-card strong {
   font:
-    13px ui-monospace,
+    1.08333333rem ui-monospace,
     monospace;
   color: var(--text);
 }
@@ -460,7 +460,7 @@ code,
   display: none;
 }
 .signal-topbar h2 {
-  font-size: 15px;
+  font-size: 1.25rem;
   letter-spacing: 0;
 }
 .signal-topbar h2 > span {
@@ -484,28 +484,28 @@ code,
   background: var(--button-bg);
 }
 .instrument-heading h3 {
-  font-size: 12px;
+  font-size: 1rem;
 }
 .signal-tag,
 .tag {
   border-radius: 2px;
 }
 .protocol h2 {
-  font-size: 15px;
+  font-size: 1.25rem;
 }
 .protocol h3 {
   margin: 14px 0 6px;
-  font-size: 13px;
+  font-size: 1.08333333rem;
 }
 .protocol p,
 .protocol li {
-  font-size: 12px;
+  font-size: 1rem;
   line-height: 1.65;
 }
 .footer-caption,
 .terminal-statusbar,
 .port-result {
-  font-size: 10px;
+  font-size: 0.83333333rem;
 }
 @media (min-width: 1000px) {
   .app {
@@ -518,7 +518,7 @@ code,
     padding: 0 8px;
   }
   .brand {
-    font-size: 14px;
+    font-size: 1.16666667rem;
     letter-spacing: 0;
   }
   .brand-mark {
@@ -563,10 +563,10 @@ code,
     border-radius: 0;
   }
   .log-panel label {
-    font-size: 11px;
+    font-size: 0.91666667rem;
   }
   .line {
-    font-size: 12px;
+    font-size: 1rem;
   }
   .terminal-transport {
     display: none;
@@ -582,7 +582,7 @@ code,
     padding: 8px;
   }
   .composer-panel label {
-    font-size: 11px;
+    font-size: 0.91666667rem;
   }
   .signal-source-bar {
     padding-block: 4px;
@@ -617,7 +617,7 @@ code,
     flex-direction: column;
   }
   .manager-intro h1 {
-    font-size: 15px;
+    font-size: 1.25rem;
   }
   .metrics-grid {
     grid-template-columns: 1fr;
@@ -657,7 +657,7 @@ code,
   overflow-wrap: anywhere;
   margin-block: 8px;
   user-select: all;
-  font-size: 11px;
+  font-size: 0.91666667rem;
 }
 @media (min-width: 1000px) {
   .events-workspace {
@@ -729,13 +729,84 @@ code,
   border-radius: 3px;
   background: var(--chrome);
   color: var(--ok);
-  font-size: 12px;
+  font-size: 1rem;
   pointer-events: none;
   z-index: 20;
 }
 .line .hex,
 td code,
 .analysis-body > code {
-  font-size: 11px;
+  font-size: 0.91666667rem;
   line-height: 1.5;
 }
+
+/* Text preferences affect typography, not protocol bytes or session ownership. */
+.interface-preferences { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.interface-preferences .display-settings-button { font-size: 1rem; padding: 2px 5px; min-height: 26px; height: auto; white-space: nowrap; }
+.interface-preferences .language-selector select { width: 8.5rem; height: auto; min-height: 26px; }
+.display-dialog { width: min(480px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
+.display-dialog label { display: flex; flex-direction: column; gap: 6px; }
+.display-dialog .display-range { display: flex; align-items: center; gap: 12px; }
+.display-range input { flex: 1; min-width: 0; }
+.display-range output { min-width: 5ch; text-align: end; font-variant-numeric: tabular-nums; }
+.display-preview { padding: 8px; background: var(--canvas); border: 1px solid var(--border); }
+.display-preview pre { white-space: pre-wrap; overflow-wrap: anywhere; margin-block: 8px 0; font-size: var(--log-font-size, 12px); }
+.log .line, .port-log .port-entry { font-size: var(--log-font-size, 12px); grid-template-columns: 5.8em 2.4em minmax(0, 1fr); }
+.log .line .ts, .log .line .kind, .log .line .hex, .port-log .port-entry time, .port-log .port-entry b { font-size: 0.9em; }
+.composer-panel textarea, .port-panel .port-composer textarea { font-size: var(--log-font-size, 12px); }
+.port-panel .port-composer textarea { min-height: 2em; height: 2.4em; }
+html[data-large-text="true"] button, html[data-large-text="true"] select, html[data-large-text="true"] input:not([type="checkbox"]):not([type="range"]) { height: auto; min-height: 1.9em; }
+html[data-large-text="true"] .multi-toolbar, html[data-large-text="true"] .multi-controls, html[data-large-text="true"] .port-log-toolbar { flex-wrap: wrap; }
+html[data-large-text="true"] .multi-controls { flex-basis: 75%; }
+html[data-large-text="true"] .multi-toolbar .language-selector { width: auto; }
+html[data-large-text="true"] .port-stream-status, html[data-large-text="true"] .port-result { height: auto; flex-wrap: wrap; }
+@media (min-width: 1000px) {
+  .app:not(.app-managed) { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr) auto; column-gap: 0; }
+  .app:not(.app-managed) > .sidebar { grid-column: 1; grid-row: 1; min-width: 0; padding-inline-end: 0; }
+  .app:not(.app-managed) .sidebar-nav { margin-inline-end: 0; }
+  .app:not(.app-managed) > .header { position: static; grid-column: 2; grid-row: 1; align-self: stretch; display: flex; align-items: center; background: var(--chrome); border-bottom: 1px solid var(--border); padding-inline: 8px; }
+  .app:not(.app-managed) > .workspace-main { grid-column: 1 / -1; grid-row: 2; }
+  .app:not(.app-managed) > .footer { grid-column: 1 / -1; grid-row: 3; }
+  html[data-large-text="true"] .sidebar { height: auto; min-height: 36px; flex-basis: auto; }
+  html[data-large-text="true"] .app-managed .sidebar { flex-wrap: wrap; gap: 4px; }
+  html[data-large-text="true"] .app-managed .workspace-controls { margin-inline-start: auto; }
+  html[data-large-text="true"] .overview { flex-wrap: wrap; }
+  html[data-large-text="true"] .connect > .row { flex-wrap: wrap; }
+}
+@media (max-width: 999px) {
+  .app > .header { flex-direction: column; align-items: stretch; gap: 8px; }
+  .app > .header > div { min-width: 0; }
+  .header-status { max-width: 100%; min-width: 0; padding-top: 0; }
+  .header-status .lamp { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .interface-preferences { max-width: 100%; }
+  .interface-preferences .language-selector { min-width: 0; }
+  .interface-preferences .language-selector select { max-width: 100%; }
+}
+.workspace-heading { flex-wrap: wrap; }
+.workspace-heading > span { min-width: 0; overflow-wrap: anywhere; }
+.manager-toolbar > .interface-preferences { order: 3; }
+@media (max-width: 999px) { .manager-toolbar > .interface-preferences { margin-inline-start: auto; } }
+@media (max-width: 999px) {
+  .overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .overview > div, .overview-device > div { min-width: 0; }
+  .overview strong { overflow-wrap: anywhere; }
+  .log-head label { min-width: 0; max-width: 100%; }
+  .log-head select { max-width: 100%; }
+}
+@media (min-width: 1000px) and (max-width: 1450px) {
+  .app-managed .sidebar { gap: 6px; }
+  .app-managed .sidebar-nav { gap: 2px; }
+  .app-managed .sidebar-nav button { padding-inline: 3px; }
+  .workspace-controls, .workspace-controls .header-status { gap: 5px; }
+  .workspace-device-switch select { width: 96px; }
+  .workspace-controls .interface-preferences { gap: 3px; }
+  .workspace-controls .interface-preferences .display-settings-button { padding-inline: 2px; }
+  .workspace-controls .interface-preferences .language-selector select { width: 7.5rem; }
+  .workspace-device-switch > svg, .workspace-controls .language-selector > span { display: none; }
+}
+
+/* Serial rows keep terminal order while Arabic interface controls mirror. */
+.port-log .port-entry { direction: ltr; }
+.port-log .port-entry pre { unicode-bidi: plaintext; }
+
+.composer-panel .hex-send-input { font-size: var(--log-font-size, 12px); font-family: ui-monospace, Consolas, monospace; }

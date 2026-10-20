@@ -61,6 +61,7 @@ jobs:
           RELEASE_TAG: ${{ inputs.release-tag }}
         run: |
           python scripts/release.py check --tag "$RELEASE_TAG"
+          python scripts/check-docs.py
           python -m unittest discover -s scripts/tests -v
       - name: Test, lint and build the local web console
         working-directory: web

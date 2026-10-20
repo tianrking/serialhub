@@ -6,6 +6,9 @@ All notable changes to this project are documented in this file.
 
 ## [0.0.4] — source / local candidate
 
+- Added independent interface (80–160%) and serial log/send-editor (10–28 px) text sizing, immediate preview, reset and browser-origin persistence across tabs; six-language labels and RTL layout. See [DISPLAY.md](DISPLAY.md).
+- Reconciled current-source README/version, uncapped multi-port and runtime-setting descriptions; retained historical release/changelog identities. See [DOCS.md](DOCS.md).
+
 Version metadata now follows the requested 0.0.x numbering. Earlier 0.3.x/0.4.x
 local candidate labels are superseded; historical published tags are unchanged.
 

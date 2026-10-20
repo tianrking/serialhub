@@ -2,6 +2,8 @@
 
 Versión actual del código/candidato local: **0.0.4**. Consulta [las notas](RELEASE_NOTES.md). Las descargas históricas de GitHub permanecen sin cambios hasta publicar los nuevos paquetes.
 
+Pulsa **Aa**, junto al selector de idioma, para ajustar por separado el texto de la interfaz (**80–160%**) y los registros/editores de envío (**10–28 px**). Se aplica al instante y se guarda para esta dirección del navegador si el almacenamiento está disponible. Consulta [ajustes de texto](DISPLAY.md) y el [índice de documentación](DOCS.md).
+
 <p align="center">
   <img alt="serialhub" src="https://img.shields.io/badge/serialhub-hub%20serie-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
 </p>
@@ -29,7 +31,7 @@ Versión actual del código/candidato local: **0.0.4**. Consulta [las notas](REL
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.1.0"><img alt="Version" src="https://img.shields.io/badge/version-v0.1.0-0ea5e9?style=flat-square" /></a>
+  <a href="./Cargo.toml"><img alt="Source version" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
@@ -50,7 +52,7 @@ Versión actual del código/candidato local: **0.0.4**. Consulta [las notas](REL
 
 ## Inicio sin terminal
 
-Desde v0.2.1, descarga y extrae el paquete de tu plataforma. En Windows abre `serialhub-desktop.exe`; en macOS, `SerialHub.app`; en Linux ejecuta `serialhub-desktop` como programa.
+El código/candidato actual es **0.0.4**. Los paquetes históricos **v0.2.3** no incluyen la bandeja ni los terminales en mosaico actuales. Usa un candidato 0.0.4 verificado o compila el código. Extrae el paquete de tu plataforma. En Windows abre `serialhub-desktop.exe`; en macOS, `SerialHub.app`; en Linux ejecuta `serialhub-desktop` como programa.
 El navegador se abre automáticamente. Selecciona y configura un puerto, abre su espacio y añade otras sesiones independientes. Puedes activar el acceso IPv4 por LAN y compartir un enlace de vinculación desde el equipo anfitrión.
 No necesitas Node.js ni Rust. Los paquetes no están firmados; siguen siendo necesarios los permisos y controladores del puerto. Consulta [DESKTOP.md](./DESKTOP.md).
 
@@ -103,7 +105,7 @@ Ideal para depuración embebida cuando **un terminal humano y un agente/script d
 | Licencia | MIT |
 | Documentación | [English](./README.md) (por defecto) · [中文](./README.zh-CN.md) · **Español** |
 | Arquitectura | [`POSITIONING.md`](./POSITIONING.md) |
-| Versión actual | [v0.1.0](https://github.com/tianrking/serialhub/releases/tag/v0.1.0) |
+| Descarga pública histórica | [v0.2.3](https://github.com/tianrking/serialhub/releases/tag/v0.2.3) |
 
 ---
 
@@ -342,12 +344,20 @@ tcp_base_port = 8788
 
 ### D — Lock exclusivo
 
+El ejemplo requiere `curl` y `jq`. Guarda el token opaco; el nombre del cliente no es una credencial.
+
 ```bash
-curl -s -X POST http://127.0.0.1:8787/v1/lock \
+LEASE_TOKEN="$(curl -s -X POST http://127.0.0.1:8787/v1/lock \
   -H 'content-type: application/json' \
-  -d '{"as_client":"agent"}'
-curl -s -X DELETE http://127.0.0.1:8787/v1/lock
+  -d '{"as_client":"agent"}' | jq -r '.lock.lease_token')"
+curl -s -X POST http://127.0.0.1:8787/v1/write \
+  -H 'content-type: application/json' \
+  -d "{\"text\":\"ATI\",\"lease_token\":\"$LEASE_TOKEN\"}"
+curl -s -X DELETE http://127.0.0.1:8787/v1/lock \
+  -H 'content-type: application/json' \
+  -d "{\"lease_token\":\"$LEASE_TOKEN\"}"
 ```
+
 
 ---
 
@@ -452,6 +462,8 @@ exactos y recuerda que WebSocket valida también `Origin`.
 | `GET` | `/v1/health` | Liveness |
 | `GET` | `/v1/status` | Puerto, clientes, lock, stats |
 | `GET` | `/v1/clients` | Lista de clientes |
+| `GET` / `POST` | `/v1/serial/settings` | Consultar/cambiar parámetros; POST requiere permiso de control y lease |
+| `GET` | `/v1/serial/ports` | Hub host serial-port inventory |
 | `GET` | `/v1/endpoints` | PTY/TCP disponibles y estado |
 | `GET` | `/v1/events` | Historial paginado de eventos |
 | `GET` | `/v1/events/status` | Estado del ledger de eventos |
@@ -599,10 +611,10 @@ CI: Ubuntu · macOS · Windows.
 
 ## Alcance de la versión actual
 
-v0.1.0 es la línea pública actual: incluye el hub, TX confiable y leases,
+El código/candidato local actual es **0.0.4**; la descarga pública histórica es **v0.2.3**. Las capacidades siguientes corresponden al código actual: incluye el hub, TX confiable y leases,
 PTY en Unix, TCP, HTTP/WebSocket, RFC2217, supervisión de varios perfiles,
 ledger de eventos con replay seguro, identidad USB, handoff acotado, métricas
-Prometheus y consola web integrada. La versión 0.1.0 añade el espacio de
+Prometheus y consola web integrada, el espacio de
 depuración en una pantalla, análisis de señales y seis idiomas configurables.
 Consulta [paquetes y verificación de publicación](./RELEASING.md).
 

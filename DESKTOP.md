@@ -222,3 +222,10 @@ For hardware acceptance, use two physical adapters, observe RX on two clients pe
 adapter, test leases, unplug/replug each separately, and confirm closing one device
 leaves the other running. Test drivers, DTR/RTS/reset behavior, high sustained baud
 rates and private-network firewall access on your actual Windows/macOS/Linux hosts.
+
+## Text size / 字号
+
+Click **Aa** beside the language selector. Interface text: **80–160%**; serial logs
+and send editors: **10–28 px**, independently. Changes apply immediately across
+workspaces and persist per browser origin when storage is available.
+See [DISPLAY.md](DISPLAY.md) for reset, storage, RTL and chart-label behavior.

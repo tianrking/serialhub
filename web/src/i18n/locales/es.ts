@@ -1,6 +1,14 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 import type { Catalog } from "../index.ts";
 const messages = {
+  "Text size": "Tamaño del texto",
+  "Interface text size": "Tamaño de la interfaz",
+  "Serial log font size": "Tamaño del registro serie",
+  "Changes apply immediately to all workspaces. Saved in this browser for this address when storage is available.": "Los cambios se aplican a todos los espacios de trabajo. Se guardan en este navegador para esta dirección si el almacenamiento está disponible.",
+  "Interface preview": "Vista previa de la interfaz",
+  "Log size also applies to the send editor. Plot labels scale with the chart. Browser zoom remains available.": "El tamaño del registro también se aplica al editor de envío. Las etiquetas se escalan con el gráfico. También puede usar el zoom del navegador.",
+  "Reset text size": "Restablecer tamaño del texto",
+
   "Copy stream address": "Copiar dirección del flujo",
   "Copy API address": "Copiar dirección API",
   "Select text": "Seleccionar texto",

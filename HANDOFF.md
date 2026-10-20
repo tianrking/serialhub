@@ -1,5 +1,7 @@
 # Safe serial-owner handoff
 
+> Current source: **0.0.4**. Documentation index and publication/validation status: [DOCS.md](DOCS.md).
+
 Handoff is a bounded maintenance window for tools that must open the physical
 serial device themselves. It is deliberately a control-plane operation, not a
 second byte path through the hub.

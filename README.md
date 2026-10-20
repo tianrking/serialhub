@@ -2,6 +2,8 @@
 
 Current source/local candidate: **0.0.4**. See [release notes](RELEASE_NOTES.md) and [GUI usage](DESKTOP.md). Historical GitHub release downloads below remain unchanged until new packages are uploaded.
 
+Click **Aa** beside the language selector to set interface text to **80–160%** and serial logs/send editors to **10–28 px** independently. Changes apply immediately and persist for this browser address when storage is available. See [display settings](DISPLAY.md) and the [complete documentation index](DOCS.md).
+
 The web workspace defaults to English and supports Traditional Chinese, Spanish,
 French and Arabic with RTL, plus the existing Simplified Chinese interface.
 See [localization and deployment controls](./I18N.md).
@@ -104,7 +106,7 @@ Ideal for embedded debug when **a human terminal and an AI agent/script must sha
 | License | MIT |
 | Default docs | **English** · [中文](./README.zh-CN.md) · [Español](./README.es.md) |
 | Architecture deep-dive | [`POSITIONING.md`](./POSITIONING.md) |
-| Current release | [v0.2.3](https://github.com/tianrking/serialhub/releases/tag/v0.2.3) |
+| Historical published release | [v0.2.3](https://github.com/tianrking/serialhub/releases/tag/v0.2.3) |
 
 > **Renamed from ohmyserial.** `serialhub` is the canonical command and
 > package name. The 0.x release keeps a compatibility executable; versioned
@@ -115,7 +117,9 @@ Ideal for embedded debug when **a human terminal and an AI agent/script must sha
 
 ## Start without a terminal
 
-Download your platform archive from [Releases](https://github.com/tianrking/serialhub/releases/latest), extract it, and launch:
+Check the version and assets on [Releases](https://github.com/tianrking/serialhub/releases).
+The historical v0.2.3 packages do not include the current 0.0.4 tray/tiled-workspace updates.
+Use a verified 0.0.4 candidate or build the current source for those features. Extract the matching archive and launch:
 
 | Platform | Open |
 | --- | --- |
@@ -130,8 +134,10 @@ No Rust, Node.js, Python, browser extension or cloud account is needed to use th
 Unsigned downloads can require OS confirmation; Linux files must be executable. Hardware drivers
 and serial-port permissions still belong to the device host.
 
-Open more ports from **All devices**. Up to 16 independent sessions run concurrently;
-switching tabs preserves live browser connections and drafts. Closing a browser does not
+Open more ports from **All devices**. Current 0.0.4 builds have no fixed session cap;
+CPU, memory, USB bandwidth and display space set practical limits. Use **Multi-port workspace**
+for simultaneous tiled terminals.
+Switching tabs preserves live browser connections and drafts. Closing a browser does not
 close hardware sessions; use **Close session** or **Quit SerialHub** explicitly.
 
 **Enable LAN sharing** on the host and copy its pairing link to another browser on your trusted
@@ -619,6 +625,8 @@ Browser access is same-origin by default. Requests must also carry a Host author
 |--------|------|-------------|
 | `GET` | `/v1/health` | Liveness JSON |
 | `GET` | `/v1/status` | Port, endpoints, clients, lock, stats |
+| `GET` / `POST` | `/v1/serial/settings` | Read / reconfigure line settings; control permission + lease required for POST |
+| `GET` | `/v1/serial/ports` | Hub host serial-port inventory |
 | `GET` | `/v1/endpoints` | Configured fan-out endpoints catalog |
 | `GET` | `/v1/clients` | Connected client list |
 | `GET` | `/v1/events/status` | Ledger session, ring, persistence, and recovery status |
@@ -861,7 +869,8 @@ CI: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) — Ubuntu, macOS, 
 
 ## Current release scope
 
-v0.2.3 is the current public baseline. It includes the hub, trusted TX and
+The current source/local candidate is **0.0.4**; the historical public release is **v0.2.3**.
+The following describes the current source, not a guarantee that an older download includes it. It includes the hub, trusted TX and
 leases, Unix PTY, TCP, HTTP/WebSocket, RFC2217, multi-profile supervision,
 event ledger and safe replay, device identity, bounded maintenance handoff,
 Prometheus metrics, the single-screen debugging workspace, signal studio and

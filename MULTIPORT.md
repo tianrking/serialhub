@@ -83,3 +83,10 @@ The original manager still controls inventory and LAN pairing. Pairing revocatio
 and application shutdown close panel streams through the existing session gates.
 Mock/browser/PTY checks do not certify a physical adapter, driver or long-duration
 hardware run. See `HARDWARE_CHECK.zh-CN.md` for Windows acceptance.
+
+## Text size / 字号
+
+Click **Aa** beside the language selector. Interface text: **80–160%**; serial logs
+and send editors: **10–28 px**, independently. Changes apply immediately across
+workspaces and persist per browser origin when storage is available.
+See [DISPLAY.md](DISPLAY.md) for reset, storage, RTL and chart-label behavior.

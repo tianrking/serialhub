@@ -1,5 +1,7 @@
 # Reliability test matrix
 
+> Current source: **0.0.4**. Documentation index and publication/validation status: [DOCS.md](DOCS.md).
+
 This document is the release gate for `serialhub`. It records the scenarios that
 are covered by deterministic tests, the commands that reproduce them, and the
 limits that can only be proven with physical serial hardware and its driver.
@@ -31,12 +33,12 @@ release candidate:
 
 ```text
 cargo fmt --all -- --check
-cargo test --all-targets
-cargo clippy --all-targets -- -D warnings
+cargo test --locked --all-targets
+cargo clippy --locked --all-targets -- -D warnings
 cargo audit
-cargo check --all-targets --target x86_64-unknown-linux-gnu
-cargo check --all-targets --target x86_64-apple-darwin
-cargo check --all-targets --target aarch64-apple-darwin
+cargo check --locked --all-targets --target x86_64-unknown-linux-gnu
+cargo check --locked --all-targets --target x86_64-apple-darwin
+cargo check --locked --all-targets --target aarch64-apple-darwin
 
 cd web
 npm ci
@@ -48,6 +50,10 @@ cd ..
 
 powershell -ExecutionPolicy Bypass -File .\scripts\release-smoke.ps1
 ```
+
+Cross-target compilation needs the corresponding Rust targets, linker and SDK;
+macOS builds require an Apple SDK/Mac. These are acceptance instructions, not a
+claim that every command ran for the current candidate. See [RELEASING.md](RELEASING.md).
 
 `release-smoke.ps1` starts the release binary with `mock:release-smoke` and
 checks the real embedded HTTP UI, status, endpoint fan-out, Prometheus metrics,
@@ -61,7 +67,7 @@ short-lived smoke process after the assertions complete.
 | Area | Scenarios | Automated evidence |
 | --- | --- | --- |
 | Startup/config | missing device, invalid baud/data/stop/parity/flow, duplicate endpoint names, TCP port overflow, fan-out bounds | `src/config.rs` unit tests; `tests/integration_hub.rs` |
-| Serial settings | 5/6/7/8 data bits, 1/1.5/2 stop bits, none/odd/even parity, none/software/hardware flow, open/read/write/flush errors | config validation tests; serial-core and mock-hub integration tests |
+| Serial settings | 5/6/7/8 data bits, 1/2 stop bits, none/odd/even parity, none/software/hardware flow, open/read/write/flush errors | config validation tests; serial-core and mock-hub integration tests |
 | Transports | TCP framed and raw, HTTP write, WebSocket RX, Unix PTY on Unix, RFC2217 negotiation, Windows COM bridge contract | `tests/rfc2217.rs`, `tests/integration_hub.rs`, client unit tests |
 | Concurrency | multiple readers, bounded queues, slow client eviction, write lock/lease, reconnect, clean shutdown | hub, policy, ledger, replay, and workflow suites |
 | Payloads | text/HEX, ASCII separators, Unicode rejection without panic, empty writes, line endings, checksum modes | API unit/integration tests and `web/tests/checksumUtils.test.ts` |

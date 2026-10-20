@@ -1,5 +1,13 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 const messages = {
+  "Text size": "Text size",
+  "Interface text size": "Interface text size",
+  "Serial log font size": "Serial log font size",
+  "Changes apply immediately to all workspaces. Saved in this browser for this address when storage is available.": "Changes apply immediately to all workspaces. Saved in this browser for this address when storage is available.",
+  "Interface preview": "Interface preview",
+  "Log size also applies to the send editor. Plot labels scale with the chart. Browser zoom remains available.": "Log size also applies to the send editor. Plot labels scale with the chart. Browser zoom remains available.",
+  "Reset text size": "Reset text size",
+
   "Copy stream address": "Copy stream address",
   "Copy API address": "Copy API address",
   "Select text": "Select text",

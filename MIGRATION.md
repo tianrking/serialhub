@@ -24,6 +24,10 @@
 这些是兼容性标识，不是产品显示名称。将来若要改动，必须伴随新的 schema /
 metric 版本并提供迁移路径。
 
+## 当前版本与历史下载
+
+按当前版本策略，源码/本地候选统一为 **0.0.4**。历史公开标签（包括数值更大的 v0.2.3）保留原样，不按大小推断功能新旧，也不覆盖旧资产。按 [RELEASE_NOTES.md](RELEASE_NOTES.md) 核对实际包和提交。新增语言/字号偏好使用 `serialhub.ui.*`，不迁移或删除旧连接配置。桌面管理器的 `/manager/info.limit` 现在为 `null`，表示无固定会话数上限。
+
 ## 推荐用法
 
 Windows 真实串口：
@@ -35,7 +39,7 @@ serialhub share COM3 --baud 115200 --tcp 1 --ui
 
 启动后在浏览器打开 `http://127.0.0.1:8787/`；传统 Windows 上位机需要
 COM 口时，可按 [WINDOWS_COM_BRIDGE.md](./WINDOWS_COM_BRIDGE.md) 使用
-`bridge-com` 与 com0com。默认所有明文网络端点都只监听 loopback，远程访问请
+`bridge-com` 与 com0com。上述 share/run 的明文端点只监听 loopback；桌面模式可明确启用经配对的 IPv4 LAN HTTP/WS。高级远程访问请
 使用 SSH 隧道或经过 TLS 和认证的反向代理。
 
 TOML 方式先预检、再启动：

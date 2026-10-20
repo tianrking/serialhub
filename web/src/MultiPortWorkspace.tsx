@@ -819,6 +819,7 @@ function PortPanel({
         </div>
         <div className="port-compose-row">
           <textarea
+            dir={mode === "hex" ? "ltr" : "auto"}
             aria-label={t("Command for {p0}", { p0: device.name })}
             placeholder={
               mode === "hex"

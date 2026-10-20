@@ -1,5 +1,7 @@
 # Operating SerialHub
 
+> Current source: **0.0.4**. Documentation index and publication/validation status: [DOCS.md](DOCS.md).
+
 For no-command startup, launch `serialhub-desktop` (Windows: `.exe`; macOS: `SerialHub.app`).
 The device manager opens in your browser. See [DESKTOP.md](./DESKTOP.md) for
 concurrent device sessions, optional TCP/PTY endpoints and paired IPv4 LAN sharing.
@@ -178,3 +180,10 @@ This is a browser software instrument, with bounded storage and display latency.
 Validate sample-clock accuracy, throughput and CPU behavior on the actual target
 hardware. See the [VOFA+ matrix](./VOFA_PARITY.zh-CN.md) for supported formats,
 analysis assumptions, image framing, replay limits and remaining differences.
+
+## Text size / 字号
+
+Click **Aa** beside the language selector. Interface text: **80–160%**; serial logs
+and send editors: **10–28 px**, independently. Changes apply immediately across
+workspaces and persist per browser origin when storage is available.
+See [DISPLAY.md](DISPLAY.md) for reset, storage, RTL and chart-label behavior.

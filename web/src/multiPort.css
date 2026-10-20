@@ -25,7 +25,7 @@
   border-bottom: 1px solid #373d46;
 }
 .multi-toolbar h1 {
-  font-size: 12px;
+  font-size: 1rem;
   font-weight: 500;
   margin: 0;
   white-space: nowrap;
@@ -34,7 +34,7 @@
 .tiling-shape {
   color: #929ba8;
   font:
-    11px ui-monospace,
+    0.91666667rem ui-monospace,
     monospace;
   white-space: nowrap;
 }
@@ -51,7 +51,7 @@
   flex-direction: row;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 0.91666667rem;
 }
 .multi-toolbar button,
 .multi-toolbar select,
@@ -62,7 +62,7 @@
   border: 1px solid #414852;
   border-radius: 3px;
   box-shadow: none;
-  font-size: 11px;
+  font-size: 0.91666667rem;
   background: #292e36;
   color: #d5d9df;
   white-space: nowrap;
@@ -156,7 +156,7 @@
 }
 .port-identity h2 {
   margin: 0;
-  font-size: 12px;
+  font-size: 1rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -164,7 +164,7 @@
   color: #e1e5ea;
 }
 .port-identity code {
-  font-size: 10px;
+  font-size: 0.83333333rem;
   background: transparent;
   color: #949eac;
   padding: 0;
@@ -174,7 +174,7 @@
   direction: ltr;
 }
 .port-state {
-  font-size: 10px;
+  font-size: 0.83333333rem;
   color: #d3a35f;
   white-space: nowrap;
 }
@@ -184,7 +184,7 @@
 .port-index,
 .port-mock {
   font:
-    9px ui-monospace,
+    0.75rem ui-monospace,
     monospace;
   color: #929baa;
 }
@@ -196,7 +196,7 @@
   min-height: 22px;
   min-width: 23px;
   padding: 0 4px;
-  font-size: 14px;
+  font-size: 1.16666667rem;
   border-radius: 2px;
 }
 .port-panel .port-icon-button:hover,
@@ -226,7 +226,7 @@
   border-radius: 2px;
   color: #c5ccd5;
   background: #252a32;
-  font-size: 10px;
+  font-size: 0.83333333rem;
 }
 .port-display-label {
   display: flex;
@@ -248,7 +248,7 @@
 .port-tools summary {
   cursor: pointer;
   list-style: none;
-  font-size: 12px;
+  font-size: 1rem;
   padding: 2px 4px;
   color: #b0bac6;
 }
@@ -281,13 +281,13 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 0.91666667rem;
 }
 .port-tools button {
   width: 100%;
   display: block;
   margin-top: 5px;
-  font-size: 11px;
+  font-size: 0.91666667rem;
   min-height: 26px;
   background: #333c48;
   color: #d4dce7;
@@ -302,7 +302,7 @@
 }
 .port-tools p {
   color: #a1adbd;
-  font-size: 10px;
+  font-size: 0.83333333rem;
   line-height: 1.5;
 }
 .port-log {
@@ -323,7 +323,7 @@
   gap: 8px;
   height: 100%;
   color: #697482;
-  font-size: 11px;
+  font-size: 0.91666667rem;
 }
 .port-log-empty svg {
   display: none;
@@ -334,7 +334,7 @@
   gap: 5px;
   align-items: baseline;
   font:
-    12px/1.45 ui-monospace,
+    1rem/1.45 ui-monospace,
     "SFMono-Regular",
     Consolas,
     monospace;
@@ -342,11 +342,11 @@
 }
 .port-entry time {
   color: #737f8f;
-  font-size: 10px;
+  font-size: 0.83333333rem;
   direction: ltr;
 }
 .port-entry b {
-  font-size: 9px;
+  font-size: 0.75rem;
   font-weight: 400;
   color: #8ba997;
 }
@@ -380,7 +380,7 @@
   background: #1b2026;
   color: #919caa;
   font:
-    9px ui-monospace,
+    0.75rem ui-monospace,
     monospace;
   flex-shrink: 0;
 }
@@ -393,7 +393,7 @@
 .port-panel .port-follow {
   padding: 0;
   min-height: 15px;
-  font-size: 9px;
+  font-size: 0.75rem;
   white-space: nowrap;
   background: transparent;
   border: 0;
@@ -426,7 +426,7 @@
   border-radius: 2px;
   background: transparent;
   color: #7b8899;
-  font-size: 9px;
+  font-size: 0.75rem;
 }
 .port-panel .port-mode button[aria-pressed="true"] {
   background: #3d4755;
@@ -456,7 +456,7 @@
   background: #14191f;
   color: #e0e6ee;
   font:
-    12px/1.3 ui-monospace,
+    1rem/1.3 ui-monospace,
     Consolas,
     monospace;
 }
@@ -467,7 +467,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  font-size: 11px;
+  font-size: 0.91666667rem;
   background: #35465c;
   border: 1px solid #526883;
   border-radius: 2px;
@@ -487,7 +487,7 @@
   padding: 0 7px 1px;
   background: #1d2228;
   color: #7e8b9c;
-  font-size: 9px;
+  font-size: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -547,11 +547,11 @@
 }
 .multi-empty h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 1.41666667rem;
 }
 .multi-empty p {
   margin: 0;
-  font-size: 12px;
+  font-size: 1rem;
 }
 .multi-workspace .sr-only {
   position: absolute;
@@ -582,7 +582,7 @@
 }
 @media (max-width: 600px) {
   .multi-toolbar h1 {
-    font-size: 11px;
+    font-size: 0.91666667rem;
   }
   .multi-controls {
     flex-basis: 100%;

@@ -1,5 +1,7 @@
 # Bounded device workflows
 
+> Current source: **0.0.4**. Documentation index and publication/validation status: [DOCS.md](DOCS.md).
+
 serialhub can run a small, linear workflow against the live broker. This is
 an automation primitive for agents, not a general scripting engine.
 

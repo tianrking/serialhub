@@ -1,6 +1,6 @@
 .language-selector { display: inline-flex; flex-direction: row; align-items: center; gap: 5px; color: var(--muted); }
-.language-selector > span { font-size: 18px; line-height: 1; }
-.language-selector select { min-width: 0; width: 112px; min-height: 28px; font-size: 11px; padding: 3px 5px; }
+.language-selector > span { font-size: 1.5rem; line-height: 1; }
+.language-selector select { min-width: 0; width: 112px; min-height: 28px; font-size: 0.91666667rem; padding: 3px 5px; }
 /* Codes, addresses and charts keep their logical order independently of UI flow. */
 code, pre, .hex, .event-hex, .ts, .line .kind, input[type="number"], input[type="password"], input.port, input[placeholder="127.0.0.1"], .signal-frame-settings input, .signal-scope, .signal-spectrum, .waveform, .xy-card svg, .histogram-card svg { direction: ltr; unicode-bidi: isolate; }
 .line { direction: ltr; }

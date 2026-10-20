@@ -1,5 +1,7 @@
 # Event ledger and safe replay
 
+> Current source: **0.0.4**. Documentation index and publication/validation status: [DOCS.md](DOCS.md).
+
 serialhub maintains a canonical, versioned event ledger alongside its human-readable session log. The ledger is intended for byte-exact investigation, agent evidence, and deterministic offline replay. It does not turn a serial connection into a cryptographically attested or lossless hardware trace.
 
 This document specifies the v1 envelope, retention and persistence behavior, event APIs, and the isolated replay command.

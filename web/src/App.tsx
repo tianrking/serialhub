@@ -993,6 +993,7 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
             </div>
             <button type="button" className="send-button" disabled={!canWrite || busy || !sendText.length} onClick={() => void onSendText()}>{t("Send text")}</button>
             </div><div hidden={sendMode !== "hex"}><label className="block">{t("Hexadecimal")} <input
+                className="hex-send-input"
                 value={sendHex}
                 dir="ltr"
                 maxLength={196608}

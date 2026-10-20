@@ -1,10 +1,12 @@
 # serialhub 本機協定說明（繁體中文）
 
+以目前原始碼 **0.0.4** 為準。單埠 `/v1/*` 契約如下；桌面管理器的多埠路由見 [DESKTOP.md](../DESKTOP.md)。
+
 本文件描述 **SerialHub** 對外提供的 **HTTP REST** 與 **WebSocket** 協定。
 React 控制台（`web/`）與 AI Agent 皆應遵守此規格。
 
 > 預設位址：`http://127.0.0.1:8787` · WebSocket：`ws://127.0.0.1:8787/v1/stream`  
-> hub 的明文 API / WebSocket / 原始 TCP 僅允許 loopback。Bearer 可作額外防護，但不會讓網路上的明文安全；遠端存取請使用 SSH tunnel 或 TLS reverse proxy。
+> 獨立 CLI/TOML Hub 的明文 API / WebSocket / 原始 TCP 僅允許 loopback；桌面管理器另可明確啟用經配對的 IPv4 LAN HTTP/WS。Bearer 可作額外防護，但不會讓網路上的明文安全；遠端存取請使用 SSH tunnel 或 TLS reverse proxy。
 
 ---
 
@@ -40,8 +42,8 @@ React 控制台（`web/`）與 AI Agent 皆應遵守此規格。
 
 ### 2.2 建議連線流程
 
-1. 本機執行：`serialhub share <裝置> --pty 2`（或 `mock:demo`）
-2. 開啟 React 頁（`npm run dev` 或部署後的靜態站）  
+1. 本機執行：`serialhub share <裝置> --ui`（無硬體可用 `mock:demo`；Windows 不支援 PTY）
+2. 開啟同源內嵌網頁；Vite 開發請使用 [開發 profile](README.md#local-hot-reload-development)，不能直接將預設 share 與跨來源網頁組合
 3. 點「連線」→ `GET /v1/health`  
 4. 成功後訂閱 `WS /v1/stream`，並輪詢 `/v1/status`、`/v1/endpoints`  
 
@@ -65,7 +67,7 @@ API Bearer 用於存取 hub；下文的 `lease_token` 用於獨占 TX，兩者�
 ### 2.5 HTTPS 頁面連本機
 
 若網頁託管於 **HTTPS**（如 Vercel），連 `ws://127.0.0.1` 可能被瀏覽器混合內容策略阻擋。  
-**建議**：開發用 `http://localhost:5173`；正式操控優先使用本機 HTTP 頁，或接受使用者手動授權。
+**建議**：開發用 `http://localhost:5173`；正式操控優先使用本機 HTTP 頁，或透過正確設定的 HTTPS/WSS 反向代理；不依賴關閉瀏覽器安全檢查。
 
 ---
 
@@ -256,6 +258,25 @@ ledger retained/evicted/newest sequence。
 ```json
 { "op": "dtr", "level": true, "lease_token": "opaque-token" }
 ```
+
+### 3.7a 串口參數與主機埠清單
+
+`GET /v1/serial/settings` 需要讀取權限，回傳 `{ "settings": ... }`。
+`GET /v1/serial/ports` 回傳 Hub 所在主機的 `{ "ports": [{ "path": "...", "kind": "..." }] }`，不是瀏覽器本機掃描。
+`POST /v1/serial/settings` 需要 `api.can_control` 與有效寫入租約：
+
+```json
+{
+  "settings": { "baud": 115200, "databits": 8, "parity": "none", "stopbits": 1, "flow": "none" },
+  "as_client": "engineering",
+  "lease_token": "<opaque lease token>"
+}
+```
+
+成功回傳 `{ "ok": true, "settings": ... }`，表示 owner 已確認驅動設定，並非外部儀器驗證。
+修改只在程序內生效，不改寫 TOML；Mock 不會偽造實體硬體確認。參數不合法回傳 400，租約拒絕為 403，驅動失敗為 503。
+
+桌面管理器可動態開關多埠，HTTP 路徑為 `/sessions/{id}/v1/...`，WS 路徑相同前綴；每個 session 有自己的 owner、租約、狀態與字節流。管理器配對/存取控制與單埠 Bearer 部署分開，詳見 [DESKTOP.md](../DESKTOP.md)。
 
 ### 3.8 `POST /v1/handoff`
 

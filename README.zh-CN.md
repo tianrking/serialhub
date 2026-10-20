@@ -2,6 +2,8 @@
 
 当前源码/本地候选版本统一为 **0.0.4**。参见 [版本说明](RELEASE_NOTES.md) 和 [图形界面用法](GETTING_STARTED.zh-CN.md)。下方历史 GitHub Release 下载保持原状，新包尚未上传。
 
+点击语言选择旁的 **Aa**，独立调整**界面文字 80–160%** 和**串口日志/发送编辑器 10–28 px**。立即生效；存储可用时按当前浏览器地址保存。参见[字号与显示设置](DISPLAY.md)和[完整文档索引](DOCS.md)。
+
 Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉伯语 RTL，并保留简体中文。可在界面切换、记忆偏好，也可在构建时限制开放语言；参见 [i18n 配置与维护](./I18N.md)。
 
 <p align="center">
@@ -31,7 +33,7 @@ Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉�
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.1.0"><img alt="Version" src="https://img.shields.io/badge/version-v0.1.0-0ea5e9?style=flat-square" /></a>
+  <a href="./Cargo.toml"><img alt="Source version" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
 </p>
 
@@ -89,7 +91,7 @@ Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉�
 
 ## 不输入命令即可使用
 
-v0.2.1 起，下载并解压对应平台包：Windows 双击 `serialhub-desktop.exe`，macOS 打开 `SerialHub.app`，Linux 将 `serialhub-desktop` 作为程序运行。
+当前源码/候选包为 **0.0.4**；GitHub 历史 **v0.2.3** 包不含本次托盘与多串口平铺更新。使用经过验证的 0.0.4 候选包或按本文编译源码。解压对应平台包后：Windows 双击 `serialhub-desktop.exe`，macOS 打开 `SerialHub.app`，Linux 将 `serialhub-desktop` 作为程序运行。
 浏览器会自动打开设备管理首页；扫描、选择串口、设置参数并打开工作区。可同时运行多个独立串口会话，并在首页启用带配对链接的 IPv4 局域网访问。
 无需安装 Node.js 或 Rust。下载包未签名，系统可能要求确认；串口驱动和权限仍需配置。完整说明见 [使用与验收](./GETTING_STARTED.zh-CN.md) 和 [桌面架构](./DESKTOP.md)。
 
@@ -575,6 +577,8 @@ RUST_LOG=debug serialhub run -c serialhub.toml
 |------|------|------|
 | `GET` | `/v1/health` | 存活检查 |
 | `GET` | `/v1/status` | 串口/客户端/锁/统计 |
+| `GET` / `POST` | `/v1/serial/settings` | 读取/修改串口参数；POST 需要控制权限和有效租约 |
+| `GET` | `/v1/serial/ports` | Hub host serial-port inventory |
 | `GET` | `/v1/endpoints` | 已配置的并联端点 |
 | `GET` | `/v1/clients` | 客户端列表 |
 | `GET` | `/v1/events/status` | 账本会话、ring、持久化和恢复状态 |
@@ -769,9 +773,9 @@ CI：Ubuntu · macOS · Windows。
 
 ## 当前发布范围
 
-v0.1.0 是当前公开发布基线，包含核心 Hub、可信 TX 与租约、Unix PTY、TCP、
+当前源码/本地候选版本为 **0.0.4**，历史公开下载为 **v0.2.3**；以下能力以当前源码为准。包含核心 Hub、可信 TX 与租约、Unix PTY、TCP、
 HTTP/WebSocket、RFC2217、多 profile 监督、事件账本与安全回放、设备身份选择、
-有界维护交接、Prometheus 指标和内嵌 Web 控制台。0.1.0 新增单屏调试工作台、
+有界维护交接、Prometheus 指标和内嵌 Web 控制台，以及单屏调试工作台、
 信号仪表和可配置的六语言界面；参见[发布验证与跨平台包](./RELEASING.md)。
 
 它明确**不承诺**自研 Windows 内核虚拟 COM 驱动、UDP 传输、完整终端模拟、

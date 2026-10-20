@@ -1,6 +1,14 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 import type { Catalog } from "../index.ts";
 const messages = {
+  "Text size": "文字大小",
+  "Interface text size": "界面文字大小",
+  "Serial log font size": "串口日志字号",
+  "Changes apply immediately to all workspaces. Saved in this browser for this address when storage is available.": "更改立即应用于所有工作区；存储可用时，按当前地址保存在此浏览器中。",
+  "Interface preview": "界面预览",
+  "Log size also applies to the send editor. Plot labels scale with the chart. Browser zoom remains available.": "日志字号也应用于发送编辑器。图表标签随图表缩放；也可使用浏览器缩放。",
+  "Reset text size": "重置文字大小",
+
   "Copy stream address": "复制数据流地址",
   "Copy API address": "复制 API 地址",
   "Select text": "选中文本",
