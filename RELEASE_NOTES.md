@@ -1,5 +1,6 @@
 # SerialHub v0.0.4 candidate
 
+- Fixed detached Windows launchers retaining captured parent output pipes by restricting inherited handles to private logs and empty input.
 - Added fixed-port `serialhub serve`, short background `start` / graceful `stop`,
   shared instance discovery and native per-user login-service management.
 - Added offline native npm packages and Python platform wheels, Debian packages,

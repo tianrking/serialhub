@@ -2,6 +2,8 @@
 //! requested port is occupied. Registry addresses are trusted only after a nonce
 //! check against the live manager; PIDs are never used to kill a process.
 use anyhow::{Context, Result};
+#[cfg(windows)]
+mod windows_background;
 macro_rules! diagnostic_fmt { ($($arg:tt)*) => { crate::launcher::diagnostic(&format!($($arg)*)) }; }
 pub(crate) fn diagnostic(message: &str) {
     let _ = writeln!(std::io::stderr(), "{message}");
@@ -9,12 +11,13 @@ pub(crate) fn diagnostic(message: &str) {
 
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
+#[cfg(not(windows))]
+use std::process::{Command, Stdio};
 use std::{
     fs::{self, File, OpenOptions},
     io::{Read, Write},
     net::{SocketAddr, TcpStream},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -238,21 +241,17 @@ pub fn launch(bind: SocketAddr, open_browser: bool) -> Result<SocketAddr> {
     }
     rotate(&files.log);
     let log = private_file(&files.log, true)?;
-    let mut child = Command::new(std::env::current_exe()?);
-    child
+    #[cfg(not(windows))]
+    let mut child = Command::new(std::env::current_exe()?)
         .arg("--desktop-worker")
         .arg(bind.to_string())
         .stdin(Stdio::null())
         .stdout(log.try_clone()?)
-        .stderr(log);
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        child.creation_flags(0x08000000 | 0x00000200);
-    }
-    let mut child = child
+        .stderr(log)
         .spawn()
         .context("Could not launch the background service")?;
+    #[cfg(windows)]
+    let mut child = windows_background::spawn(bind, log)?;
     let deadline = Instant::now() + Duration::from_secs(12);
     loop {
         if let Some(address) = discover(bind, &files, false) {
@@ -263,9 +262,13 @@ pub fn launch(bind: SocketAddr, open_browser: bool) -> Result<SocketAddr> {
             }
             return Ok(address);
         }
-        if let Some(status) = child.try_wait()? {
+        #[cfg(not(windows))]
+        let completed = child.try_wait()?.map(|status| status.success());
+        #[cfg(windows)]
+        let completed = child.try_wait()?;
+        if let Some(success) = completed {
             // Another simultaneous launcher may own the lock and still be starting.
-            if !status.success() {
+            if !success {
                 anyhow::bail!(
                     "Background service could not start. Diagnostics: {}",
                     files.log.display()
