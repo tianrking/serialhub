@@ -45,7 +45,7 @@ def main():
     for name in ('serialhub.exe', 'serialhub-desktop.exe', 'ohmyserial.exe'):
         libraries = imports((args.binary_dir / name).read_bytes())
         assert libraries, 'Expected native OS imports'
-        forbidden = [lib for lib in libraries if lib.startswith(('vcruntime', 'msvcp', 'libgcc_', 'libstdc++', 'libwinpthread'))]
+        forbidden = [lib for lib in libraries if lib != 'msvcp_win.dll' and lib.startswith(('vcruntime', 'msvcp', 'libgcc_', 'libstdc++', 'libwinpthread'))]
         assert not forbidden, f'{name} requires separately installed runtime DLLs: {forbidden}'
         print('PORTABLE_PE_IMPORTS_OK', name, len(libraries), 'system imports; no VC++/MinGW runtime DLL')
 
