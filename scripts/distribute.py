@@ -74,6 +74,10 @@ def package_readme(version, channel):
     return (f'# SerialHub {version}\n\nOne port. Shared access.\n\n'
         'A native serial-port owner with an embedded browser workbench: shared RX, '
         'coordinated TX, HTTP/WebSocket APIs, tiled multi-port terminals and signal tools.\n\n'
+        'For registry installation, use the following command **after this version '
+        'is published**. Before registry publication, install the matching local '
+        'wheel, or both the npm launcher and native tarballs from a GitHub Release; '
+        'see the installation guide below.\n\n'
         f'```sh\n{install}\nserialhub             # open the desktop workbench\n'
         'serialhub serve       # no browser/tray; http://127.0.0.1:8787/\n'
         'serialhub stop        # release devices and quit\n```\n\n'
@@ -333,6 +337,8 @@ def distribution_coverage(metadata):
     official = set(release.TARGETS)
     return {'format': 'serialhub.distribution-coverage.v1', 'version': metadata['version'],
             'commit': metadata['commit'], 'complete': targets == official,
+            'completeness_scope': 'artifact platforms and formats, not runtime or hardware validation',
+            'runtime_validation': 'not established by artifact generation',
             'available_platforms': sorted(platforms),
             'missing_platforms': sorted({PLATFORMS[t][0] for t in official} - platforms),
             'missing_official_targets': sorted(official - targets),

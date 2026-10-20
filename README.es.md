@@ -20,13 +20,15 @@ Un espacio de trabajo serie que funciona en tu equipo. Un único propietario abr
 
 | Distribución | Estado actual |
 | --- | --- |
-| Portátiles, Python `.whl`, npm nativo `.tgz` | Windows x64 y Linux x64 compilados y probados localmente; **TODO**: artefactos y validación nativa para macOS Intel / Apple Silicon, Linux ARM64 y Windows ARM64 |
-| Debian `.deb` | Linux amd64 generado y probado localmente; **TODO**: artefacto arm64 |
+| Portátiles, Python `.whl`, npm nativo `.tgz` | Compilados para Windows x64 / ARM64, Linux x64 / ARM64 y macOS Intel / Apple Silicon; Windows usa los destinos oficiales MSVC |
+| Debian `.deb` | Generados para Linux amd64 y arm64 |
 | Descargas de GitHub Release | **TODO: subir y publicar 0.0.4**; los archivos locales aún no son descargas públicas |
 | PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO: registrar y publicar**; la instalación desde registros públicos aún no está disponible |
 | Homebrew / WinGet / repositorio APT firmado | Generación y validación implementadas; **TODO: publicar el tap, obtener aceptación en el catálogo y alojar el repositorio firmado** |
 
 Una Release puede incluir wheels, paquetes npm y Debian **antes de su publicación en registros**. Consulta la [matriz de plataformas y formatos, instalación local y tareas pendientes](INSTALLATION.md#platform-and-format-status). El proyecto PyPI `serialhub` es ajeno; este proyecto usa `serialhub-cli`.
+
+Esta compilación de servidor genera los **25 adjuntos** y omite las pruebas de ejecución por petición. La integridad de los artefactos no equivale a la validación nativa del sistema o del hardware USB. Consulta la [compilación y subida desde servidor](SERVER_RELEASE.md), sin consumir CI alojado.
 
 ## El espacio de trabajo
 
@@ -59,7 +61,7 @@ Abre dispositivos independientes, configura sus parámetros UART y gestiona cada
 
 La interfaz empieza en inglés y ofrece chino tradicional/simplificado, español, francés y árabe RTL. **Aa** ajusta el texto de la interfaz y el registro/editor de envío. Consulta [idiomas](I18N.md), [texto](DISPLAY.md) e [identidad](BRAND.md).
 
-En un paquete verificado de tu plataforma, abre `serialhub-desktop.exe` (Windows), `SerialHub.app` (macOS) o `serialhub-desktop` (Linux). El navegador se abre automáticamente; elige un puerto o prueba la demo sin hardware. No necesitas Node.js ni Rust para usar la aplicación descargada.
+Después de comprobar el manifiesto y la suma de tu paquete, abre `serialhub-desktop.exe` (Windows), `SerialHub.app` (macOS) o `serialhub-desktop` (Linux). El navegador se abre automáticamente; elige un puerto o prueba la demo sin hardware. No necesitas Node.js ni Rust para usar la aplicación descargada.
 
 [MIT](LICENSE) · Rust · Windows / macOS / Linux · [CI](https://github.com/tianrking/serialhub/actions/workflows/ci.yml)
 
@@ -226,7 +228,8 @@ CLI / Config
 | Serie virtual PTY | ✅ | ✅ | — |
 | Mock | ✅ | ✅ | ✅ |
 
-**Ubuntu:** instala `build-essential pkg-config libudev-dev` antes de compilar.  
+**Compilación en Ubuntu:** instala Rust y `build-essential`; `libudev-dev` no es obligatorio. Los paquetes portátiles no necesitan herramientas de compilación.
+
 **Windows:** apps que solo listan COM deben usar TCP/WS o un puente externo; PTY es solo Unix.
 
 Para programas antiguos que solo abren COM, usa `bridge-com` con un par creado
@@ -248,11 +251,13 @@ driver kernel ni sustituye la firma del controlador.
 ### Requisitos
 
 - [Rust](https://rustup.rs/) stable  
+- **macOS:** Xcode Command Line Tools; **Windows:** Rust MSVC, Visual Studio C++ Build Tools y Windows SDK.
+- Solo para regenerar la interfaz: Node.js 22.18+ o 24+ y npm; `web/dist` ya está incluido en el repositorio.
 - **Ubuntu/Debian:**
 
   ```bash
   sudo apt update
-  sudo apt install -y build-essential pkg-config libudev-dev
+  sudo apt install -y build-essential
   ```
 
 ### Compilar desde el código
@@ -260,8 +265,12 @@ driver kernel ni sustituye la firma del controlador.
 ```bash
 git clone https://github.com/tianrking/serialhub.git
 cd serialhub
-cargo build --release
+cargo build --locked --release
 ```
+
+Para regenerar la interfaz, ejecuta `npm --prefix web ci` y
+`npm --prefix web run build` antes de compilar Rust. En Linux/macOS,
+`./scripts/build-all.sh` construye ambos componentes.
 
 | SO | Binario |
 |----|---------|

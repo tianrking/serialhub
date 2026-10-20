@@ -20,13 +20,15 @@
 
 | 分发形式 | 当前状态 |
 | --- | --- |
-| 便携包、Python `.whl`、原生 npm `.tgz` | Windows x64、Linux x64 已实际编译并完成本地冒烟测试；**TODO**：macOS Intel / Apple Silicon、Linux ARM64、Windows ARM64 的实际产物与原生验证 |
-| Debian `.deb` | Linux amd64 已生成并完成本地测试；**TODO**：arm64 实际产物 |
+| 便携包、Python `.whl`、原生 npm `.tgz` | Windows x64 / ARM64、Linux x64 / ARM64、macOS Intel / Apple Silicon 六个平台均已编译；Windows 使用正式 MSVC 目标 |
+| Debian `.deb` | Linux amd64、arm64 两种包均已生成 |
 | GitHub Release 下载 | **TODO：上传并发布 0.0.4**；本地文件还不是公开下载 |
 | PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO：注册、上架**；暂不能从公开源执行一行安装 |
 | Homebrew / WinGet / 签名 APT 源 | 已实现定义生成与校验；**TODO：发布 tap、提交并通过目录审核、托管签名仓库** |
 
 软件源尚未上架时，GitHub Release 仍可附带 wheel、npm 压缩包和 Debian 包，供用户本地安装。参见[平台与格式矩阵、离线安装、未完成事项](INSTALLATION.md#platform-and-format-status)。PyPI 上的 `serialhub` 属于其他项目，本项目使用 `serialhub-cli`。
+
+本次服务器打包生成完整的 **25 个附件**，按要求暂不运行测试。文件齐全不等于完成原生系统和 USB 串口验收。维护者可复用[六平台服务器构建与草稿上传流程](SERVER_RELEASE.md)，不消耗云端 CI。
 
 ## 工作台一览
 
@@ -95,7 +97,7 @@
 
 ## 不输入命令即可使用
 
-当前源码/候选包为 **0.0.4**；GitHub 历史 **v0.2.3** 包不含本次托盘与多串口平铺更新。使用经过验证的 0.0.4 候选包或按本文编译源码。解压对应平台包后：Windows 双击 `serialhub-desktop.exe`，macOS 打开 `SerialHub.app`，Linux 将 `serialhub-desktop` 作为程序运行。
+当前源码/候选包为 **0.0.4**；GitHub 历史 **v0.2.3** 包不含本次托盘与多串口平铺更新。使用来源清单和校验和匹配的 0.0.4 候选包，或按本文编译源码。解压对应平台包后：Windows 双击 `serialhub-desktop.exe`，macOS 打开 `SerialHub.app`，Linux 将 `serialhub-desktop` 作为程序运行。
 浏览器会自动打开设备管理首页；扫描、选择串口、设置参数并打开工作区。可同时运行多个独立串口会话，并在首页启用带配对链接的 IPv4 局域网访问。
 无需安装 Node.js 或 Rust。下载包未签名，系统可能要求确认；串口驱动和权限仍需配置。完整说明见 [使用与验收](./GETTING_STARTED.zh-CN.md) 和 [桌面架构](./DESKTOP.md)。
 
@@ -251,7 +253,8 @@ CLI / 配置
 | PTY 虚拟串口 | ✅ | ✅ | — |
 | Mock 回环 | ✅ | ✅ | ✅ |
 
-**Ubuntu：** 编译前安装 `build-essential pkg-config libudev-dev`。  
+**Ubuntu 源码编译：** 安装 Rust 和 `build-essential`；不强制依赖 `libudev-dev`。便携包用户无需编译工具。
+
 **Windows：** 仅认 COM 的老上位机需 TCP/WS 或外部虚拟 COM 桥；不支持 `type = "pty"`。
 
 COM-only 老软件可以使用内置用户态桥接命令（先用 com0com 等已安装驱动创建
@@ -272,11 +275,13 @@ serialhub.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
 ### 依赖
 
 - [Rust](https://rustup.rs/) stable  
+- **macOS：** Xcode Command Line Tools；**Windows：** MSVC Rust 工具链、Visual Studio C++ Build Tools 和 Windows SDK。
+- 仅在重新生成网页资源时需要 Node.js 22.18+ 或 24+ 与 npm；直接使用仓库内 `web/dist` 无需 Node.js。
 - **Ubuntu/Debian：**
 
   ```bash
   sudo apt update
-  sudo apt install -y build-essential pkg-config libudev-dev
+  sudo apt install -y build-essential
   ```
 
 ### 源码编译
@@ -284,8 +289,11 @@ serialhub.exe bridge-com COM13 --tcp 127.0.0.1:8788 --baud 115200
 ```bash
 git clone https://github.com/tianrking/serialhub.git
 cd serialhub
-cargo build --release
+cargo build --locked --release
 ```
+
+如需重新生成前端，先运行 `npm --prefix web ci`、`npm --prefix web run build`，
+再编译 Rust；Linux/macOS 也可用 `./scripts/build-all.sh` 一起构建。
 
 | 系统 | 二进制 |
 |------|--------|

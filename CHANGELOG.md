@@ -6,6 +6,11 @@ All notable changes to this project are documented in this file.
 
 ## [0.0.4] — source / local candidate
 
+- Added repeatable Linux-server builds for all six official native targets,
+  Windows cross-build icon/DPI/version resources, macOS minimum-version metadata,
+  complete-format download staging and resumable draft publication. Runtime
+  qualification remains separate from artifact completeness.
+
 - Fixed detached Windows launchers retaining captured parent output pipes by restricting inherited handles to private logs and empty input.
 - Added fixed-port `serialhub serve`, short background `start` / graceful `stop`,
   shared instance discovery and native per-user login-service management.

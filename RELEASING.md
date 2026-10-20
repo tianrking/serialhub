@@ -15,7 +15,10 @@ With hosted CI paused, use the local-build path below; do not dispatch Actions. 
 1. Update `Cargo.toml`, `Cargo.lock`, `web/package.json`, and
    `web/package-lock.json` to the same version. Update the changelog, current
    release notes and README release links.
-2. Push the commit to `main` and require its **CI / all green** result.
+2. Push the commit to `main`. A normally qualified release requires **CI / all
+   green** or equivalent native checks. When an artifact-only server release is
+   explicitly requested, follow the server path below and record that runtime
+   tests were skipped; do not describe it as a completed six-platform test run.
 3. Create and push an annotated tag matching that exact version, for example:
 
    ```bash
@@ -96,7 +99,7 @@ acceptance remain separate from cross-platform package validation.
 ## Local builds when hosted CI is unavailable
 
 The Release workflow is manual-only: creating a `v*` tag does not trigger it.
-For server publication, do not dispatch a workflow. Build and test the supported
+For server publication, do not dispatch a workflow. Build the supported
 packages on the server, create a draft release pointing to the exact source commit,
 upload the archives and `SHA256SUMS`, download them again and compare every hash,
 then publish. A release containing only Linux x64 GNU and Windows x64 GNU must
@@ -105,8 +108,9 @@ state that coverage explicitly; do not present it as a six-platform release.
 Commit the reviewed sources with `[skip ci]` when explicitly avoiding hosted
 Actions usage. Build `web/dist` first, then all three Rust binaries. Never attach
 an old executable to a newer source/version manifest and never overwrite a
-published release/tag. Run `scripts/release.py` checks and extracted-package smoke
-tests before a manual upload. GitHub API/Release write authorization is required;
+published release/tag. Always run artifact identity/hash checks. Native runtime
+and extracted-package smoke tests are separate; if explicitly deferred, record
+that scope in the release notes. GitHub API/Release write authorization is required;
 Git transport access alone does not establish API upload access.
 
 Linux can build Windows x64 GNU candidates with a local MinGW toolchain:
@@ -118,10 +122,15 @@ unchanged. Static PE/resource/import checks and Wine smoke tests are additional
 checks; they do not replace Windows hardware acceptance. macOS native packages
 require a Mac/Apple SDK and runtime verification before publication.
 
-Current local candidate coverage: Linux x86_64 GNU and Windows x86_64 GNU only.
-Check the manifest source commit and `SHA256SUMS`; Wine compatibility tests do not
-qualify Windows 10/11 USB hardware. No macOS/ARM64 candidate is supplied by this
-Linux environment. GitHub Release upload has not completed.
+Current server artifact coverage includes all six official targets, with MSVC
+Windows builds. Check the manifest source commit and `SHA256SUMS`. This packaging
+pass skips runtime tests; prior GNU/Wine compatibility results do not qualify
+new MSVC/ARM64/macOS binaries or physical USB hardware. GitHub Release asset upload
+and publication remain separate steps.
+
+Use [SERVER_RELEASE.md](SERVER_RELEASE.md) for the repeatable
+`scripts/build-server-release.py` and `scripts/publish-release.py` commands.
+They generate and upload the full 25-file set without dispatching hosted CI.
 
 ## Package-manager channels
 

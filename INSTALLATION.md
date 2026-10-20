@@ -22,12 +22,17 @@ hosted Actions is paused. All public installation channels below remain **TODO**
 
 | OS / CPU | Portable archive | Python wheel tag (`py3-none-…`) | Native npm package | Debian package | Actual artifact status |
 | --- | --- | --- | --- | --- | --- |
-| Windows x64 | `.zip` | `win_amd64` | `win32-x64` | — | **Built** with GNU/MinGW; PE and Wine tests pass; TODO: native Windows/USB qualification and official MSVC build |
-| Windows ARM64 | `.zip` | `win_arm64` | `win32-arm64` | — | **TODO: build and validate** |
-| Linux x64 | `.tar.gz` | `manylinux_2_39_x86_64` | `linux-x64` | `amd64.deb` | **Built**, actual local installation and headless sharing tests pass |
-| Linux ARM64 | `.tar.gz` | `manylinux_2_39_aarch64` | `linux-arm64` | `arm64.deb` | **TODO: build and validate** |
-| macOS Intel | `.tar.gz` containing `.app` | `macosx_15_0_x86_64` | `darwin-x64` | — | **TODO: build and validate on a Mac** |
-| macOS Apple Silicon | `.tar.gz` containing `.app` | `macosx_15_0_arm64` | `darwin-arm64` | — | **TODO: build and validate on a Mac** |
+| Windows x64 | `.zip` | `win_amd64` | `win32-x64` | — | **Built** with MSVC sysroot/LLVM; native runtime and USB qualification deferred |
+| Windows ARM64 | `.zip` | `win_arm64` | `win32-arm64` | — | **Built** with MSVC sysroot/LLVM; native runtime qualification deferred |
+| Linux x64 | `.tar.gz` | `manylinux_2_39_x86_64` | `linux-x64` | `amd64.deb` | **Built**; this packaging pass does not rerun runtime tests |
+| Linux ARM64 | `.tar.gz` | `manylinux_2_39_aarch64` | `linux-arm64` | `arm64.deb` | **Built** with Zig/glibc 2.39 target; native runtime qualification deferred |
+| macOS Intel | `.tar.gz` containing `.app` | `macosx_15_0_x86_64` | `darwin-x64` | — | **Built** using macOS 15 SDK; native Mac qualification deferred |
+| macOS Apple Silicon | `.tar.gz` containing `.app` | `macosx_15_0_arm64` | `darwin-arm64` | — | **Built** using macOS 15 SDK; native Mac qualification deferred |
+
+This server build intentionally skips runtime tests. Compilation, executable
+architecture and package checksums establish artifact identity, not native OS,
+driver or hardware acceptance. See [SERVER_RELEASE.md](SERVER_RELEASE.md) for the
+repeatable build and upload commands, tool versions and scope.
 
 Each wheel bundles the three native executables for exactly one OS/CPU. There is
 no universal `py3-none-any` wheel: copying an x64 executable into an ARM64 wheel
@@ -62,8 +67,8 @@ coverage; it cannot pass the complete six-platform release gate.
 A complete release has **25 attachments**: six portable archives, six platform
 wheels, six native npm tarballs plus one npm launcher, two Debian packages,
 one Homebrew/WinGet manifest bundle, `distribution.json`,
-`distribution-coverage.json` and `SHA256SUMS`. The current two-platform candidate
-produces **12 attachments**, including two wheels and one amd64 Debian package.
+`distribution-coverage.json` and `SHA256SUMS`. The current server candidate
+contains this full six-target artifact set, including both Debian architectures.
 The manifest bundle contains definitions, not published software sources.
 The coverage report lists missing platforms and official targets separately;
 a GNU Windows candidate never substitutes for the official MSVC build.
@@ -94,8 +99,9 @@ Closing a page leaves the owners running. See [DESKTOP.md](DESKTOP.md).
 Portable downloads require no Python, Node.js or Rust installation. Linux GNU
 artifacts need glibc 2.39+ (Ubuntu 24.04 or compatible); macOS distribution wheels
 target macOS 15+. USB drivers and serial-device permissions remain OS-specific.
-No macOS/ARM64 binary has been validated on this Linux server; native CI builds
-and tests the six targets when explicitly run with allowance available.
+The new macOS/ARM64 and Windows MSVC files are cross-compiled on this Linux server;
+their native runtime checks are deferred. Native CI builds and tests the six
+targets when explicitly run with allowance available.
 
 ## Headless: a browser workbench without a desktop session
 
@@ -248,6 +254,23 @@ python3 -m venv .serialhub-venv
 .serialhub-venv/bin/serialhub serve
 ```
 
+For Linux ARM64, use the same commands with
+`serialhub_cli-0.0.4-py3-none-manylinux_2_39_aarch64.whl`. On Windows ARM64,
+replace the Windows x64 wheel above with
+`serialhub_cli-0.0.4-py3-none-win_arm64.whl` and use native ARM64 Python.
+
+macOS Apple Silicon:
+
+```sh
+python3 -m venv .serialhub-venv
+.serialhub-venv/bin/python -m pip install --no-index ./serialhub_cli-0.0.4-py3-none-macosx_15_0_arm64.whl
+.serialhub-venv/bin/serialhub
+```
+
+On an Intel Mac, select `serialhub_cli-0.0.4-py3-none-macosx_15_0_x86_64.whl`.
+For every platform, no arguments open the browser workbench, `serve` keeps a
+foreground server at `http://127.0.0.1:8787/`, and `stop` releases devices and exits.
+
 To install npm attachments without a registry request, download **both** the
 launcher and native tarball for your OS/CPU (this example is Windows x64):
 
@@ -256,7 +279,8 @@ npm install -g --offline --ignore-scripts --omit=optional ./tianrking-serialhub-
 serialhub
 ```
 
-Replace `win32-x64` with `linux-x64` for the built Linux x64 candidate. This
+Choose `win32-arm64`, `linux-x64`, `linux-arm64`, `darwin-x64` or `darwin-arm64`
+instead of `win32-x64` for the other OS/CPU combinations in the matrix. This
 deliberate local-install combination supplies the native package explicitly;
 normal registry installations must keep optional dependencies enabled. Portable
 desktop archives remain the easiest option when Python/Node.js are not installed.
@@ -284,6 +308,10 @@ Do not use `trusted=yes` or disable signature checking. Removing the application
 preserves configuration; remove the source/key separately if no longer wanted.
 
 ## Maintainer build, verification and publication
+
+For this artifact-only server build, use [SERVER_RELEASE.md](SERVER_RELEASE.md).
+The runtime/installation checks below describe later qualification and were
+deliberately not run in the current packaging pass.
 
 1. Build the committed web assets, then all native binaries with `--locked`.
 2. Package each actual native target using `scripts/release.py`; source commit,
