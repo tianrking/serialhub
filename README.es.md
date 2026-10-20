@@ -5,51 +5,27 @@
 </picture>
 
 <p align="center">
-  <a href="README.md"><img alt="English" src="https://img.shields.io/badge/lang-English-3b82f6?style=flat-square" /></a>
-  <a href="README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-e11d48?style=flat-square" /></a>
-  <a href="README.es.md"><img alt="Español" src="https://img.shields.io/badge/lang-Espa%C3%B1ol-22c55e?style=flat-square" /></a>
-  &nbsp; / &nbsp;
-  <a href="DESKTOP.md">Primeros pasos</a> · <a href="DOCS.md">Documentación</a> · <a href="https://github.com/tianrking/serialhub/releases">Descargas</a>
+  <a href="README.md"><img alt="English" src="assets/badges/english.svg" height="20" /></a>
+  <a href="README.zh-CN.md"><img alt="简体中文" src="assets/badges/chinese.svg" height="20" /></a>
+  <a href="README.es.md"><img alt="Español" src="assets/badges/spanish.svg" height="20" /></a>
+</p>
+
+<p align="center">Comparte un puerto entre herramientas. Depura varios dispositivos en un solo espacio.</p>
+
+<p align="center">
+  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="assets/badges/source.svg" height="20" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="assets/badges/license.svg" height="20" /></a>
+  <a href="DESKTOP.md"><img alt="Platforms: Windows, macOS, Linux" src="assets/badges/platforms.svg" height="20" /></a>
+  <a href="Cargo.toml"><img alt="Rust 2021" src="assets/badges/rust.svg" height="20" /></a>
+  <a href="web/package.json"><img alt="TypeScript" src="assets/badges/typescript.svg" height="20" /></a>
+  <a href="web/package.json"><img alt="React" src="assets/badges/react.svg" height="20" /></a>
 </p>
 
 <p align="center">
-  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat-square" /></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-3b82f6?style=flat-square" /></a>
-  <a href="DESKTOP.md"><img alt="Platforms: Windows, macOS, Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-64748b?style=flat-square" /></a>
-  <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/Rust-2021-e57324?style=flat-square&amp;logo=rust&amp;logoColor=white" /></a>
-  <a href="web/package.json"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&amp;logo=typescript&amp;logoColor=white" /></a>
-  <a href="web/package.json"><img alt="React" src="https://img.shields.io/badge/React-149eca?style=flat-square&amp;logo=react&amp;logoColor=white" /></a>
+  <a href="DESKTOP.md">Primeros pasos</a> &nbsp;·&nbsp; <a href="INSTALLATION.md">Instalación</a> &nbsp;·&nbsp; <a href="DOCS.md">Documentación</a> &nbsp;·&nbsp; <a href="https://github.com/tianrking/serialhub/releases">Versiones</a>
 </p>
 
-<p align="center">
-  <a href="Cargo.toml"><img alt="Async: Tokio" src="https://img.shields.io/badge/async-Tokio-c026d3?style=flat-square" /></a>
-  <a href="Cargo.toml"><img alt="Web: Axum" src="https://img.shields.io/badge/web-Axum-7c3aed?style=flat-square" /></a>
-  <a href="DOCS.md"><img alt="Serial: UART, COM, tty" src="https://img.shields.io/badge/serial-UART%20%2F%20COM%20%2F%20tty-0ea5e9?style=flat-square" /></a>
-  <a href="web/PROTOCOL.zh-TW.md"><img alt="API: HTTP and WebSocket" src="https://img.shields.io/badge/API-HTTP%20%2B%20WebSocket-06b6d4?style=flat-square" /></a>
-  <a href="DOCS.md"><img alt="Stream: TCP" src="https://img.shields.io/badge/stream-TCP-3b82f6?style=flat-square" /></a>
-  <a href="DOCS.md"><img alt="Unix: PTY" src="https://img.shields.io/badge/Unix-PTY-14b8a6?style=flat-square" /></a>
-  <a href="serialhub.example.toml"><img alt="Config: TOML" src="https://img.shields.io/badge/config-TOML-e11d48?style=flat-square" /></a>
-</p>
-
-Un espacio de trabajo serie que funciona en tu equipo. Un único propietario abre cada puerto físico; navegadores, pruebas y herramientas comparten RX y coordinan los envíos. Varios dispositivos se depuran en mosaico.
-
-**Código / candidato local actual: 0.0.4.** Las descargas públicas históricas v0.2.3 no incluyen las últimas mejoras de bandeja, mosaico y texto. Consulta [el estado de publicación](RELEASE_NOTES.md).
-
-**Instalación y modo sin escritorio:** [gestores de paquetes, servidor de puerto fijo y servicios de inicio de sesión](INSTALLATION.md). El lanzador portátil sigue disponible.
-
-### Estado de descarga e instalación · 0.0.4
-
-| Distribución | Estado actual |
-| --- | --- |
-| Portátiles, Python `.whl`, npm nativo `.tgz` | Compilados para Windows x64 / ARM64, Linux x64 / ARM64 y macOS Intel / Apple Silicon; Windows usa los destinos oficiales MSVC |
-| Debian `.deb` | Generados para Linux amd64 y arm64 |
-| Descargas de GitHub Release | **TODO: subir y publicar 0.0.4**; los archivos locales aún no son descargas públicas |
-| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO: registrar y publicar**; la instalación desde registros públicos aún no está disponible |
-| Homebrew / WinGet / repositorio APT firmado | Generación y validación implementadas; **TODO: publicar el tap, obtener aceptación en el catálogo y alojar el repositorio firmado** |
-
-Una Release puede incluir wheels, paquetes npm y Debian **antes de su publicación en registros**. Consulta la [matriz de plataformas y formatos, instalación local y tareas pendientes](INSTALLATION.md#platform-and-format-status). El proyecto PyPI `serialhub` es ajeno; este proyecto usa `serialhub-cli`.
-
-Esta compilación de servidor genera los **25 adjuntos** y omite las pruebas de ejecución por petición. La integridad de los artefactos no equivale a la validación nativa del sistema o del hardware USB. Consulta la [compilación y subida desde servidor](SERVER_RELEASE.md), sin consumir CI alojado.
+> **Compilaciones x64 / ARM64 listas · Publicación pendiente.** [Estado de instalación](INSTALLATION.md#platform-and-format-status).
 
 ## El espacio de trabajo
 
@@ -84,7 +60,42 @@ La interfaz empieza en inglés y ofrece chino tradicional/simplificado, español
 
 Después de comprobar el manifiesto y la suma de tu paquete, abre `serialhub-desktop.exe` (Windows), `SerialHub.app` (macOS) o `serialhub-desktop` (Linux). El navegador se abre automáticamente; elige un puerto o prueba la demo sin hardware. No necesitas Node.js ni Rust para usar la aplicación descargada.
 
-[MIT](LICENSE) · Rust · Windows / macOS / Linux · [CI](https://github.com/tianrking/serialhub/actions/workflows/ci.yml)
+<details>
+<summary>Runtime e interfaces</summary>
+
+| | |
+| --- | --- |
+| Runtime | <a href="Cargo.toml"><img alt="Tokio" src="assets/badges/tokio.svg" height="20" /></a> <a href="Cargo.toml"><img alt="Axum" src="assets/badges/axum.svg" height="20" /></a> |
+| Transporte serie | <a href="DOCS.md"><img alt="UART / COM / tty" src="assets/badges/serial.svg" height="20" /></a> <a href="DOCS.md"><img alt="TCP" src="assets/badges/tcp.svg" height="20" /></a> <a href="DOCS.md"><img alt="PTY" src="assets/badges/pty.svg" height="20" /></a> |
+| API del navegador | <a href="web/PROTOCOL.zh-TW.md"><img alt="HTTP + WebSocket" src="assets/badges/api.svg" height="20" /></a> |
+| Configuración | <a href="serialhub.example.toml"><img alt="TOML" src="assets/badges/toml.svg" height="20" /></a> |
+
+</details>
+
+<details>
+<summary>Detalles de compilación y publicación · 0.0.4</summary>
+
+**Código / candidato local actual: 0.0.4.** Las descargas públicas históricas v0.2.3 no incluyen las últimas mejoras de bandeja, mosaico y texto. Consulta [el estado de publicación](RELEASE_NOTES.md).
+
+**Instalación y modo sin escritorio:** [gestores de paquetes, servidor de puerto fijo y servicios de inicio de sesión](INSTALLATION.md). El lanzador portátil sigue disponible.
+
+### Estado de descarga e instalación · 0.0.4
+
+| Distribución | Estado actual |
+| --- | --- |
+| Portátiles, Python `.whl`, npm nativo `.tgz` | Compilados para Windows x64 / ARM64, Linux x64 / ARM64 y macOS Intel / Apple Silicon; Windows usa los destinos oficiales MSVC |
+| Debian `.deb` | Generados para Linux amd64 y arm64 |
+| Descargas de GitHub Release | **TODO: subir y publicar 0.0.4**; los archivos locales aún no son descargas públicas |
+| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO: registrar y publicar**; la instalación desde registros públicos aún no está disponible |
+| Homebrew / WinGet / repositorio APT firmado | Generación y validación implementadas; **TODO: publicar el tap, obtener aceptación en el catálogo y alojar el repositorio firmado** |
+
+Una Release puede incluir wheels, paquetes npm y Debian **antes de su publicación en registros**. Consulta la [matriz de plataformas y formatos, instalación local y tareas pendientes](INSTALLATION.md#platform-and-format-status). El proyecto PyPI `serialhub` es ajeno; este proyecto usa `serialhub-cli`.
+
+Esta compilación de servidor genera los **25 adjuntos** y omite las pruebas de ejecución por petición. La integridad de los artefactos no equivale a la validación nativa del sistema o del hardware USB. Consulta la [compilación y subida desde servidor](SERVER_RELEASE.md), sin consumir CI alojado.
+
+</details>
+
+Próximas prioridades: [fiabilidad, diagnósticos y perfiles de trabajo](ROADMAP.md).
 
 ---
 

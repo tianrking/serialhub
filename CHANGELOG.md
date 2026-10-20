@@ -6,6 +6,10 @@ All notable changes to this project are documented in this file.
 
 ## [0.0.4] — source / local candidate
 
+- Refined the three README introductions with compact local light/dark badges,
+  separate navigation, an earlier product screenshot and expandable technical
+  and publication details. Added prioritized engineering acceptance milestones.
+
 - Added repeatable Linux-server builds for all six official native targets,
   Windows cross-build icon/DPI/version resources, macOS minimum-version metadata,
   complete-format download staging and resumable draft publication. Runtime
