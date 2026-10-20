@@ -1,5 +1,15 @@
 # SerialHub v0.0.4 candidate
 
+**Publication TODO:** the actual local builds cover Linux x64 GNU and Windows
+x64 GNU, including their Python wheels, npm tarballs and the amd64 Debian package.
+macOS and ARM64 artifacts, registry publication and the GitHub Release upload are
+still TODO. See the [platform/format status](INSTALLATION.md#platform-and-format-status).
+
+- Added strict complete-format release validation, missing-platform coverage
+  reports and synchronized README publication TODOs. Complete releases require
+  six official native targets and all applicable wheel/npm/Debian/manifest files;
+  local packages can be attached to a Release before registry publication.
+
 - Fixed detached Windows launchers retaining captured parent output pipes by restricting inherited handles to private logs and empty input.
 - Added fixed-port `serialhub serve`, short background `start` / graceful `stop`,
   shared instance discovery and native per-user login-service management.

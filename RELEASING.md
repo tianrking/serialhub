@@ -51,6 +51,14 @@ their SHA-256 digests before making the release public. Failed runs leave a draf
 instead of a partially populated public release. Re-running may update a draft;
 an already published release is never overwritten by the workflow.
 
+The channel gate also derives the exact required wheel/npm/Debian/Formula/WinGet
+file set from the verified native inputs. The `verify --require-all` and
+`stage --require-all` commands in `scripts/distribute.py` reject missing formats even if someone
+regenerates `SHA256SUMS` after deleting them. The npm launcher's platform
+dependencies, Homebrew URLs/hashes and WinGet architectures/URLs/hashes must match.
+The complete flat upload has 25 assets including `distribution-coverage.json`.
+See the [actual coverage and TODO matrix](INSTALLATION.md#platform-and-format-status).
+
 ## Package verification and startup
 
 On Linux:

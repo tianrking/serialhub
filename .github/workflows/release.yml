@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag to validate and publish (for example v0.1.0)
+        description: Existing version tag to validate and publish (for example v0.0.4)
         type: string
         required: true
 
@@ -75,7 +75,8 @@ jobs:
       - name: Build package-manager downloads from the verified native archives
         run: |
           python scripts/distribute.py build --directory release-assets --output distribution
-          python scripts/distribute.py stage --directory distribution --archives release-assets --output upload-assets
+          python scripts/distribute.py verify --directory distribution --require-all
+          python scripts/distribute.py stage --directory distribution --archives release-assets --output upload-assets --require-all
       - name: Upload a draft, keeping existing published versions immutable
         run: |
           set -euo pipefail

@@ -37,6 +37,18 @@ Un espacio de trabajo serie que funciona en tu equipo. Un único propietario abr
 
 **Instalación y modo sin escritorio:** [gestores de paquetes, servidor de puerto fijo y servicios de inicio de sesión](INSTALLATION.md). El lanzador portátil sigue disponible.
 
+### Estado de descarga e instalación · 0.0.4
+
+| Distribución | Estado actual |
+| --- | --- |
+| Portátiles, Python `.whl`, npm nativo `.tgz` | Windows x64 y Linux x64 compilados y probados localmente; **TODO**: artefactos y validación nativa para macOS Intel / Apple Silicon, Linux ARM64 y Windows ARM64 |
+| Debian `.deb` | Linux amd64 generado y probado localmente; **TODO**: artefacto arm64 |
+| Descargas de GitHub Release | **TODO: subir y publicar 0.0.4**; los archivos locales aún no son descargas públicas |
+| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO: registrar y publicar**; la instalación desde registros públicos aún no está disponible |
+| Homebrew / WinGet / repositorio APT firmado | Generación y validación implementadas; **TODO: publicar el tap, obtener aceptación en el catálogo y alojar el repositorio firmado** |
+
+Una Release puede incluir wheels, paquetes npm y Debian **antes de su publicación en registros**. Consulta la [matriz de plataformas y formatos, instalación local y tareas pendientes](INSTALLATION.md#platform-and-format-status). El proyecto PyPI `serialhub` es ajeno; este proyecto usa `serialhub-cli`.
+
 ## El espacio de trabajo
 
 ![Cuatro dispositivos serie Mock independientes en un espacio de SerialHub](docs/screenshots/multi-port.png)

@@ -159,6 +159,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Build native npm packages, Python wheels and OS manifests
         run: python scripts/distribute.py build --directory dist --output distribution
+      - name: Verify every applicable package format and report platform coverage
+        run: python scripts/distribute.py verify --directory distribution
       - name: Install, run and uninstall the actual npm and Python packages
         run: python scripts/ci-run.py --log installer-smoke.log -- python scripts/smoke-distributions.py --directory distribution --target ${{ matrix.target }}
       - name: Prepare the Linux runner's user systemd session
