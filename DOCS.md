@@ -18,6 +18,7 @@ claim that every repository document has been translated into six languages.
 | Product fit, local/browser architecture, platform boundaries | [POSITIONING.md](POSITIONING.md) |
 | Launcher, tray, close/quit, LAN pairing, manager API | [DESKTOP.md](DESKTOP.md) |
 | Several ports in one tiled interactive window | [MULTIPORT.md](MULTIPORT.md) |
+| Name, logo, app icons and README imagery | [BRAND.md](BRAND.md) |
 | Font sizes, persistence, reset and chart-label scope | [DISPLAY.md](DISPLAY.md) |
 | Language policy, RTL, translation maintenance | [I18N.md](I18N.md) |
 | Browser frontend and development | [English](web/README.md), [繁體中文](web/README.zh-TW.md) |

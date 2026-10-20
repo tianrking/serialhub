@@ -1,5 +1,7 @@
 # SerialHub v0.0.4 candidate
 
+- Introduced a unified SerialHub fan-out identity across the workbench, browser favicon, native app/tray icons and English/Chinese/Spanish READMEs; added real Mock-backed screenshots and reproducible brand/capture tools. See [BRAND.md](BRAND.md).
+
 - Added independent interface (80–160%) and serial log/send-editor (10–28 px) text sizing, immediate preview, reset and browser-origin persistence across tabs; six-language labels and RTL layout. See [DISPLAY.md](DISPLAY.md).
 - Kept multi-port terminal columns and HEX commands left-to-right in Arabic; text editors follow their contents without rewriting bytes.
 - Reconciled current-source README/version, uncapped multi-port and runtime-setting descriptions; retained historical release/changelog identities. See [DOCS.md](DOCS.md).

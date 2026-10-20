@@ -810,3 +810,6 @@ html[data-large-text="true"] .port-stream-status, html[data-large-text="true"] .
 .port-log .port-entry pre { unicode-bidi: plaintext; }
 
 .composer-panel .hex-send-input { font-size: var(--log-font-size, 12px); font-family: ui-monospace, Consolas, monospace; }
+
+/* Brand color belongs to the identity; instrument channels keep their colors. */
+.brand-symbol { color: #91c8be; flex-shrink: 0; }

@@ -1,3 +1,4 @@
+import BrandMark from "./BrandMark";
 import CopyButton from "./Clipboard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import App from "./App";
@@ -252,7 +253,7 @@ export default function Desktop() {
         disabled={mode !== "manager"}
       >
         <span className="manager-symbol">
-          <Icon name="layers" size={23} />
+          <BrandMark size={23} />
         </span>
         <div>
           <strong>SerialHub</strong>

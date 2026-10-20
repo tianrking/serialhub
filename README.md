@@ -1,58 +1,51 @@
-# SerialHub
-
-Current source/local candidate: **0.0.4**. See [release notes](RELEASE_NOTES.md) and [GUI usage](DESKTOP.md). Historical GitHub release downloads below remain unchanged until new packages are uploaded.
-
-Click **Aa** beside the language selector to set interface text to **80–160%** and serial logs/send editors to **10–28 px** independently. Changes apply immediately and persist for this browser address when storage is available. See [display settings](DISPLAY.md) and the [complete documentation index](DOCS.md).
-
-The web workspace defaults to English and supports Traditional Chinese, Spanish,
-French and Arabic with RTL, plus the existing Simplified Chinese interface.
-See [localization and deployment controls](./I18N.md).
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
+  <img alt="SerialHub — One port. Shared access." src="assets/brand/serialhub-lockup-dark.svg" width="1200" />
+</picture>
 
 <p align="center">
-  <img alt="serialhub" src="https://img.shields.io/badge/serialhub-serial%20hub-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a>
+  &nbsp; / &nbsp;
+  <a href="DESKTOP.md">Quick start</a> · <a href="DOCS.md">Documentation</a> · <a href="https://github.com/tianrking/serialhub/releases">Downloads</a>
 </p>
 
-<p align="center">
-  <strong>Cross-platform open-source serial hub for humans and agents</strong><br/>
-  <em>One real UART · Many safe clients · Zero silent TX fights</em>
-</p>
+A local-first serial device workspace. One owner keeps each physical port open; browsers, test scripts and traditional tools share its RX stream and coordinate writes.
 
-<p align="center">
-  <a href="./README.md"><img alt="English" src="https://img.shields.io/badge/lang-English-blue?style=flat-square" /></a>
-  <a href="./README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/lang-简体中文-red?style=flat-square" /></a>
-  <a href="./README.es.md"><img alt="Español" src="https://img.shields.io/badge/lang-Español-green?style=flat-square" /></a>
-</p>
+**Current source / local candidate: 0.0.4.** The historical public v0.2.3 downloads predate the latest tray, tiling and font updates. See [release status](RELEASE_NOTES.md).
 
-<p align="center">
-  <b>Languages:</b>
-  <a href="./README.md">English</a> ·
-  <a href="./README.zh-CN.md">简体中文</a> ·
-  <a href="./README.es.md">Español</a>
-</p>
+## The workbench
 
-<p align="center">
-  <a href="https://github.com/tianrking/serialhub/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/serialhub/ci.yml?branch=main&style=flat-square&label=CI" /></a>
-  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
-  <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
-  <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="./Cargo.toml"><img alt="Source version" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat-square" /></a>
-  <img alt="Status" src="https://img.shields.io/badge/status-active-22c55e?style=flat-square" />
-  <a href="https://github.com/tianrking/serialhub/releases"><img alt="Release" src="https://img.shields.io/badge/release-watch%20releases-0ea5e9?style=flat-square" /></a>
-  <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
-</p>
+![Four independent Mock serial devices tiled in one SerialHub workspace](docs/screenshots/multi-port.png)
 
-<p align="center">
-  <img alt="serial" src="https://img.shields.io/badge/serial-UART%20%2F%20COM%20%2F%20tty-0ea5e9?style=flat-square" />
-  <img alt="hub" src="https://img.shields.io/badge/hub-mux%20%2F%20share-8b5cf6?style=flat-square" />
-  <img alt="websocket" src="https://img.shields.io/badge/API-HTTP%20%2B%20WebSocket-06b6d4?style=flat-square" />
-  <img alt="agent" src="https://img.shields.io/badge/AI-agent%20friendly-f59e0b?style=flat-square" />
-  <img alt="embedded" src="https://img.shields.io/badge/domain-embedded%20debug-64748b?style=flat-square" />
-  <img alt="tokio" src="https://img.shields.io/badge/async-tokio-c026d3?style=flat-square" />
-  <img alt="axum" src="https://img.shields.io/badge/web-axum-7c3aed?style=flat-square" />
-  <img alt="pty" src="https://img.shields.io/badge/Unix-PTY-14b8a6?style=flat-square" />
-  <img alt="tcp" src="https://img.shields.io/badge/stream-TCP-3b82f6?style=flat-square" />
-  <img alt="toml" src="https://img.shields.io/badge/config-TOML-e11d48?style=flat-square" />
-</p>
+*Source 0.0.4 · Four Mock loopback devices · Actual HTTP/WS traffic · 1440 × 900. Click an image to inspect it at full size.*
+
+<details>
+<summary>Explore the console, signal instruments and device manager</summary>
+
+### Live console
+
+Inspect text or HEX, copy logs, send commands and keep protocol tools beside the receive pane.
+
+![SerialHub — Live console](docs/screenshots/console.png)
+
+### Signal Studio
+
+Observe channels, cursors, spectrum and instruments. The screenshot uses a synthetic 64 Hz FireWater signal; it is not a hardware measurement.
+
+![SerialHub — Signal Studio](docs/screenshots/signal-studio.png)
+
+### Device manager
+
+Open independent devices, choose their UART settings and manage each owner from the browser.
+
+![SerialHub — Device manager](docs/screenshots/devices.png)
+
+</details>
+
+The interface defaults to English, with Traditional/Simplified Chinese, Spanish, French and Arabic RTL. **Aa** adjusts UI text and serial log/send-editor sizes. See [languages](I18N.md), [display settings](DISPLAY.md) and the [brand guide](BRAND.md).
+
+[MIT](LICENSE) · Rust · Windows / macOS / Linux · [CI](https://github.com/tianrking/serialhub/actions/workflows/ci.yml)
 
 ---
 
@@ -934,5 +927,5 @@ Please stay aligned with [`POSITIONING.md`](./POSITIONING.md).
   <a href="./README.zh-CN.md">简体中文</a> ·
   <a href="./README.es.md">Español</a>
   <br/>
-  <sub>One port. Many clients. Zero fights.</sub>
+  <sub>One port. Shared access.</sub>
 </p>

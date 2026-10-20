@@ -58,44 +58,11 @@ fn labels(locale: &str) -> [&'static str; 5] {
     }
 }
 fn icon() -> anyhow::Result<Icon> {
-    let mut bytes = vec![0u8; 32 * 32 * 4];
-    if !cfg!(target_os = "macos") {
-        for y in 2..30 {
-            for x in 2..30 {
-                if (4..28).contains(&x) || (4..28).contains(&y) {
-                    bytes[(y * 32 + x) * 4..(y * 32 + x) * 4 + 4]
-                        .copy_from_slice(&[28, 52, 91, 255]);
-                }
-            }
-        }
-    }
-    let color = if cfg!(target_os = "macos") {
-        [0, 0, 0, 255]
+    let bytes = if cfg!(target_os = "macos") {
+        include_bytes!("../assets/brand/serialhub-tray-template.rgba").to_vec()
     } else {
-        [130, 179, 255, 255]
+        include_bytes!("../assets/brand/serialhub-tray.rgba").to_vec()
     };
-    for (a, b) in [
-        ((6, 12), (16, 6)),
-        ((16, 6), (26, 12)),
-        ((26, 12), (16, 18)),
-        ((16, 18), (6, 12)),
-        ((6, 17), (16, 23)),
-        ((16, 23), (26, 17)),
-        ((6, 22), (16, 28)),
-        ((16, 28), (26, 22)),
-    ] {
-        let steps: i32 = 32;
-        for step in 0..=steps {
-            let x = (a.0 + (b.0 - a.0) * step / steps) as usize;
-            let y = (a.1 + (b.1 - a.1) * step / steps) as usize;
-            for dy in 0..2 {
-                for dx in 0..2 {
-                    bytes[((y + dy) * 32 + x + dx) * 4..((y + dy) * 32 + x + dx) * 4 + 4]
-                        .copy_from_slice(&color);
-                }
-            }
-        }
-    }
     Ok(Icon::from_rgba(bytes, 32, 32)?)
 }
 pub fn run(

@@ -1,60 +1,55 @@
-# SerialHub
-
-Versión actual del código/candidato local: **0.0.4**. Consulta [las notas](RELEASE_NOTES.md). Las descargas históricas de GitHub permanecen sin cambios hasta publicar los nuevos paquetes.
-
-Pulsa **Aa**, junto al selector de idioma, para ajustar por separado el texto de la interfaz (**80–160%**) y los registros/editores de envío (**10–28 px**). Se aplica al instante y se guarda para esta dirección del navegador si el almacenamiento está disponible. Consulta [ajustes de texto](DISPLAY.md) y el [índice de documentación](DOCS.md).
-
-<p align="center">
-  <img alt="serialhub" src="https://img.shields.io/badge/serialhub-hub%20serie-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
-</p>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
+  <img alt="SerialHub — One port. Shared access." src="assets/brand/serialhub-lockup-dark.svg" width="1200" />
+</picture>
 
 <p align="center">
-  <strong>Hub serie multiplataforma y open source para humanos y agentes</strong><br/>
-  <em>Un UART real · Muchos clientes seguros · Sin intercalado silencioso de TX</em>
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a>
+  &nbsp; / &nbsp;
+  <a href="DESKTOP.md">Primeros pasos</a> · <a href="DOCS.md">Documentación</a> · <a href="https://github.com/tianrking/serialhub/releases">Descargas</a>
 </p>
 
-<p align="center">
-  <a href="./README.md"><img alt="English" src="https://img.shields.io/badge/lang-English-blue?style=flat-square" /></a>
-  <a href="./README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/lang-简体中文-red?style=flat-square" /></a>
-  <a href="./README.es.md"><img alt="Español" src="https://img.shields.io/badge/lang-Español-green?style=flat-square" /></a>
-</p>
+Un espacio de trabajo serie que funciona en tu equipo. Un único propietario abre cada puerto físico; navegadores, pruebas y herramientas comparten RX y coordinan los envíos. Varios dispositivos se depuran en mosaico.
 
-<p align="center">
-  <b>Idiomas / Languages:</b>
-  <a href="./README.md">English</a> ·
-  <a href="./README.zh-CN.md">简体中文</a> ·
-  <a href="./README.es.md">Español</a>
-</p>
+**Código / candidato local actual: 0.0.4.** Las descargas públicas históricas v0.2.3 no incluyen las últimas mejoras de bandeja, mosaico y texto. Consulta [el estado de publicación](RELEASE_NOTES.md).
 
-<p align="center">
-  <a href="https://github.com/tianrking/serialhub/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/serialhub/ci.yml?branch=main&style=flat-square&label=CI" /></a>
-  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
-  <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
-  <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="./Cargo.toml"><img alt="Source version" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat-square" /></a>
-  <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
-</p>
+## El espacio de trabajo
 
-<p align="center">
-  <img alt="serial" src="https://img.shields.io/badge/serial-UART%20%2F%20COM%20%2F%20tty-0ea5e9?style=flat-square" />
-  <img alt="hub" src="https://img.shields.io/badge/hub-mux%20%2F%20compartir-8b5cf6?style=flat-square" />
-  <img alt="websocket" src="https://img.shields.io/badge/API-HTTP%20%2B%20WebSocket-06b6d4?style=flat-square" />
-  <img alt="agent" src="https://img.shields.io/badge/AI-agent%20friendly-f59e0b?style=flat-square" />
-  <img alt="embedded" src="https://img.shields.io/badge/dominio-embedded%20debug-64748b?style=flat-square" />
-  <img alt="tokio" src="https://img.shields.io/badge/async-tokio-c026d3?style=flat-square" />
-  <img alt="axum" src="https://img.shields.io/badge/web-axum-7c3aed?style=flat-square" />
-  <img alt="pty" src="https://img.shields.io/badge/Unix-PTY-14b8a6?style=flat-square" />
-  <img alt="tcp" src="https://img.shields.io/badge/stream-TCP-3b82f6?style=flat-square" />
-  <img alt="toml" src="https://img.shields.io/badge/config-TOML-e11d48?style=flat-square" />
-</p>
+![Cuatro dispositivos serie Mock independientes en un espacio de SerialHub](docs/screenshots/multi-port.png)
+
+*Código 0.0.4 · Cuatro dispositivos Mock en bucle · Tráfico HTTP/WS real · 1440 × 900. Abre la imagen para verla a tamaño completo.*
+
+<details>
+<summary>Ver consola, instrumentos y gestor de dispositivos</summary>
+
+### Consola en vivo
+
+Inspecciona texto o HEX, copia registros y envía comandos con las herramientas de protocolo junto al panel de recepción.
+
+![SerialHub — Consola en vivo](docs/screenshots/console.png)
+
+### Estudio de señales
+
+Canales, cursores, espectro e instrumentos en una vista. La captura usa una señal FireWater sintética de 64 Hz; no es una medición de hardware.
+
+![SerialHub — Estudio de señales](docs/screenshots/signal-studio.png)
+
+### Gestor de dispositivos
+
+Abre dispositivos independientes, configura sus parámetros UART y gestiona cada propietario desde el navegador.
+
+![SerialHub — Gestor de dispositivos](docs/screenshots/devices.png)
+
+</details>
+
+La interfaz empieza en inglés y ofrece chino tradicional/simplificado, español, francés y árabe RTL. **Aa** ajusta el texto de la interfaz y el registro/editor de envío. Consulta [idiomas](I18N.md), [texto](DISPLAY.md) e [identidad](BRAND.md).
+
+En un paquete verificado de tu plataforma, abre `serialhub-desktop.exe` (Windows), `SerialHub.app` (macOS) o `serialhub-desktop` (Linux). El navegador se abre automáticamente; elige un puerto o prueba la demo sin hardware. No necesitas Node.js ni Rust para usar la aplicación descargada.
+
+[MIT](LICENSE) · Rust · Windows / macOS / Linux · [CI](https://github.com/tianrking/serialhub/actions/workflows/ci.yml)
 
 ---
-
-## Inicio sin terminal
-
-El código/candidato actual es **0.0.4**. Los paquetes históricos **v0.2.3** no incluyen la bandeja ni los terminales en mosaico actuales. Usa un candidato 0.0.4 verificado o compila el código. Extrae el paquete de tu plataforma. En Windows abre `serialhub-desktop.exe`; en macOS, `SerialHub.app`; en Linux ejecuta `serialhub-desktop` como programa.
-El navegador se abre automáticamente. Selecciona y configura un puerto, abre su espacio y añade otras sesiones independientes. Puedes activar el acceso IPv4 por LAN y compartir un enlace de vinculación desde el equipo anfitrión.
-No necesitas Node.js ni Rust. Los paquetes no están firmados; siguen siendo necesarios los permisos y controladores del puerto. Consulta [DESKTOP.md](./DESKTOP.md).
 
 ## Tabla de contenidos
 
@@ -670,5 +665,5 @@ Alinea los cambios con [`POSITIONING.md`](./POSITIONING.md).
   <a href="./README.zh-CN.md">简体中文</a> ·
   <a href="./README.es.md">Español</a>
   <br/>
-  <sub>Un puerto. Muchos clientes. Sin pelearse.</sub>
+  <sub>Un puerto. Acceso compartido.</sub>
 </p>

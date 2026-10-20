@@ -1,63 +1,53 @@
-# SerialHub
-
-当前源码/本地候选版本统一为 **0.0.4**。参见 [版本说明](RELEASE_NOTES.md) 和 [图形界面用法](GETTING_STARTED.zh-CN.md)。下方历史 GitHub Release 下载保持原状，新包尚未上传。
-
-点击语言选择旁的 **Aa**，独立调整**界面文字 80–160%** 和**串口日志/发送编辑器 10–28 px**。立即生效；存储可用时按当前浏览器地址保存。参见[字号与显示设置](DISPLAY.md)和[完整文档索引](DOCS.md)。
-
-Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉伯语 RTL，并保留简体中文。可在界面切换、记忆偏好，也可在构建时限制开放语言；参见 [i18n 配置与维护](./I18N.md)。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
+  <img alt="SerialHub — One port. Shared access." src="assets/brand/serialhub-lockup-dark.svg" width="1200" />
+</picture>
 
 <p align="center">
-  <img alt="serialhub" src="https://img.shields.io/badge/serialhub-串口共享中枢-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a>
+  &nbsp; / &nbsp;
+  <a href="GETTING_STARTED.zh-CN.md">快速上手</a> · <a href="DOCS.md">完整文档</a> · <a href="https://github.com/tianrking/serialhub/releases">下载</a>
 </p>
 
-<p align="center">
-  <strong>面向人类与 AI Agent 的跨平台开源串口共享中枢</strong><br/>
-  <em>一个真串口 · 多个安全客户端 · 禁止静默字节交错</em>
-</p>
+本地优先的串口调试工作台。每个真实串口由一个 owner 持有，浏览器、测试脚本与传统上位机共享接收数据，并统一仲裁发送；多个设备可以同时平铺调试。
 
-<p align="center">
-  <a href="./README.md"><img alt="English" src="https://img.shields.io/badge/lang-English-blue?style=flat-square" /></a>
-  <a href="./README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/lang-简体中文-red?style=flat-square" /></a>
-  <a href="./README.es.md"><img alt="Español" src="https://img.shields.io/badge/lang-Español-green?style=flat-square" /></a>
-</p>
+**当前源码 / 本地候选：0.0.4。** 历史公开 v0.2.3 下载不含最新托盘、平铺及字号更新；参见[发布状态](RELEASE_NOTES.md)。
 
-<p align="center">
-  <b>语言 / Languages:</b>
-  <a href="./README.md">English</a> ·
-  <a href="./README.zh-CN.md">简体中文</a> ·
-  <a href="./README.es.md">Español</a>
-</p>
+## 工作台一览
 
-<p align="center">
-  <a href="https://github.com/tianrking/serialhub/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/tianrking/serialhub/ci.yml?branch=main&style=flat-square&label=CI" /></a>
-  <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
-  <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
-  <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="./Cargo.toml"><img alt="Source version" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat-square" /></a>
-  <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>
-</p>
+![SerialHub 在一个工作区内平铺四个独立 Mock 串口](docs/screenshots/multi-port.png)
 
-<p align="center">
-  <img alt="serial" src="https://img.shields.io/badge/serial-UART%20%2F%20COM%20%2F%20tty-0ea5e9?style=flat-square" />
-  <img alt="hub" src="https://img.shields.io/badge/hub-复用%20%2F%20共享-8b5cf6?style=flat-square" />
-  <img alt="websocket" src="https://img.shields.io/badge/API-HTTP%20%2B%20WebSocket-06b6d4?style=flat-square" />
-  <img alt="agent" src="https://img.shields.io/badge/AI-Agent%20友好-f59e0b?style=flat-square" />
-  <img alt="embedded" src="https://img.shields.io/badge/领域-嵌入式调试-64748b?style=flat-square" />
-  <img alt="tokio" src="https://img.shields.io/badge/async-tokio-c026d3?style=flat-square" />
-  <img alt="axum" src="https://img.shields.io/badge/web-axum-7c3aed?style=flat-square" />
-  <img alt="pty" src="https://img.shields.io/badge/Unix-PTY-14b8a6?style=flat-square" />
-  <img alt="tcp" src="https://img.shields.io/badge/stream-TCP-3b82f6?style=flat-square" />
-  <img alt="toml" src="https://img.shields.io/badge/config-TOML-e11d48?style=flat-square" />
-</p>
+*当前源码 0.0.4 · 四路 Mock 回环设备 · 真实 HTTP/WS 收发 · 1440 × 900。点击图片可查看原始尺寸。*
+
+<details>
+<summary>展开查看实时终端、信号仪表和设备管理</summary>
+
+### 实时终端
+
+同时查看接收、发送和协议工具，支持文字/HEX、日志复制、过滤与导出。
+
+![SerialHub — 实时终端](docs/screenshots/console.png)
+
+### 信号仪表
+
+多通道示波、游标、频谱和数值仪表协同显示。图中为合成的 64 Hz FireWater 演示信号，不代表硬件测量。
+
+![SerialHub — 信号仪表](docs/screenshots/signal-studio.png)
+
+### 设备管理
+
+在浏览器中打开多个独立设备、设置串口参数，并分别管理每个 owner 的生命周期。
+
+![SerialHub — 设备管理](docs/screenshots/devices.png)
+
+</details>
+
+界面默认英文，支持繁体/简体中文、西班牙语、法语和阿拉伯语 RTL。点击 **Aa** 可调整界面文字和串口日志/发送框字号。参见[多语言](I18N.md)、[显示设置](DISPLAY.md)和[品牌规范](BRAND.md)。
+
+[MIT](LICENSE) · Rust · Windows / macOS / Linux · [CI](https://github.com/tianrking/serialhub/actions/workflows/ci.yml)
 
 ---
-
-
-嵌入式工作台现支持文件原始字节发送、原始接收录制、多条指令轮发、GBK/UTF-8 工具、运行时串口参数与配置迁移。参见 [SSCOM 5.13 能力对照与未完成项](./SSCOM_PARITY.zh-CN.md) 和 [运行指南](./OPERATIONS.md)。
-
-新增“信号仪表”：多通道示波、游标与软件触发、FFT/XY/频谱瀑布、数值仪表、欧拉姿态、原始图像、参数控件及 CSV 离线回放。参见 [VOFA+ 常用内置功能对照与计算约定](./VOFA_PARITY.zh-CN.md)。
-
-**首次使用：** [产品定位、无硬件演示、真实串口接入与测试验收](./GETTING_STARTED.zh-CN.md)。验证核心共享链路可运行 `python3 scripts/smoke-sharing.py`（先编译二进制，仅使用 Mock）。
 
 ## 目录
 
@@ -828,5 +818,5 @@ Issue / PR：https://github.com/tianrking/serialhub
   <a href="./README.zh-CN.md">简体中文</a> ·
   <a href="./README.es.md">Español</a>
   <br/>
-  <sub>一个口。多个客户端。互不踩脚。</sub>
+  <sub>一个串口，共享接入。</sub>
 </p>

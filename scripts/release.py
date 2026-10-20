@@ -31,6 +31,14 @@ DOCS = (
     "scripts/smoke-desktop-preflight.py", "MULTIPORT.md", "DISPLAY.md", "DOCS.md",
     "EVENTS.md", "WORKFLOWS.md", "HANDOFF.md", "SUPERVISOR.md",
     "web/README.md", "web/README.zh-TW.md", "PROJECT_REVIEW.zh-CN.md",
+    "BRAND.md", "docs/screenshots/README.md", "docs/screenshots/capture.json",
+    "docs/screenshots/multi-port.png", "docs/screenshots/console.png",
+    "docs/screenshots/signal-studio.png", "docs/screenshots/devices.png",
+    "assets/brand/serialhub-symbol.svg", "assets/brand/serialhub-lockup-dark.svg",
+    "assets/brand/serialhub-lockup-light.svg", "assets/brand/serialhub-app.svg",
+    "assets/brand/serialhub-tray.svg", "assets/brand/serialhub-tray-template.svg",
+    "assets/brand/FONT-LICENSE.txt", "assets/serialhub.png", "assets/serialhub.ico",
+    "assets/serialhub.icns", "web/public/favicon.svg",
 )
 MANIFEST = "release-manifest.json"
 

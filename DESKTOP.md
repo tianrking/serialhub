@@ -76,6 +76,9 @@ address. Managers on different explicit ports remain independent; do not open th
 same hardware from different manager processes. Use **Quit SerialHub** to stop an instance. The OS must permit the downloaded executable to run.
 Linux packages require glibc 2.39+; Windows virtual COM drivers are separate.
 
+The fan-out symbol is shared by the browser, native tray and launcher icons.
+Its construction and README imagery are documented in [BRAND.md](BRAND.md).
+
 ## Workbench and copy
 
 The entire UI uses the same compact terminal palette. Device lists are dense rows;

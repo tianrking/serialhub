@@ -1,0 +1,18 @@
+{
+  "version": "0.0.4",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "uiScale": 110,
+  "logSize": 14,
+  "locale": "en",
+  "source": "Four real backend Mock loopback owners; synthetic [DEMO] payloads; no physical hardware",
+  "retouched": false,
+  "files": [
+    "multi-port.png",
+    "console.png",
+    "signal-studio.png",
+    "devices.png"
+  ]
+}

@@ -450,7 +450,7 @@ fn install_shortcuts() -> Result<()> {
     fs::create_dir_all(&icons)?;
     fs::write(
         icons.join("io.serialhub.SerialHub.svg"),
-        r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#111e33"/><g stroke="#82b3ff" stroke-width="3" fill="none" stroke-linejoin="round"><path d="m12 25 20-12 20 12-20 12z"/><path d="m12 35 20 12 20-12M12 45l20 12 20-12"/></g></svg>"##,
+        include_str!("../assets/brand/serialhub-app.svg"),
     )?;
     let executable_path = std::env::current_exe()?;
     let executable = desktop_quote(executable_path.to_str().context(

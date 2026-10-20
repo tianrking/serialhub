@@ -1,3 +1,4 @@
+import BrandMark from "./BrandMark";
 import CopyButton from "./Clipboard";
 import useClipboard from "./useClipboard";
 import { t, getFormattingLocale, translate } from "./i18n/index.ts";
@@ -844,7 +845,7 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
     <div className={`app${managedConnection ? " app-managed" : ""}`} data-workspace={tab}>
       <a className="skip-link" href={`#${workspaceId}-main-content`}>{t("Skip to workspace")}</a>
       <header className="sidebar">
-        <Brand className="brand" onClick={onAppMenu} aria-label={onAppMenu ? t("Application menu") : undefined} aria-haspopup={onAppMenu ? "dialog" : undefined} title={onAppMenu ? t("Application menu") : undefined}><span className="brand-mark"><Icon name="layers" size={25} /></span><div>SerialHub<small>{t("DEVICE WORKSPACE")}</small></div>{onAppMenu && <span className="brand-caret" aria-hidden="true">⌄</span>}</Brand>
+        <Brand className="brand" onClick={onAppMenu} aria-label={onAppMenu ? t("Application menu") : undefined} aria-haspopup={onAppMenu ? "dialog" : undefined} title={onAppMenu ? t("Application menu") : undefined}><span className="brand-mark"><BrandMark size={25} /></span><div>SerialHub<small>{t("DEVICE WORKSPACE")}</small></div>{onAppMenu && <span className="brand-caret" aria-hidden="true">⌄</span>}</Brand>
         <div className="nav-label">{t("Workspace")}</div>
         <nav className="sidebar-nav" aria-label={t("Main navigation")}>
           {([

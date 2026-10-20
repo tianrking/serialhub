@@ -1,3 +1,4 @@
+import BrandMark from "./BrandMark";
 import useClipboard from "./useClipboard";
 import {
   useCallback,
@@ -110,7 +111,7 @@ export default function MultiPortWorkspace({
           aria-label={t("Application menu")}
           onClick={onAppMenu}
         >
-          <Icon name="terminal" size={16} />
+          <BrandMark size={18} />
         </button>
         <h1>{t("Multi-port workspace")}</h1>
         <span className="multi-device-count">
