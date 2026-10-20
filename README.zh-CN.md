@@ -16,6 +16,18 @@
 
 **安装与无界面运行：**参见[包管理器、固定端口服务与登录自启动](INSTALLATION.md)。桌面用户仍可下载便携包，双击打开网页。
 
+### 下载与安装状态 · 0.0.4
+
+| 分发形式 | 当前状态 |
+| --- | --- |
+| 便携包、Python `.whl`、原生 npm `.tgz` | Windows x64、Linux x64 已实际编译并完成本地冒烟测试；**TODO**：macOS Intel / Apple Silicon、Linux ARM64、Windows ARM64 的实际产物与原生验证 |
+| Debian `.deb` | Linux amd64 已生成并完成本地测试；**TODO**：arm64 实际产物 |
+| GitHub Release 下载 | **TODO：上传并发布 0.0.4**；本地文件还不是公开下载 |
+| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO：注册、上架**；暂不能从公开源执行一行安装 |
+| Homebrew / WinGet / 签名 APT 源 | 已实现定义生成与校验；**TODO：发布 tap、提交并通过目录审核、托管签名仓库** |
+
+软件源尚未上架时，GitHub Release 仍可附带 wheel、npm 压缩包和 Debian 包，供用户本地安装。参见[平台与格式矩阵、离线安装、未完成事项](INSTALLATION.md#platform-and-format-status)。PyPI 上的 `serialhub` 属于其他项目，本项目使用 `serialhub-cli`。
+
 ## 工作台一览
 
 ![SerialHub 在一个工作区内平铺四个独立 Mock 串口](docs/screenshots/multi-port.png)
@@ -108,7 +120,8 @@
 | 许可证 | MIT |
 | 文档 | [English](./README.md)（默认）· **简体中文** · [Español](./README.es.md) |
 | 产品/架构详述 | [`POSITIONING.md`](./POSITIONING.md) |
-| 当前发布 | [v0.1.0](https://github.com/tianrking/serialhub/releases/tag/v0.1.0) |
+| 当前源码 / 本地候选 | 0.0.4，公开发布 **TODO** |
+| 历史公开版本 | [v0.2.3](https://github.com/tianrking/serialhub/releases/tag/v0.2.3) |
 
 > **项目已由 ohmyserial 更名为 SerialHub。** `serialhub` 是正式命令和包名；
 > 0.x 发布包仍提供兼容可执行文件，版本化账本 schema、Prometheus 指标和浏览器

@@ -257,6 +257,7 @@ def build(directory, output, version, commit):
     sums = ''.join(f'{release.digest(p.read_bytes())}  {p.relative_to(output).as_posix()}\n'
                    for p in sorted(output.rglob('*')) if p.is_file())
     (output / 'SHA256SUMS').write_text(sums, encoding='utf-8')
+    verify_distribution(output, version, commit)
     print('DISTRIBUTIONS_BUILT', version, ', '.join(sorted(keys)))
 
 
@@ -298,7 +299,49 @@ def apt_repository(directory, output, signing_key):
     print('APT_REPOSITORY_READY', 'signed' if signing_key else 'UNSIGNED: inspection only; sign before hosting')
 
 
-def verify_distribution(directory, version=None, commit=None):
+def distribution_layout(metadata):
+    """Derive mandatory packages from actual native inputs, never guessed CPUs."""
+    version = metadata['version']
+    expected = {'distribution.json', f'npm/tianrking-serialhub-{version}.tgz'}
+    platforms, targets = set(), set()
+    for item in metadata['native_archives']:
+        target = item['target']
+        release.require(target in PLATFORMS, 'Unknown distribution target: ' + target)
+        key, wheel, deb = PLATFORMS[target]
+        release.require(target not in targets and key not in platforms, 'Duplicate distribution platform')
+        targets.add(target)
+        platforms.add(key)
+        filename = f'serialhub-v{version}-{target}' + ('.zip' if 'windows' in target else '.tar.gz')
+        release.require(item['filename'] == filename, 'Native archive filename mismatch')
+        release.require(item['url'] == f'https://github.com/tianrking/serialhub/releases/download/v{version}/{filename}',
+                        'Native archive URL mismatch')
+        expected.update({f'npm/tianrking-serialhub-{key}-{version}.tgz',
+                         f'python/serialhub_cli-{version}-py3-none-{wheel}.whl'})
+        if deb:
+            expected.add(f'debian/serialhub_{version}_{deb}.deb')
+    release.require(platforms and sorted(platforms) == metadata['platforms'], 'Distribution platform inventory mismatch')
+    if any(key.startswith(('linux-', 'darwin-')) for key in platforms):
+        expected.add('homebrew/serialhub.rb')
+    if any(key.startswith('win32-') for key in platforms):
+        root = f'winget/t/tianrking/SerialHub/{version}/tianrking.SerialHub'
+        expected.update(root + suffix + '.yaml' for suffix in ('', '.locale.en-US', '.installer'))
+    return expected, platforms, targets
+
+
+def distribution_coverage(metadata):
+    expected, platforms, targets = distribution_layout(metadata)
+    official = set(release.TARGETS)
+    return {'format': 'serialhub.distribution-coverage.v1', 'version': metadata['version'],
+            'commit': metadata['commit'], 'complete': targets == official,
+            'available_platforms': sorted(platforms),
+            'missing_platforms': sorted({PLATFORMS[t][0] for t in official} - platforms),
+            'missing_official_targets': sorted(official - targets),
+            'additional_targets': sorted(targets - official),
+            'package_files': sorted(expected - {'distribution.json'}),
+            'registry_publication': 'not established by local artifacts'}
+
+
+def verify_distribution(directory, version=None, commit=None, require_all=False):
     metadata = json.loads((directory / 'distribution.json').read_text())
     release.require(metadata['format'] == 'serialhub.distribution.v1', 'Unknown distribution format')
     if version is not None:
@@ -315,19 +358,50 @@ def verify_distribution(directory, version=None, commit=None):
         release.require(release.digest(path.read_bytes()) == expected, 'Distribution checksum mismatch: ' + name)
     actual = {p.relative_to(directory).as_posix() for p in directory.rglob('*') if p.is_file() and p != directory / 'SHA256SUMS'}
     release.require(actual == seen, 'Unexpected or missing distribution file')
+    expected, platforms, targets = distribution_layout(metadata)
+    release.require(actual == expected, 'Incomplete distribution formats; missing: ' +
+                    ', '.join(sorted(expected - actual)) + '; unexpected: ' + ', '.join(sorted(actual - expected)))
+    if require_all:
+        release.require(targets == set(release.TARGETS), 'Incomplete six-platform distribution; missing official targets: ' +
+                        ', '.join(sorted(set(release.TARGETS) - targets)))
+    # A launcher without a matching optional dependency installs successfully but
+    # cannot start. Check its advertised inventory, not only the tarball's name.
+    with tarfile.open(directory / f'npm/tianrking-serialhub-{metadata["version"]}.tgz') as bundle:
+        launcher = json.load(bundle.extractfile('package/package.json'))
+    release.require(launcher.get('optionalDependencies') == {NPM_NAME + '-' + p: metadata['version'] for p in platforms},
+                    'npm launcher platform dependencies mismatch')
+    if 'homebrew/serialhub.rb' in expected:
+        formula = (directory / 'homebrew/serialhub.rb').read_text()
+        for item in metadata['native_archives']:
+            if 'windows' not in item['target']:
+                release.require(f'url "{item["url"]}"' in formula and f'sha256 "{item["sha256"]}"' in formula,
+                                'Homebrew platform URL/hash missing: ' + item['target'])
+    if any(p.startswith('win32-') for p in platforms):
+        installer = json.loads(next((directory / 'winget').rglob('*.installer.yaml')).read_text())
+        advertised = {(i['InstallerUrl'], i['InstallerSha256'].lower(), i['Architecture']) for i in installer['Installers']}
+        wanted = {(i['url'], i['sha256'], 'arm64' if i['target'].startswith('aarch64') else 'x64')
+                  for i in metadata['native_archives'] if 'windows' in i['target']}
+        release.require(len(installer['Installers']) == len(wanted) and advertised == wanted,
+                        'WinGet platform URL/hash mismatch')
     return metadata
 
 
-def stage(directory, archives, output):
+def stage(directory, archives, output, require_all=False):
     """Flatten downloadable packages and retain manifest directories in a bundle."""
     release.require(not output.exists() or not any(output.iterdir()), 'Upload output must be empty')
-    metadata = verify_distribution(directory)
-    native = release.verify_directory(archives, metadata['version'], metadata['commit'])
+    metadata = verify_distribution(directory, require_all=require_all)
+    native = release.verify_directory(archives, metadata['version'], metadata['commit'], require_all=require_all)
+    release.require({p.name for p in native} == {i['filename'] for i in metadata['native_archives']},
+                    'Native archives do not match distribution inventory')
+    for path in native:
+        item = next(i for i in metadata['native_archives'] if i['filename'] == path.name)
+        release.require(release.digest(path.read_bytes()) == item['sha256'], 'Native archive/distribution hash mismatch')
     output.mkdir(parents=True, exist_ok=True)
     for path in native + [p for folder in ('npm', 'python', 'debian') for p in (directory / folder).glob('*')]:
         release.require(not (output / path.name).exists(), 'Duplicate upload filename')
         shutil.copyfile(path, output / path.name)
     shutil.copyfile(directory / 'distribution.json', output / 'distribution.json')
+    (output / 'distribution-coverage.json').write_bytes(encoded(distribution_coverage(metadata)))
     definitions = {p.relative_to(directory).as_posix(): p.read_bytes()
                    for folder in ('homebrew', 'winget') for p in (directory / folder).rglob('*') if p.is_file()}
     write_tgz(output / f'serialhub-v{metadata["version"]}-package-manager-manifests.tar.gz', definitions)
@@ -339,10 +413,15 @@ def stage(directory, archives, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    for command in ('build', 'apt', 'stage'):
+    for command in ('build', 'apt', 'stage', 'verify'):
         child = sub.add_parser(command)
         child.add_argument('--directory', required=True, type=Path)
-        child.add_argument('--output', required=True, type=Path)
+        if command != 'verify':
+            child.add_argument('--output', required=True, type=Path)
+        if command in ('stage', 'verify'):
+            child.add_argument('--require-all', action='store_true', help='Require all six official native targets and every applicable format')
+        if command == 'verify':
+            child.add_argument('--report', type=Path, help='Write the coverage report outside the input directory')
         if command == 'apt':
             child.add_argument('--signing-key', default='')
         if command == 'stage':
@@ -352,8 +431,15 @@ def main():
         build(args.directory, args.output, release.version(), release.git('rev-parse', 'HEAD'))
     elif args.command == 'apt':
         apt_repository(args.directory, args.output, args.signing_key)
+    elif args.command == 'verify':
+        metadata = verify_distribution(args.directory, release.version(), release.git('rev-parse', 'HEAD'), args.require_all)
+        report = distribution_coverage(metadata)
+        if args.report:
+            release.require(not args.report.resolve().is_relative_to(args.directory.resolve()), 'Report must be outside distribution input')
+            args.report.write_bytes(encoded(report))
+        print(json.dumps(report, indent=2))
     else:
-        stage(args.directory, args.archives, args.output)
+        stage(args.directory, args.archives, args.output, args.require_all)
 
 
 if __name__ == '__main__':

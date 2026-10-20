@@ -17,7 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--directory', required=True, type=Path)
     args = parser.parse_args()
-    metadata = distribute.verify_distribution(args.directory, distribute.release.version(), distribute.release.git('rev-parse', 'HEAD'))
+    metadata = distribute.verify_distribution(args.directory, distribute.release.version(), distribute.release.git('rev-parse', 'HEAD'), require_all=True)
     assert len(metadata['platforms']) == 6, 'Only a complete native release may be published'
     packages = sorted((args.directory / 'npm').glob('*.tgz'))
     # Root has bin entries; platform packages have OS/CPU restrictions.

@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--directory', required=True, type=Path)
     args = parser.parse_args()
-    metadata = distribute.verify_distribution(args.directory, distribute.release.version(), distribute.release.git('rev-parse', 'HEAD'))
+    metadata = distribute.verify_distribution(args.directory, distribute.release.version(), distribute.release.git('rev-parse', 'HEAD'), require_all=True)
     wheels = {p.name: p for p in (args.directory / 'python').glob('*.whl')}
     assert len(wheels) == 6 and len(metadata['platforms']) == 6
     try:

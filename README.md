@@ -16,6 +16,18 @@ A local-first serial device workspace. One owner keeps each physical port open; 
 
 **Install & headless:** [package managers, fixed-port server and login services](INSTALLATION.md). The portable launcher remains the simplest desktop entry point.
 
+### Download and installation status · 0.0.4
+
+| Distribution | Current status |
+| --- | --- |
+| Portable archives, Python `.whl`, native npm `.tgz` | Windows x64 and Linux x64 built and smoke-tested locally; **TODO**: macOS Intel / Apple Silicon, Linux ARM64 and Windows ARM64 artifacts and native validation |
+| Debian `.deb` | Linux amd64 built and tested locally; **TODO**: arm64 artifact |
+| GitHub Release downloads | **TODO: upload and publish 0.0.4**; local build files are not public downloads |
+| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO: register and publish**; online install commands are not available yet |
+| Homebrew / WinGet / signed APT source | Definitions and validation tooling implemented; **TODO: publish tap, obtain catalog acceptance and host the signed repository** |
+
+Release attachments can include wheels, npm tarballs and Debian packages **before registry publication**. See the [platform/format matrix, offline installation and remaining TODOs](INSTALLATION.md#platform-and-format-status). The PyPI project named `serialhub` is unrelated; use this project's `serialhub-cli` artifacts.
+
 ## The workbench
 
 ![Four independent Mock serial devices tiled in one SerialHub workspace](docs/screenshots/multi-port.png)
@@ -348,7 +360,9 @@ GitHub Actions builds & tests on:
 - macOS arm64 / x64  
 - Windows x64 / arm64  
 
-Tagged releases (`v*`) publish archives automatically.
+The six-platform CI is configured; it has not been run for this local candidate.
+Release publication requires an explicit manual workflow or server upload. Pushing
+a `v*` tag does not start the Release workflow. See [release acceptance](RELEASING.md).
 
 ---
 

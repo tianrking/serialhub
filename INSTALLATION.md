@@ -12,6 +12,77 @@ publication steps. The commands marked “after publication” are not claims th
 those names are already available. The PyPI name `serialhub` belongs to another
 project; this project's Python distribution is **serialhub-cli**.
 
+## Platform and format status
+
+Status for the **0.0.4 local candidate**, checked 2026-10-20. “Built” means real
+native binaries and derived packages exist on the build server; it does not mean
+they have been uploaded, accepted by a registry or tested with your USB adapter.
+The six native CI jobs are configured but have not run for this candidate because
+hosted Actions is paused. All public installation channels below remain **TODO**.
+
+| OS / CPU | Portable archive | Python wheel tag (`py3-none-…`) | Native npm package | Debian package | Actual artifact status |
+| --- | --- | --- | --- | --- | --- |
+| Windows x64 | `.zip` | `win_amd64` | `win32-x64` | — | **Built** with GNU/MinGW; PE and Wine tests pass; TODO: native Windows/USB qualification and official MSVC build |
+| Windows ARM64 | `.zip` | `win_arm64` | `win32-arm64` | — | **TODO: build and validate** |
+| Linux x64 | `.tar.gz` | `manylinux_2_39_x86_64` | `linux-x64` | `amd64.deb` | **Built**, actual local installation and headless sharing tests pass |
+| Linux ARM64 | `.tar.gz` | `manylinux_2_39_aarch64` | `linux-arm64` | `arm64.deb` | **TODO: build and validate** |
+| macOS Intel | `.tar.gz` containing `.app` | `macosx_15_0_x86_64` | `darwin-x64` | — | **TODO: build and validate on a Mac** |
+| macOS Apple Silicon | `.tar.gz` containing `.app` | `macosx_15_0_arm64` | `darwin-arm64` | — | **TODO: build and validate on a Mac** |
+
+Each wheel bundles the three native executables for exactly one OS/CPU. There is
+no universal `py3-none-any` wheel: copying an x64 executable into an ARM64 wheel
+does not provide ARM64 support. Python 3.9+ is required; the core is Rust, not a
+Python serial-port library. The npm launcher needs Node.js 18+ and a matching
+native package. Linux packages require glibc 2.39+; macOS packages target 15+.
+32-bit, musl/Alpine, RISC-V and other targets are **TODO / not supported by the
+current package matrix**.
+
+| Public channel | Remaining publication work |
+| --- | --- |
+| GitHub Release 0.0.4 | **TODO:** upload actual artifacts, download and compare hashes, then publish. Git pushes work here; GitHub API/upload endpoints are blocked by the environment policy. |
+| PyPI `serialhub-cli` | **TODO:** register the project/trusted publisher and upload the verified wheels. |
+| npm `@tianrking/serialhub` | **TODO:** establish scope ownership/publisher authentication; publish native packages first, launcher last. |
+| Homebrew `tianrking/serialhub` | **TODO:** publish the tap and its generated Formula; Mac/Linux x64 and ARM64 URLs require matching public archives. |
+| WinGet `tianrking.SerialHub` | **TODO:** submit the generated manifests and obtain catalog acceptance; ZIPs alone do not register the package. |
+| APT | **TODO:** configure the production signing key and host the signed repository over HTTPS; a local `.deb` can already be installed directly. |
+
+MSI/MSIX, signed/notarized DMG/PKG, RPM, AppImage, Flatpak, Snap, Chocolatey,
+Scoop and Conda distributions are **TODO / not implemented**. The current
+distribution scope is the portable archives and package channels in the tables
+above; “all formats” means every applicable format in that declared matrix.
+Signing an APT index does not sign or notarize the desktop executables.
+
+### Release attachments before registry publication
+
+**Yes: GitHub Release can host every generated package without publishing to
+PyPI, npm, Homebrew, WinGet or APT first.** Users then install the downloaded
+local files. An incomplete platform build must be labelled with its actual
+coverage; it cannot pass the complete six-platform release gate.
+
+A complete release has **25 attachments**: six portable archives, six platform
+wheels, six native npm tarballs plus one npm launcher, two Debian packages,
+one Homebrew/WinGet manifest bundle, `distribution.json`,
+`distribution-coverage.json` and `SHA256SUMS`. The current two-platform candidate
+produces **12 attachments**, including two wheels and one amd64 Debian package.
+The manifest bundle contains definitions, not published software sources.
+The coverage report lists missing platforms and official targets separately;
+a GNU Windows candidate never substitutes for the official MSVC build.
+
+```sh
+# Build offline packages from verified native archives, without registry access.
+python scripts/distribute.py build --directory release-assets --output distribution
+# Inspect partial coverage, or require all six targets and every format.
+python scripts/distribute.py verify --directory distribution
+python scripts/distribute.py verify --directory distribution --require-all
+# Complete publication: fails before staging if any platform/format is missing.
+python scripts/distribute.py stage --directory distribution --archives release-assets --output upload-assets --require-all
+```
+
+For an explicitly labelled partial server candidate, omit `--require-all` from
+`stage`; its checksums and coverage report still cover all actual downloads.
+Neither form publishes or consumes hosted CI. The manual Release workflow uses
+`--require-all`; the individual native CI jobs validate their own generated formats.
+
 ## Portable download: double-click and debug
 
 Download a verified archive for your OS/CPU, compare `SHA256SUMS`, and extract it.
@@ -108,7 +179,8 @@ Do not launch desktop mode as the container's lifetime supervisor.
 
 ## Package managers
 
-After the corresponding channels are published:
+**TODO — after the corresponding channels are published.** These are future
+online installation commands, not working registry-install claims for 0.0.4:
 
 | Channel | Install | Remove |
 | --- | --- | --- |
@@ -155,6 +227,39 @@ python -m pip install ./distribution/python/serialhub_cli-0.0.4-py3-none-manylin
 npm install -g ./distribution/npm/tianrking-serialhub-linux-x64-0.0.4.tgz ./distribution/npm/tianrking-serialhub-0.0.4.tgz
 sudo apt install ./distribution/debian/serialhub_0.0.4_amd64.deb
 ```
+
+Release attachments are flattened into one directory. After downloading the
+matching wheel and verifying its checksum, a Windows x64 user can run:
+
+```powershell
+py -m venv .serialhub-venv
+.\.serialhub-venv\Scripts\python.exe -m pip install --no-index .\serialhub_cli-0.0.4-py3-none-win_amd64.whl
+.\.serialhub-venv\Scripts\serialhub.exe
+# Foreground server instead of desktop: add "serve"; Ctrl+C stops it.
+# Stop a running desktop instance:
+.\.serialhub-venv\Scripts\serialhub.exe stop
+```
+
+Linux x64, using the downloaded flat attachments:
+
+```sh
+python3 -m venv .serialhub-venv
+.serialhub-venv/bin/python -m pip install --no-index ./serialhub_cli-0.0.4-py3-none-manylinux_2_39_x86_64.whl
+.serialhub-venv/bin/serialhub serve
+```
+
+To install npm attachments without a registry request, download **both** the
+launcher and native tarball for your OS/CPU (this example is Windows x64):
+
+```sh
+npm install -g --offline --ignore-scripts --omit=optional ./tianrking-serialhub-win32-x64-0.0.4.tgz ./tianrking-serialhub-0.0.4.tgz
+serialhub
+```
+
+Replace `win32-x64` with `linux-x64` for the built Linux x64 candidate. This
+deliberate local-install combination supplies the native package explicitly;
+normal registry installations must keep optional dependencies enabled. Portable
+desktop archives remain the easiest option when Python/Node.js are not installed.
 
 Select the files matching your OS/CPU. Python's installer checks wheel platform
 compatibility. For a fully offline local npm installation, include the native

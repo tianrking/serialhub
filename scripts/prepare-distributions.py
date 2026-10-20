@@ -32,6 +32,7 @@ def main():
                 assert distribute.release.digest(archive.read_bytes()) == hashes[archive.name], 'Published checksum mismatch'
         distribute.release.verify_directory(native, version, distribute.release.git('rev-parse', 'HEAD'), require_all=True)
         distribute.build(native, args.output, version, distribute.release.git('rev-parse', 'HEAD'))
+        distribute.verify_distribution(args.output, version, distribute.release.git('rev-parse', 'HEAD'), require_all=True)
 
 
 if __name__ == '__main__':
