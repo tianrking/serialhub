@@ -35,6 +35,8 @@ Un espacio de trabajo serie que funciona en tu equipo. Un único propietario abr
 
 **Código / candidato local actual: 0.0.4.** Las descargas públicas históricas v0.2.3 no incluyen las últimas mejoras de bandeja, mosaico y texto. Consulta [el estado de publicación](RELEASE_NOTES.md).
 
+**Instalación y modo sin escritorio:** [gestores de paquetes, servidor de puerto fijo y servicios de inicio de sesión](INSTALLATION.md). El lanzador portátil sigue disponible.
+
 ## El espacio de trabajo
 
 ![Cuatro dispositivos serie Mock independientes en un espacio de SerialHub](docs/screenshots/multi-port.png)

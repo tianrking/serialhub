@@ -46,13 +46,14 @@ Diagnostics are private to the OS user and bounded to a current/previous log of
 about 4 MiB each (rotation is checked every two seconds). Desktop mode does not
 mirror serial payloads into these diagnostics.
 
-For a headless host or fixed port:
+For a headless host or fixed port (no browser/tray; fails if busy):
 
 ```sh
-serialhub desktop --foreground --no-browser --bind 127.0.0.1:8787
+serialhub serve --bind 127.0.0.1:8787
 ```
 
-Optional commands remain available:
+See [INSTALLATION.md](INSTALLATION.md) for login services and package-manager
+artifacts. Optional commands remain available:
 
 ```sh
 serialhub desktop --background --no-browser  # detached, no browser launch

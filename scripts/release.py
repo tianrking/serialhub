@@ -39,6 +39,7 @@ DOCS = (
     "assets/brand/serialhub-tray.svg", "assets/brand/serialhub-tray-template.svg",
     "assets/brand/FONT-LICENSE.txt", "assets/serialhub.png", "assets/serialhub.ico",
     "assets/serialhub.icns", "web/public/favicon.svg",
+    "INSTALLATION.md", "scripts/smoke-headless.py",
 )
 MANIFEST = "release-manifest.json"
 
@@ -238,6 +239,9 @@ def test_package(archive, release_version, commit):
         subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-launcher.py"),
                         "--binary", str(destination / stage / binary_names(manifest["target"])[2])],
                        check=True, timeout=60)
+        subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-headless.py"),
+                        "--binary", str(destination / stage / binary_names(manifest["target"])[0])],
+                       check=True, timeout=90)
         if "linux" in manifest["target"]:
             subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-desktop-preflight.py"),
                             "--binary", str(destination / stage / binary_names(manifest["target"])[2])],

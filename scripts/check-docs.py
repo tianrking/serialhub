@@ -35,7 +35,7 @@ def check():
         if "packages" in data:
             assert data["packages"][""]["version"] == version, name
     files = set(subprocess.check_output(["git", "ls-files", "--", "*.md"], cwd=ROOT, text=True).splitlines())
-    files.update(("DISPLAY.md", "DOCS.md", "BRAND.md", "docs/screenshots/README.md"))
+    files.update(("DISPLAY.md", "DOCS.md", "BRAND.md", "INSTALLATION.md", "docs/screenshots/README.md"))
     failures = []
     for name in sorted(files):
         text = (ROOT / name).read_text(encoding="utf-8")

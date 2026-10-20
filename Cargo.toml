@@ -76,7 +76,7 @@ objc2-app-kit = { version = "0.3.2", features = ["NSApplication", "NSEvent"] }
 objc2-foundation = { version = "0.3.2", features = ["NSDate", "NSRunLoop", "NSString"] }
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.29", features = ["term", "fs", "poll", "process"] }
+nix = { version = "0.29", features = ["term", "fs", "poll", "process", "user"] }
 
 [build-dependencies]
 winresource = "0.1"

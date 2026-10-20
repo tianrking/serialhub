@@ -72,19 +72,23 @@ jobs:
           merge-multiple: true
       - name: Require six correct archives and produce SHA256SUMS
         run: python scripts/release.py verify --directory release-assets --tag "$RELEASE_TAG" --require-all --write-checksums
+      - name: Build package-manager downloads from the verified native archives
+        run: |
+          python scripts/distribute.py build --directory release-assets --output distribution
+          python scripts/distribute.py stage --directory distribution --archives release-assets --output upload-assets
       - name: Upload a draft, keeping existing published versions immutable
         run: |
           set -euo pipefail
           if gh release view "$RELEASE_TAG" --json isDraft --jq '.isDraft' > draft-state.txt; then
             test "$(cat draft-state.txt)" = true || { echo "Release is already published; refusing to overwrite it."; exit 1; }
-            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+            gh release upload "$RELEASE_TAG" upload-assets/* --clobber
           else
-            gh release create "$RELEASE_TAG" release-assets/* --verify-tag --draft --title "SerialHub $RELEASE_TAG" --notes-file RELEASE_NOTES.md
+            gh release create "$RELEASE_TAG" upload-assets/* --verify-tag --draft --title "SerialHub $RELEASE_TAG" --notes-file RELEASE_NOTES.md
           fi
       - name: Download every uploaded asset and compare SHA-256
         run: |
           gh release download "$RELEASE_TAG" --dir release-downloads
-          python scripts/release.py compare --directory release-assets --actual release-downloads
+          python scripts/release.py compare --directory upload-assets --actual release-downloads
       - name: Publish the complete verified release
         run: |
           gh release edit "$RELEASE_TAG" --draft=false --latest

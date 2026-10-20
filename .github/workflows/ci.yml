@@ -145,16 +145,48 @@ jobs:
         run: python scripts/ci-run.py --log cargo-test.log -- cargo test --locked --all-targets --target ${{ matrix.target }}
       - name: Build CLI, compatibility and desktop executables from the lockfile
         run: python scripts/ci-run.py --log cargo-build.log -- cargo build --locked --release --target ${{ matrix.target }} --bins
+      - name: Require portable Windows binaries without separate runtime DLLs
+        if: contains(matrix.target, 'windows')
+        run: python scripts/check-pe.py --binary-dir target/${{ matrix.target }}/release
       - name: Package executables, local documentation and provenance
         run: python scripts/release.py package --target ${{ matrix.target }} --binary-dir target/${{ matrix.target }}/release --output dist
       - name: Extract and run the actual native package
         run: python scripts/ci-run.py --log package-smoke.log -- python scripts/release.py test-package --directory dist --target ${{ matrix.target }}
       - uses: actions/setup-node@v5
-        if: matrix.name == 'linux-x64'
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: Build native npm packages, Python wheels and OS manifests
+        run: python scripts/distribute.py build --directory dist --output distribution
+      - name: Install, run and uninstall the actual npm and Python packages
+        run: python scripts/ci-run.py --log installer-smoke.log -- python scripts/smoke-distributions.py --directory distribution --target ${{ matrix.target }}
+      - name: Prepare the Linux runner's user systemd session
+        if: startsWith(matrix.name, 'linux-')
+        run: |
+          sudo loginctl enable-linger "$(id -un)"
+          sudo systemctl start "user@$(id -u).service"
+          echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus" >> "$GITHUB_ENV"
+      - name: Exercise native login-service registration and cleanup
+        run: python scripts/ci-run.py --log service-smoke.log -- python scripts/smoke-service.py --binary target/${{ matrix.target }}/release/serialhub${{ contains(matrix.target, 'windows') && '.exe' || '' }} --allow-login-service
+      - name: Check Windows manifests against official WinGet schemas
+        if: contains(matrix.target, 'windows')
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python scripts/check-winget.py --directory distribution/winget --archives dist
+          if (Get-Command winget -ErrorAction SilentlyContinue) {
+            $version = python -c "import json; print(json.load(open('distribution/distribution.json'))['version'])"
+            winget validate --manifest "distribution/winget/t/tianrking/SerialHub/$version"
+            if ($LASTEXITCODE -ne 0) { throw "Native WinGet validation failed" }
+          }
+      - name: Install and remove through a real signed APT repository
+        if: matrix.name == 'linux-x64' || matrix.name == 'linux-arm64'
+        run: sudo "$(command -v python)" scripts/smoke-apt.py --directory distribution/debian --install
+      - name: Install and remove the generated Homebrew formula
+        if: startsWith(matrix.name, 'macos-')
+        run: python scripts/smoke-homebrew.py --directory distribution --archives dist --target ${{ matrix.target }}
       - name: Install browser test dependencies
         if: matrix.name == 'linux-x64'
         working-directory: web
@@ -184,6 +216,13 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload package-manager artifacts for inspection
+        uses: actions/upload-artifact@v6
+        with:
+          name: package-managers-${{ matrix.target }}
+          path: distribution/
           if-no-files-found: error
           retention-days: 14
 

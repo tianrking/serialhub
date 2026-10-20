@@ -346,7 +346,7 @@ async fn busy_default_port_falls_back_and_unsafe_binds_are_rejected() {
 }
 
 #[tokio::test]
-async fn failed_endpoint_startup_does_not_reserve_device_and_session_count_is_bounded() {
+async fn failed_endpoint_startup_rolls_back_and_sessions_exceed_the_old_sixteen_limit() {
     let desktop = Desktop::start("127.0.0.1:0".parse().unwrap())
         .await
         .unwrap();
@@ -371,7 +371,13 @@ async fn failed_endpoint_startup_does_not_reserve_device_and_session_count_is_bo
         open(address, &format!("mock:bounded-{index}")).await;
     }
     let overflow = request(address,"POST","/manager/sessions",json!({"path":"mock:overflow","settings":{"baud":115200,"databits":8,"parity":"none","stopbits":1,"flow":"none"}}),"").await;
-    assert_eq!(overflow.0, 409);
+    assert_eq!(overflow.0, 201);
+    let duplicate = request(address,"POST","/manager/sessions",json!({"path":"mock:overflow","settings":{"baud":115200,"databits":8,"parity":"none","stopbits":1,"flow":"none"}}),"").await;
+    assert_eq!(duplicate.0, 409);
+    assert!(request(address, "GET", "/manager/info", Value::Null, "")
+        .await
+        .2["limit"]
+        .is_null());
     assert_eq!(
         request(address, "GET", "/manager/info", Value::Null, "")
             .await
@@ -379,7 +385,7 @@ async fn failed_endpoint_startup_does_not_reserve_device_and_session_count_is_bo
             .as_array()
             .unwrap()
             .len(),
-        16
+        17
     );
     desktop.shutdown().await;
 }

@@ -16,4 +16,5 @@ pub mod workflow;
 pub mod desktop;
 
 pub mod launcher;
+pub mod service;
 mod tray;

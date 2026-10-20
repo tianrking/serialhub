@@ -10,7 +10,7 @@ Users do not need Node.js or Rust to run these packages.
 ## Release acceptance
 
 The current source/local candidate is **0.0.4**. This is not a published six-platform release.
-With hosted CI paused, use the local-build path below; do not tag or dispatch Actions.
+With hosted CI paused, use the local-build path below; do not dispatch Actions. Server-created tags do not start the manual Release workflow.
 
 1. Update `Cargo.toml`, `Cargo.lock`, `web/package.json`, and
    `web/package-lock.json` to the same version. Update the changelog, current
@@ -26,7 +26,8 @@ With hosted CI paused, use the local-build path below; do not tag or dispatch Ac
 4. If hosted CI is available, explicitly run **Release** with the existing tag
    using **Run workflow**. Tag creation does not start Actions. A successful tag
    push alone does not establish that a downloadable release exists.
-5. Confirm all six platform archives and `SHA256SUMS` appear on the Release page.
+5. Confirm all six native archives, npm tarballs, Python wheels, Debian packages,
+   the manifest bundle and `SHA256SUMS` appear on the Release page.
 
 The Release workflow resolves an existing tag to an immutable commit, verifies
 version agreement and ancestry from `main`, then reuses the complete CI workflow.
@@ -41,10 +42,11 @@ Package smoke checks cover all three executable versions and the macOS app launc
 and local JS/CSS/language assets, shared binary RX and token-protected TX.
 Linux x86_64 also runs the browser suite against the release binary.
 
-Publication requires exactly six distinct archives from the same source commit
-and version. Missing files, a wrong architecture, changed file hashes or a
+Native validation requires exactly six distinct archives from the same source
+commit and version. Channel artifacts are generated from those verified inputs;
+the final upload includes both native archives and package-manager downloads. Missing files, a wrong architecture, changed file hashes or a
 missing compatibility executable fail validation. The workflow creates a draft,
-uploads the archives and `SHA256SUMS`, downloads all uploaded assets, and checks
+uploads the native/channel packages and complete `SHA256SUMS`, downloads every uploaded asset, and checks
 their SHA-256 digests before making the release public. Failed runs leave a draft
 instead of a partially populated public release. Re-running may update a draft;
 an already published release is never overwritten by the workflow.
@@ -112,3 +114,13 @@ Current local candidate coverage: Linux x86_64 GNU and Windows x86_64 GNU only.
 Check the manifest source commit and `SHA256SUMS`; Wine compatibility tests do not
 qualify Windows 10/11 USB hardware. No macOS/ARM64 candidate is supplied by this
 Linux environment. GitHub Release upload has not completed.
+
+## Package-manager channels
+
+See [INSTALLATION.md](INSTALLATION.md) for the offline distribution builder, actual
+installation tests, signed APT repository generation and publication prerequisites.
+The manual **Publish package managers** workflow requires a complete published
+native release. npm and PyPI publishing default to disabled; trusted publishers
+or scoped credentials and ownership of the configured names are prerequisites.
+The optional APT step produces a signed artifact for a separately configured
+HTTPS host; it does not overwrite a GitHub Pages site or claim a live APT URL.

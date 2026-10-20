@@ -35,6 +35,8 @@ A local-first serial device workspace. One owner keeps each physical port open; 
 
 **Current source / local candidate: 0.0.4.** The historical public v0.2.3 downloads predate the latest tray, tiling and font updates. See [release status](RELEASE_NOTES.md).
 
+**Install & headless:** [package managers, fixed-port server and login services](INSTALLATION.md). The portable launcher remains the simplest desktop entry point.
+
 ## The workbench
 
 ![Four independent Mock serial devices tiled in one SerialHub workspace](docs/screenshots/multi-port.png)
