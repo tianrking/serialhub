@@ -1,5 +1,7 @@
 # SerialHub：解决什么问题、怎么用、怎么验收
 
+安装渠道、`serialhub serve` 无界面固定端口、登录自启动与退出管理见[安装指南](INSTALLATION.md)。PyPI 的分发名称为 `serialhub-cli`；各渠道是否已上架以指南中的发布状态为准。
+
 ## 1. 产品定位
 
 **SerialHub 是给嵌入式开发者使用的本地串口共享服务，配有调试和信号分析界面。**

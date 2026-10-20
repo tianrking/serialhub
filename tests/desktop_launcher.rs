@@ -254,11 +254,23 @@ fn application_menu_launches_from_a_portable_path_with_special_characters() {
     let executable = folder.join("serialhub-desktop");
     std::fs::copy(env!("CARGO_BIN_EXE_serialhub-desktop"), &executable).unwrap();
     let data = temporary.path().join("data");
-    let output = Command::new(&executable)
-        .arg("--install-shortcuts")
-        .env("XDG_DATA_HOME", &data)
-        .output()
-        .unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(3);
+    let output = loop {
+        let result = Command::new(&executable)
+            .arg("--install-shortcuts")
+            .env("XDG_DATA_HOME", &data)
+            .output();
+        match result {
+            // Another parallel test may have forked while the copied file was
+            // open for writing; its close-on-exec handle disappears at exec.
+            Err(error)
+                if error.raw_os_error() == Some(26) && std::time::Instant::now() < deadline =>
+            {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            result => break result.unwrap(),
+        }
+    };
     assert!(output.status.success(), "{output:?}");
     let entry = data.join("applications/io.serialhub.SerialHub.desktop");
     let original = std::fs::read_to_string(&entry).unwrap();

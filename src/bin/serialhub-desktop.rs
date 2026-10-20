@@ -13,13 +13,12 @@ fn main() {
             .and_then(|runtime| runtime.block_on(cli::run()))
     };
     if let Err(error) = result {
-        if std::env::args_os()
-            .nth(1)
-            .is_some_and(|value| value == "--desktop-worker")
-        {
+        if std::env::args_os().nth(1).is_some_and(|value| {
+            value == "--desktop-worker" || value == "serve" || value == "service"
+        }) {
             let _ = std::io::Write::write_all(
                 &mut std::io::stderr(),
-                format!("SerialHub worker: {error:#}\n").as_bytes(),
+                format!("SerialHub: {error:#}\n").as_bytes(),
             );
         } else {
             serialhub::launcher::report_error(&error);

@@ -6,6 +6,14 @@ All notable changes to this project are documented in this file.
 
 ## [0.0.4] — source / local candidate
 
+- Added fixed-port `serialhub serve`, short background `start` / graceful `stop`,
+  shared instance discovery and native per-user login-service management.
+- Added offline native npm packages and Python platform wheels, Debian packages,
+  signed APT repository tooling, Homebrew Formula and WinGet manifests. Added
+  actual install/run/uninstall CI coverage and explicit manual npm/PyPI/signing
+  workflows. Registry registration/hosting are separate publication steps; see
+  [INSTALLATION.md](INSTALLATION.md).
+
 - Introduced a unified SerialHub fan-out identity across the workbench, browser favicon, native app/tray icons and English/Chinese/Spanish READMEs; added real Mock-backed screenshots and reproducible brand/capture tools. See [BRAND.md](BRAND.md).
 
 - Added independent interface (80–160%) and serial log/send-editor (10–28 px) text sizing, immediate preview, reset and browser-origin persistence across tabs; six-language labels and RTL layout. See [DISPLAY.md](DISPLAY.md).

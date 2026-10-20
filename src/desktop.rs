@@ -102,13 +102,20 @@ pub struct Desktop {
 }
 impl Desktop {
     pub async fn start(bind: SocketAddr) -> anyhow::Result<Self> {
+        Self::listen(bind, true).await
+    }
+    /// Service deployments must fail on a busy port rather than move silently.
+    pub async fn start_fixed(bind: SocketAddr) -> anyhow::Result<Self> {
+        Self::listen(bind, false).await
+    }
+    async fn listen(bind: SocketAddr, fallback: bool) -> anyhow::Result<Self> {
         anyhow::ensure!(
             bind.ip().is_loopback(),
             "Desktop binds to loopback; enable LAN sharing in the device manager"
         );
         let listener = match tokio::net::TcpListener::bind(bind).await {
             Ok(listener) => listener,
-            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+            Err(e) if fallback && e.kind() == std::io::ErrorKind::AddrInUse => {
                 // An unrelated service must never prevent a double-click launch.
                 tokio::net::TcpListener::bind(SocketAddr::new(bind.ip(), 0)).await?
             }

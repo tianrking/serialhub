@@ -1,0 +1,146 @@
+name: Publish package managers
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published six-platform release tag (for example v0.0.4)
+        required: true
+        type: string
+      publish-npm:
+        description: Publish the npm scope (requires ownership and token/trusted publisher)
+        default: false
+        type: boolean
+      publish-pypi:
+        description: Publish serialhub-cli wheels (requires PyPI project/trusted publisher)
+        default: false
+        type: boolean
+      sign-apt:
+        description: Produce a signed APT repository artifact (requires production APT_SIGNING_KEY)
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-managers-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Require an immutable matching published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          python scripts/release.py check --tag "$RELEASE_TAG" --require-main
+          python scripts/prepare-distributions.py --tag "$RELEASE_TAG" --output distribution
+      - name: Save complete artifacts for the explicit publishing jobs
+        uses: actions/upload-artifact@v6
+        with:
+          name: package-manager-publication
+          path: distribution/
+          if-no-files-found: error
+          retention-days: 14
+
+  npm:
+    if: inputs.publish-npm
+    needs: prepare
+    runs-on: ubuntu-24.04
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v7
+        with:
+          name: package-manager-publication
+          path: distribution
+      - name: Publish native packages before the launcher
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: python scripts/publish-npm.py --directory distribution
+      - name: Install from the actual registry and exercise the workbench
+        run: |
+          version=$(python -c 'import json; print(json.load(open("distribution/distribution.json"))["version"])')
+          npm install --prefix registry-smoke --ignore-scripts --no-audit --no-fund "@tianrking/serialhub@$version"
+          python scripts/smoke-headless.py --binary registry-smoke/node_modules/.bin/serialhub
+
+  pypi:
+    if: inputs.publish-pypi
+    needs: prepare
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v7
+        with:
+          name: package-manager-publication
+          path: distribution
+      - name: Verify any previously uploaded wheels before resuming
+        run: python scripts/prepare-pypi.py --directory distribution
+      - name: Publish wheels using the configured PyPI trusted publisher
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: distribution/python
+          skip-existing: true
+      - name: Install from PyPI and exercise the workbench
+        run: |
+          version=$(python -c 'import json; print(json.load(open("distribution/distribution.json"))["version"])')
+          python -m venv registry-smoke
+          registry-smoke/bin/python -m pip install "serialhub-cli==$version"
+          python scripts/smoke-headless.py --binary registry-smoke/bin/serialhub
+
+  apt:
+    if: inputs.sign-apt
+    needs: prepare
+    runs-on: ubuntu-24.04
+    environment: apt
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v7
+        with:
+          name: package-manager-publication
+          path: distribution
+      - name: Sign the repository with the configured production key
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+          APT_SIGNING_FINGERPRINT: ${{ vars.APT_SIGNING_FINGERPRINT }}
+        run: python scripts/sign-apt.py --directory distribution/debian --output apt-repository
+      - uses: actions/upload-artifact@v6
+        with:
+          name: signed-apt-repository
+          path: apt-repository/
+          if-no-files-found: error
+          retention-days: 14

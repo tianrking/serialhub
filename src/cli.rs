@@ -28,6 +28,23 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
+    /// Run the embedded web workbench without a browser or tray (fixed port).
+    Serve {
+        #[arg(long, default_value = "127.0.0.1:8787")]
+        bind: std::net::SocketAddr,
+    },
+    /// Install or manage the current user's headless login service.
+    Service {
+        #[command(subcommand)]
+        action: serialhub::service::Action,
+    },
+    /// Start the background application and optionally suppress browser launch.
+    Start {
+        #[arg(long, default_value = "127.0.0.1:8787")]
+        bind: std::net::SocketAddr,
+        #[arg(long)]
+        no_browser: bool,
+    },
     /// Launch the device manager (also the default when double-clicked).
     Desktop {
         #[arg(long, default_value = "127.0.0.1:8787")]
@@ -42,6 +59,7 @@ enum Commands {
         background: bool,
     },
     /// Stop the desktop service and close its device sessions.
+    #[command(alias = "stop")]
     Quit {
         #[arg(long, default_value = "127.0.0.1:8787")]
         bind: std::net::SocketAddr,
@@ -224,6 +242,40 @@ pub async fn run() -> anyhow::Result<()> {
         background: false,
     });
     match command {
+        Commands::Start { bind, no_browser } => {
+            anyhow::ensure!(
+                std::process::id() != 1,
+                "Use `serialhub serve` as the foreground container process"
+            );
+            let address =
+                tokio::task::spawn_blocking(move || serialhub::launcher::launch(bind, !no_browser))
+                    .await??;
+            eprintln!("SerialHub is running at http://{address}/; use `serialhub stop` to quit");
+            Ok(())
+        }
+        Commands::Serve { bind } => {
+            let mut owner = serialhub::launcher::HeadlessOwner::acquire(bind)?;
+            let signal = shutdown_signal()?;
+            let desktop = serialhub::desktop::Desktop::start_fixed(bind).await?;
+            if let Err(error) = owner.publish(&desktop) {
+                desktop.shutdown().await;
+                return Err(error);
+            }
+            eprintln!(
+                "SerialHub headless workbench: http://{}/",
+                desktop.address()
+            );
+            let result = tokio::select! {
+                result = signal => result,
+                () = desktop.stopped() => Ok(()),
+            };
+            desktop.shutdown().await;
+            drop(owner);
+            Ok(result?)
+        }
+        Commands::Service { action } => {
+            tokio::task::spawn_blocking(move || serialhub::service::run(action)).await?
+        }
         Commands::Quit { bind } => {
             tokio::task::spawn_blocking(move || serialhub::launcher::stop(bind)).await?
         }

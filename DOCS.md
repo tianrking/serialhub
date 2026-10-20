@@ -14,6 +14,7 @@ claim that every repository document has been translated into six languages.
 | Need | Read |
 | --- | --- |
 | Main overview, installation, CLI, core API | [English](README.md), [简体中文](README.zh-CN.md), [Español](README.es.md) |
+| Package-manager artifacts, headless server and user login services | [INSTALLATION.md](INSTALLATION.md) |
 | First use, demo, real serial device and test examples | [中文入门](GETTING_STARTED.zh-CN.md) |
 | Product fit, local/browser architecture, platform boundaries | [POSITIONING.md](POSITIONING.md) |
 | Launcher, tray, close/quit, LAN pairing, manager API | [DESKTOP.md](DESKTOP.md) |

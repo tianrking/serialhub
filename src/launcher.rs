@@ -32,6 +32,70 @@ struct Paths {
     ready: PathBuf,
     log: PathBuf,
 }
+/// Headless and GUI owners share discovery and shutdown ownership. The lock is
+/// retained until device shutdown has finished, including after HTTP closes.
+pub struct HeadlessOwner {
+    files: Paths,
+    _lock: File,
+    instance: Option<String>,
+}
+impl HeadlessOwner {
+    pub fn acquire(bind: SocketAddr) -> Result<Self> {
+        anyhow::ensure!(
+            bind.ip().is_loopback(),
+            "Serve binds to loopback; use LAN pairing or an SSH tunnel for remote access"
+        );
+        let files = paths(bind)?;
+        let lock = private_file(&files.lock, false)?;
+        FileExt::try_lock_exclusive(&lock)
+            .context("SerialHub already owns this address; stop it before starting a service")?;
+        Ok(Self {
+            files,
+            _lock: lock,
+            instance: None,
+        })
+    }
+    pub fn publish(&mut self, desktop: &crate::desktop::Desktop) -> Result<()> {
+        let saved = Instance {
+            address: desktop.address(),
+            instance: desktop.instance().into(),
+        };
+        let temporary = self
+            .files
+            .ready
+            .with_extension(format!("{}.tmp", saved.instance));
+        let result = (|| -> Result<()> {
+            let mut file = private_file(&temporary, false)?;
+            serde_json::to_writer(&mut file, &saved)?;
+            file.sync_all()?;
+            drop(file);
+            if self.files.ready.exists() {
+                fs::remove_file(&self.files.ready)?;
+            }
+            fs::rename(&temporary, &self.files.ready)?;
+            Ok(())
+        })();
+        if result.is_err() {
+            let _ = fs::remove_file(temporary);
+        }
+        result?;
+        self.instance = Some(saved.instance);
+        Ok(())
+    }
+}
+impl Drop for HeadlessOwner {
+    fn drop(&mut self) {
+        if let Some(instance) = &self.instance {
+            if fs::read(&self.files.ready)
+                .ok()
+                .and_then(|v| serde_json::from_slice::<Instance>(&v).ok())
+                .is_some_and(|v| v.instance == *instance)
+            {
+                let _ = fs::remove_file(&self.files.ready);
+            }
+        }
+    }
+}
 fn paths(bind: SocketAddr) -> Result<Paths> {
     let root = std::env::var_os("SERIALHUB_STATE_DIR")
         .map(PathBuf::from)
@@ -115,6 +179,17 @@ fn existing(bind: SocketAddr, files: &Paths) -> Option<SocketAddr> {
             .ok()
             .filter(|v| v["product"] == "serialhub.desktop.v1" && v["stopping"] != true)
             .map(|_| bind)
+    })
+}
+pub fn running_address(bind: SocketAddr) -> Result<Option<SocketAddr>> {
+    Ok(existing(bind, &paths(bind)?))
+}
+pub fn headless_running(bind: SocketAddr) -> bool {
+    request(bind, "GET", "/manager/info").is_ok_and(|info| {
+        info["product"] == "serialhub.desktop.v1"
+            && info["version"] == env!("CARGO_PKG_VERSION")
+            && info["app"]["background"] == false
+            && info["app"]["tray"] == false
     })
 }
 fn open_existing(address: SocketAddr, open: bool) -> Result<()> {
