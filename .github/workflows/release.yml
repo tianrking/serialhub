@@ -1,8 +1,8 @@
 name: Release
 
+# Releases built on a server must not spend hosted Actions quota on tag creation.
+# The complete native workflow remains available through an explicit manual run.
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
