@@ -8,7 +8,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
+from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -28,6 +30,7 @@ def main():
         subprocess.run(command, env=env, check=True)
     run('brew', 'tap-new', '--no-git', tap)
     installed = False
+    service_attempted = False
     try:
         path = Path(subprocess.check_output(['brew', '--repository', tap], env=env, text=True).strip()) / 'Formula/serialhub.rb'
         content = (args.directory / 'homebrew/serialhub.rb').read_text()
@@ -39,7 +42,21 @@ def main():
         run('brew', 'test', formula)
         prefix = Path(subprocess.check_output(['brew', '--prefix', formula], env=env, text=True).strip())
         run(sys.executable, str(ROOT / 'scripts/smoke-headless.py'), '--binary', str(prefix / 'bin/serialhub'))
+        service_attempted = True
+        run('brew', 'services', 'start', formula)
+        deadline = time.monotonic() + 20
+        while True:
+            try:
+                with urlopen('http://127.0.0.1:8787/manager/info', timeout=2) as response:
+                    state = json.load(response)
+                assert state['product'] == 'serialhub.desktop.v1' and not state['app']['tray']
+                break
+            except OSError:
+                assert time.monotonic() < deadline, 'Homebrew service failed to become ready'
+                time.sleep(.1)
     finally:
+        if service_attempted:
+            run('brew', 'services', 'stop', formula)
         if installed:
             run('brew', 'uninstall', '--formula', formula)
         run('brew', 'untap', tap)
