@@ -28,7 +28,7 @@ DOCS = (
     "RELEASING.md", "serialhub.example.toml", "web/PROTOCOL.zh-TW.md",
     "scripts/smoke-sharing.py", "scripts/smoke-manager.py", "scripts/smoke-launcher.py", "DESKTOP.md",
     "POSITIONING.md", "RELIABILITY_TEST_MATRIX.md", "HARDWARE_CHECK.zh-CN.md",
-    "scripts/smoke-desktop-preflight.py",
+    "scripts/smoke-desktop-preflight.py", "MULTIPORT.md",
 )
 MANIFEST = "release-manifest.json"
 

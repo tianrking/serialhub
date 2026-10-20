@@ -1,8 +1,13 @@
-# SerialHub v0.3.1 candidate
+# SerialHub v0.4.0 candidate
 
 Local candidate builds; platform-specific validation is recorded with each package.
 The public v0.2.3 release remains unchanged until new packages are published.
 
+- Added a multi-port workspace with simultaneous independent terminals, Text/Hex
+  send buffers, 2/4/6-panel layouts, focus, bounded recent logs, filter/export,
+  pause/clear, write leases and confirmed individual device close.
+- Panel acquisition and drafts survive paging/full-workspace switches. Sends
+  have an explicit destination and are never automatically replayed.
 - Desktop startup is detached from the terminal, with native system-tray/menu-bar
   actions to reopen the workspace, open diagnostics and quit all owners.
 - The existing SerialHub brand opens an application menu in every workspace.

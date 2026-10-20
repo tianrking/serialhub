@@ -106,3 +106,81 @@ test("application menu confirms exit and tray/API shutdown updates every browser
     }
   }
 });
+
+test("quitting from the multi-port workspace stops every panel and the manager", async ({
+  page,
+}) => {
+  const binary = resolve(
+    "..",
+    "target",
+    process.env.SERIALHUB_E2E_PROFILE === "release" ? "release" : "debug",
+    process.platform === "win32" ? "serialhub.exe" : "serialhub",
+  );
+  const child = spawn(
+    binary,
+    ["desktop", "--bind", "127.0.0.1:0", "--no-browser"],
+    { stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let output = "",
+    address = "";
+  child.stderr.on("data", (chunk) => {
+    output += chunk.toString();
+  });
+  try {
+    await expect
+      .poll(() => {
+        address =
+          output.match(/device manager: (http:\/\/127\.0\.0\.1:\d+\/)/)?.[1] ??
+          "";
+        return address;
+      })
+      .not.toBe("");
+    for (let i = 0; i < 2; i++)
+      await page.request.post(address + "manager/sessions", {
+        data: {
+          path: `mock:multi-exit-${i}`,
+          settings: {
+            baud: 115200,
+            databits: 8,
+            parity: "none",
+            stopbits: 1,
+            flow: "none",
+          },
+        },
+      });
+    await page.goto(address);
+    await page
+      .getByRole("tab", { name: "Multi-port workspace", exact: true })
+      .click();
+    await expect(page.locator(".port-panel .port-state")).toHaveText([
+      "Receiving",
+      "Receiving",
+    ]);
+    await page
+      .getByRole("button", { name: "Application menu", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog", {
+      name: "Application menu",
+      exact: true,
+    });
+    await dialog
+      .getByRole("button", { name: "Quit SerialHub", exact: true })
+      .click();
+    const exited = once(child, "exit");
+    await dialog
+      .getByRole("button", { name: "Stop SerialHub", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "SerialHub stopped", exact: true }),
+    ).toBeVisible();
+    await expect(page.locator(".port-panel")).toHaveCount(0);
+    expect((await exited)[0]).toBe(0);
+  } finally {
+    if (child.exitCode === null) {
+      await page.request
+        .post(address + "manager/quit", { data: {} })
+        .catch(() => {});
+      if (child.exitCode === null) child.kill("SIGTERM");
+    }
+  }
+});

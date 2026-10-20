@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Multi-port workspace (0.4.0 candidate)
+
+- Added simultaneous lightweight per-device terminals with independent Text/Hex
+  send buffers, explicit targets, encodings, line endings and scoped hotkeys.
+- Added 2/4/6-panel layouts, focus mode, responsive paging, per-panel/global pause
+  and clear, filtering/export, lease controls and confirmed individual close.
+- Kept recent acquisition and drafts across paging/full-workspace switches;
+  bounded display storage and batched rendering, with streaming UTF-8/GBK decode.
+- Added six-language labels, Arabic RTL and regressions for four/six live devices,
+  cross-device isolation, denied/stale writes, layout fit and whole-app shutdown.
+
+
 ### Desktop lifecycle (0.3.1 candidate)
 
 - Fixed successful CLI quit returning before native device handles and the worker

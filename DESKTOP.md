@@ -1,6 +1,6 @@
 # Desktop device manager
 
-The lifecycle behavior below is implemented in the v0.3.1 source/candidate builds.
+The lifecycle behavior below is implemented in the v0.4.0 source/candidate builds.
 The current published v0.2.3 packages predate native tray support.
 
 Run `serialhub-desktop` (Windows: `.exe`, macOS: `SerialHub.app`) or run
@@ -75,6 +75,16 @@ and opens the correct URL. Repeated launches reuse a manager already listening a
 address. Managers on different explicit ports remain independent; do not open the
 same hardware from different manager processes. Use **Quit SerialHub** to stop an instance. The OS must permit the downloaded executable to run.
 Linux packages require glibc 2.39+; Windows virtual COM drivers are separate.
+
+## Multi-port workspace
+
+Select **Multi-port workspace** in the manager, device selector or app menu to
+monitor and manually send to multiple devices at the same time. Use 2/4/6 panels,
+focus one panel, or return to the full workbench without discarding panel drafts.
+Reception continues on hidden pages and while the display is paused. Commands
+only target the named panel; there is no broadcast-send shortcut. Panel tools
+include encodings, leases and a confirmed close action. See [MULTIPORT.md](MULTIPORT.md)
+for display limits, export semantics and subscription behavior.
 
 ## Device lifecycle and architecture
 

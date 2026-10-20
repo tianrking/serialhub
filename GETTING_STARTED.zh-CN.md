@@ -42,7 +42,7 @@ SSCOM 类调试功能与 VOFA 类信号分析，是共享服务上的操作界�
 - **macOS**：打开 `SerialHub.app`。
 - **Linux**：在文件管理器中将 `serialhub-desktop` 作为程序运行；文件需要可执行权限。
 
-v0.3.1 源码/候选包增加了系统托盘：Windows 右键托盘图标、macOS 点击菜单栏图标、Linux 使用支持 StatusNotifierItem 的托盘，可以重新打开工作台、打开日志和退出。Linux 默认启动器也会创建应用菜单中的“SerialHub”和“Quit SerialHub”入口。
+v0.4.0 源码/候选包增加了系统托盘：Windows 右键托盘图标、macOS 点击菜单栏图标、Linux 使用支持 StatusNotifierItem 的托盘，可以重新打开工作台、打开日志和退出。Linux 默认启动器也会创建应用菜单中的“SerialHub”和“Quit SerialHub”入口。
 工作区点击 SerialHub 品牌旁的菜单标记，也可确认退出全部设备。关闭网页只关闭浏览器端工作；设备服务继续运行。退出旧版本后再启动新版，避免复用旧版后台。
 
 浏览器会自动弹出。首页选择串口、设置波特率等参数，再点 **Open workspace（打开工作区）**。
@@ -202,6 +202,13 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium npm --prefix web run test:e2e
 | 前端单元 | 编码/校验、解析分片、FFT 已知频率与幅度、CSV、缓存边界 | 实际浏览器交互 |
 | 浏览器 + Mock Hub | 连接、收发、文件与轮发、曲线、触发、回放、像素、窄屏等 | 真设备时序与长时间稳定性 |
 | 硬件在环 | 目标电脑 + 转接器 + 固件的实际组合 | 其他未经测试的硬件组合 |
+
+### 多串口同时调试
+
+打开多个设备后，选择 **Multi-port workspace / 多串口工作台**，在一个页面
+同时查看各路日志、独立发送 Text/HEX 命令。支持 2/4/6 窗格、放大、分页、
+暂停/清屏、筛选/导出及每路写租约。翻页仍接收，发送只作用于当前命名窗格。
+更多边界和用法见 [多串口工作台](./MULTIPORT.md)。
 
 ### 真实设备验收清单
 

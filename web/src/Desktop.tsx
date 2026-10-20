@@ -1,23 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import App from "./App";
 import Icon from "./Icon";
+import MultiPortWorkspace from "./MultiPortWorkspace";
+import { desktopConnection, type DeviceSession } from "./desktopSession";
 import type { SerialSettings } from "./api/types";
 import { LanguageSelector } from "./i18n/LanguageSelector";
 import { getFormattingLocale, t } from "./i18n/index";
 import { useLocale } from "./i18n/useLocale";
 import "./desktop.css";
 
-type Session = {
-  id: string;
-  name: string;
-  path: string;
-  baud: number;
-  connected: boolean;
-  detail: string;
-  clients: number;
-  rx_bytes: number;
-  tx_bytes: number;
-};
+type Session = DeviceSession;
 type Info = {
   product: string;
   version: string;
@@ -75,6 +67,8 @@ export default function Desktop() {
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [visited, setVisited] = useState<string[]>([]);
+  const [multi, setMulti] = useState(false);
+  const [multiVisited, setMultiVisited] = useState(false);
   const [closeId, setCloseId] = useState<string | null>(null);
   const [quitConfirm, setQuitConfirm] = useState(false);
   const [pairCode, setPairCode] = useState("");
@@ -219,7 +213,17 @@ export default function Desktop() {
       setBusy(false);
     }
   };
+  const openMulti = () => {
+    setSelected(null);
+    setMulti(true);
+    setMultiVisited(true);
+  };
+  const openManager = () => {
+    setSelected(null);
+    setMulti(false);
+  };
   const openWorkspace = (id: string) => {
+    setMulti(false);
     setVisited((ids) => (ids.includes(id) ? ids : [...ids, id]));
     setSelected(id);
   };
@@ -324,7 +328,9 @@ export default function Desktop() {
       </div>
     );
   return (
-    <div className={`desktop-shell${selected ? " has-workspace" : ""}`}>
+    <div
+      className={`desktop-shell${selected ? " has-workspace" : multi ? " has-multi" : ""}`}
+    >
       <header className="manager-toolbar" hidden={!!selected}>
         {heading}
         <div
@@ -334,11 +340,15 @@ export default function Desktop() {
         >
           <button
             role="tab"
-            aria-selected={!selected}
-            onClick={() => setSelected(null)}
+            aria-selected={!selected && !multi}
+            onClick={openManager}
           >
             {t("All devices")}
             <b>{info?.sessions.length ?? 0}</b>
+          </button>
+          <button role="tab" aria-selected={multi} onClick={openMulti}>
+            <Icon name="layers" size={14} />
+            {t("Multi-port workspace")}
           </button>
           {info?.sessions.map((s) => (
             <button
@@ -357,7 +367,7 @@ export default function Desktop() {
           {info?.local ? t("Device host") : t("Paired browser")}
         </span>
       </header>
-      <div className="manager-dashboard" hidden={!!selected}>
+      <div className="manager-dashboard" hidden={!!selected || multi}>
         <div className="manager-intro">
           <div>
             <span className="manager-kicker">
@@ -815,6 +825,18 @@ export default function Desktop() {
           )}
         </footer>
       </div>
+      {multiVisited && (
+        <MultiPortWorkspace
+          sessions={info?.sessions ?? []}
+          active={multi && !selected}
+          onOpen={openWorkspace}
+          onManage={openManager}
+          onClose={async (id) => {
+            await api(`sessions/${id}`, undefined, "DELETE");
+            await refresh();
+          }}
+        />
+      )}
       <dialog
         className="workspace-dialog app-menu"
         aria-label={t("Application menu")}
@@ -853,11 +875,21 @@ export default function Desktop() {
             type="button"
             className="ghost"
             onClick={() => {
-              setSelected(null);
+              openManager();
               appDialog.current?.close();
             }}
           >
             {t("All devices")} · {info?.sessions.length ?? 0}
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => {
+              openMulti();
+              appDialog.current?.close();
+            }}
+          >
+            {t("Multi-port workspace")}
           </button>
           {info?.local && info.app?.background && (
             <button
@@ -919,7 +951,11 @@ export default function Desktop() {
             sessions={info?.sessions ?? []}
             onAppMenu={openAppMenu}
             onSelect={(next) =>
-              next ? openWorkspace(next) : setSelected(null)
+              next === "__multi__"
+                ? openMulti()
+                : next
+                  ? openWorkspace(next)
+                  : openManager()
             }
           />
         ))}
@@ -940,17 +976,7 @@ function SessionWorkspace({
   onAppMenu: () => void;
   onSelect: (id: string) => void;
 }) {
-  const connection = useMemo(
-    () => ({
-      host: location.hostname,
-      port:
-        Number(location.port) || (location.protocol === "https:" ? 443 : 80),
-      protocol:
-        location.protocol === "https:" ? ("https" as const) : ("http" as const),
-      basePath: `/sessions/${id}`,
-    }),
-    [id],
-  );
+  const connection = useMemo(() => desktopConnection(id), [id]);
   return (
     <div className="managed-workspace" hidden={!active}>
       <App
@@ -966,6 +992,7 @@ function SessionWorkspace({
               onChange={(event) => onSelect(event.target.value)}
             >
               <option value="">{t("All devices")}</option>
+              <option value="__multi__">{t("Multi-port workspace")}</option>
               {sessions.map((session) => (
                 <option
                   key={session.id}
