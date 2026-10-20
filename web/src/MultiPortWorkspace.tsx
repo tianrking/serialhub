@@ -10,8 +10,8 @@ import {
 } from "react";
 import Icon from "./Icon";
 import { hubApi } from "./api/client";
-import type { HubSession } from "./useHubConnection";
 import { useHubConnection } from "./useHubConnection";
+import { SerialOperationGate } from "./workspace/serialOperationGate";
 import { desktopConnection, type DeviceSession } from "./desktopSession";
 import {
   commandBytes,
@@ -262,13 +262,20 @@ function PortPanel({
   const [busy, setBusy] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const closing = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [message, setMessage] = useState("");
   const [failure, setFailure] = useState("");
   const [lease, setLease] = useState<{
     token: string;
     expiresAt: number;
   } | null>(null);
-  const operation = useRef<HubSession | null>(null);
+  const [operationGate] = useState(() => new SerialOperationGate(isCurrent));
   const generation = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const logBox = useRef<HTMLDivElement>(null);
@@ -276,7 +283,8 @@ function PortPanel({
   const previousEpoch = useRef<number | undefined>(undefined);
   const invalidate = useCallback(() => {
     generation.current++;
-  }, []);
+    return operationGate.invalidate(new Error(t("Device connection changed")));
+  }, [operationGate]);
   useEffect(() => {
     const outside = (event: PointerEvent) => {
       if (tools.current && !tools.current.contains(event.target as Node))
@@ -327,7 +335,8 @@ function PortPanel({
     if (timer.current === undefined) timer.current = setTimeout(publish, 100);
   }, [publish]);
   const connectPanel = useCallback(() => {
-    generation.current++;
+    invalidate();
+    setBusy(false);
     setFailure("");
     setLease(null);
     store.resetDecoder(options.current.encoding);
@@ -338,8 +347,16 @@ function PortPanel({
         schedule();
       },
       onClose: () => {
-        generation.current++;
+        const pending = invalidate();
+        setBusy(false);
         setLease(null);
+        if (pending)
+          store.notice(
+            "err",
+            t(
+              "Session ended. An in-flight operation may have reached the device. Check events before retrying.",
+            ),
+          );
         store.notice("sys", t("Live stream interrupted"));
         schedule();
       },
@@ -352,7 +369,7 @@ function PortPanel({
         schedule();
       },
     });
-  }, [connect, connection, store, schedule]);
+  }, [connect, connection, store, schedule, invalidate]);
   useEffect(() => {
     void connectPanel();
     return () => {
@@ -377,7 +394,15 @@ function PortPanel({
       previousEpoch.current !== undefined &&
       previousEpoch.current !== epoch
     ) {
-      invalidate();
+      const pending = invalidate();
+      setBusy(false);
+      if (pending)
+        store.notice(
+          "err",
+          t(
+            "Session ended. An in-flight operation may have reached the device. Check events before retrying.",
+          ),
+        );
       setLease(null);
       store.resetDecoder(options.current.encoding);
       store.notice("sys", t("Device connection changed"));
@@ -407,6 +432,21 @@ function PortPanel({
   }, [rows, visible, follow, filter]);
   const ready =
     wsOpen && phase === "connected" && status?.port.connected === true;
+  useEffect(() => {
+    if (ready) return;
+    const pending = invalidate();
+    setBusy(false);
+    setLease(null);
+    if (pending) {
+      store.notice(
+        "err",
+        t(
+          "Session ended. An in-flight operation may have reached the device. Check events before retrying.",
+        ),
+      );
+      schedule();
+    }
+  }, [ready, invalidate, store, schedule]);
   const canSend = ready && (!status?.lock_owner || !!lease);
   const hasPayload =
     mode === "text"
@@ -433,17 +473,14 @@ function PortPanel({
     : rows;
   const act = async (kind: "send" | "lock" | "unlock") => {
     const session = activeSession();
-    if (
-      operation.current ||
-      closing.current ||
-      !ready ||
-      !session ||
-      !isCurrent(session) ||
-      !session.deviceConnected ||
-      !session.streamOpen
-    )
-      return;
-    operation.current = session;
+    const operation = operationGate.begin(
+      session,
+      !closing.current &&
+        ready &&
+        session?.deviceEpoch === statusRef.current?.port.epoch,
+    );
+    if (!operation) return;
+    const active = operation.session;
     const epoch = statusRef.current?.port.epoch;
     const currentGeneration = generation.current;
     setBusy(true);
@@ -464,18 +501,22 @@ function PortPanel({
         );
         if (!bytes.length) throw new Error(t("Payload must not be empty"));
         if (bytes.length > 65536) throw new Error(t("Command exceeds 64 KiB."));
-        const response = await hubApi.writeHex(session.cfg, fullHex(bytes), {
+        const response = await hubApi.writeHex(active.cfg, fullHex(bytes), {
           as_client: "multi-port-ui",
           lease_token: lease?.token,
-          signal: session.signal,
+          signal: operation.signal,
         });
-        if (!isCurrent(session)) return;
+        if (!operationGate.isCurrent(operation)) return;
         if (!response.ok)
           throw new Error(response.error ?? t("Write rejected"));
+        if (response.bytes !== bytes.length)
+          throw new Error(
+            t("Write length not fully acknowledged; sending stopped"),
+          );
         if (
           currentGeneration !== generation.current ||
           epoch !== statusRef.current?.port.epoch ||
-          !session.streamOpen
+          !active.streamOpen
         )
           throw new Error(
             t("Connection changed; check the device before sending again."),
@@ -491,13 +532,16 @@ function PortPanel({
         schedule();
       } else if (kind === "lock") {
         const response = await hubApi.lock(
-          session.cfg,
+          active.cfg,
           "multi-port-ui",
           lease?.token,
           undefined,
-          session.signal,
+          operation.signal,
         );
-        if (!isCurrent(session) || currentGeneration !== generation.current)
+        if (
+          !operationGate.isCurrent(operation) ||
+          currentGeneration !== generation.current
+        )
           return;
         if (!response.ok || !response.lock)
           throw new Error(response.error ?? t("Write rejected"));
@@ -507,42 +551,42 @@ function PortPanel({
         });
       } else if (lease) {
         const response = await hubApi.unlock(
-          session.cfg,
+          active.cfg,
           lease.token,
           undefined,
-          session.signal,
+          operation.signal,
         );
-        if (!isCurrent(session)) return;
+        if (!operationGate.isCurrent(operation)) return;
         if (!response.ok)
           throw new Error(response.error ?? t("Write rejected"));
         setLease(null);
       }
     } catch (error) {
-      if (isCurrent(session)) {
+      if (operationGate.isCurrent(operation)) {
         const text = error instanceof Error ? error.message : String(error);
         setFailure(text);
         store.notice("err", text);
         schedule();
       }
     } finally {
-      if (operation.current === session) {
-        operation.current = null;
+      if (operationGate.finish(operation)) {
         setBusy(false);
       }
     }
   };
   const closePanel = async () => {
-    if (operation.current || closing.current) return;
+    if (operationGate.busy || closing.current) return;
     closing.current = true;
     setBusy(true);
     setFailure("");
     try {
       await onClose();
     } catch (error) {
-      setFailure(error instanceof Error ? error.message : String(error));
+      if (mounted.current)
+        setFailure(error instanceof Error ? error.message : String(error));
     } finally {
       closing.current = false;
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   };
   return (
@@ -628,7 +672,24 @@ function PortPanel({
         >
           ⌫
         </button>
-        <button className="port-icon-button" title={t("Copy log")} aria-label={t("Copy log")} disabled={!filtered.length} onClick={() => void clipboard.copy(filtered.map(row => `${new Date(row.time).toISOString()} ${row.kind.toUpperCase()} ${row.text}${row.truncated ? " …" : ""}`).join("\n"))}>⧉</button>
+        <button
+          className="port-icon-button"
+          title={t("Copy log")}
+          aria-label={t("Copy log")}
+          disabled={!filtered.length}
+          onClick={() =>
+            void clipboard.copy(
+              filtered
+                .map(
+                  (row) =>
+                    `${new Date(row.time).toISOString()} ${row.kind.toUpperCase()} ${row.text}${row.truncated ? " …" : ""}`,
+                )
+                .join("\n"),
+            )
+          }
+        >
+          ⧉
+        </button>
         <button
           className="port-icon-button"
           title={t("Export visible log")}
@@ -722,7 +783,9 @@ function PortPanel({
       <div
         className="port-log"
         ref={logBox}
-        onPointerDown={event => { if (!(event.target as Element).closest("button")) setFollow(false); }}
+        onPointerDown={(event) => {
+          if (!(event.target as Element).closest("button")) setFollow(false);
+        }}
         role="region"
         tabIndex={0}
         aria-label={t("Recent log for {p0}", { p0: device.name })}
@@ -753,7 +816,16 @@ function PortPanel({
                 </span>
               )}
             </pre>
-            <button type="button" className="log-copy-row" tabIndex={-1} title={t("Copy payload")} aria-label={t("Copy payload")} onClick={() => void clipboard.copy(row.text)}>⧉</button>
+            <button
+              type="button"
+              className="log-copy-row"
+              tabIndex={-1}
+              title={t("Copy payload")}
+              aria-label={t("Copy payload")}
+              onClick={() => void clipboard.copy(row.text)}
+            >
+              ⧉
+            </button>
           </div>
         ))}
       </div>

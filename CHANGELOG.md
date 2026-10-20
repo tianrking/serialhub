@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+- Decoupled workspace navigation, connection profiles, RX/acquisition, TX authority,
+  event/metric requests and terminal rendering. RX logs now publish only to terminal
+  subscribers. Added device-epoch operation scopes so stale ACKs and old completion
+  handlers cannot affect a new operation; scheduled sends stop on epoch changes.
+  Tiled panels reuse the same operation gate and reject partial write acknowledgements.
+
 ## [0.0.4] — source / local candidate
 
 - Simplified the three README introductions to a standalone transparent logo,

@@ -351,6 +351,8 @@ test("multi-port layouts fit desktop translations and keep narrow-screen control
   page,
   request,
 }) => {
+  // Five languages and ten viewport transitions include many real layout reads.
+  test.setTimeout(60_000);
   await create(request, 6);
   await enter(page, 6);
   for (const locale of ["en", "zh-Hant", "es", "fr", "ar"] as Locale[]) {
@@ -359,6 +361,23 @@ test("multi-port layouts fit desktop translations and keep narrow-screen control
       .selectOption(locale);
     for (const width of [1280, 1366]) {
       await page.setViewportSize({ width, height: 768 });
+      await expect
+        .poll(() =>
+          page.evaluate((expected) => {
+            if (innerWidth !== expected) return false;
+            return [
+              ...document.querySelectorAll<HTMLElement>(
+                ".port-panel:not([hidden])",
+              ),
+            ]
+              .filter((node) => node.getClientRects().length)
+              .every((node) => {
+                const box = node.getBoundingClientRect();
+                return box.x >= 0 && box.right <= expected;
+              });
+          }, width),
+        )
+        .toBe(true);
       expect(
         await page.evaluate(
           () =>

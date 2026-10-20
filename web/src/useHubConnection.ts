@@ -13,6 +13,7 @@ export type HubSession = {
   signal: AbortSignal;
   abort: () => void;
   deviceConnected: boolean;
+  deviceEpoch?: number;
   streamOpen: boolean;
 };
 
@@ -55,6 +56,7 @@ export function useHubConnection() {
     if (!isCurrent(session)) return;
     if (!nextStatus?.port || typeof nextStatus.port.path !== "string"
         || typeof nextStatus.port.connected !== "boolean" || !Number.isFinite(nextStatus.port.baud)
+        || !Number.isSafeInteger(nextStatus.port.epoch) || nextStatus.port.epoch < 0
         || !nextStatus.stats || ![nextStatus.stats.rx_bytes, nextStatus.stats.tx_bytes,
           nextStatus.stats.rx_drops, nextStatus.stats.tx_denies].every(Number.isFinite)
         || !Array.isArray(nextStatus.clients) || !Array.isArray(nextEndpoints?.endpoints)) {
@@ -62,6 +64,7 @@ export function useHubConnection() {
     }
     setStatus(nextStatus);
     session.deviceConnected = nextStatus.port.connected;
+    session.deviceEpoch = nextStatus.port.epoch;
     setEndpoints(nextEndpoints.endpoints);
     setOnline(true);
   }, [isCurrent]);

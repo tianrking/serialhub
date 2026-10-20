@@ -63,6 +63,38 @@ All writes use `POST /v1/write`, so the Hub's TX policy, lease checks, size
 limits, and host-side write confirmation remain in force. The UI is therefore
 an observer/client of the Hub rather than a second serial owner.
 
+## Workspace architecture
+
+`src/App.tsx` composes navigation and workspace views. Runtime responsibilities
+live in `src/workspace/` with typed domain props; views do not access a global
+application context or open a device themselves.
+
+| Module | Responsibility |
+| --- | --- |
+| `useConsoleWorkspace` | Explicit connect/disconnect orchestration and managed-device lifecycle |
+| `useHubConnection` | HTTP/WS connection identity, device epoch, polling and bounded reconnects |
+| `useSerialTransmission` / `serialOperationGate` | One shared admission gate for commands, jobs, leases, settings and hardware controls |
+| `useReceiveStream` | RX decoding, parser remainders, signal acquisition, capture and counters |
+| `useConsoleLog` / `consoleLogStore` | Bounded, batched terminal data; only terminal subscribers observe RX log changes |
+| `useWorkspaceEvidence` | Session-bound event/metric reads, exports, stale-result checks and cancellation |
+| `useConnectionSettings` / `useQuickCommands` | Editable profiles and command presets; credentials remain memory-only |
+
+Single-device and tiled views reuse the same gate implementation, with one
+independent gate per device workspace so different ports can transmit concurrently.
+Within a workspace, all TX entry points share the same synchronous gate. Each
+admitted operation captures its connection identity and device epoch. Disconnect,
+stream loss or an observed epoch change invalidates its request signal and stops
+scheduled sends and jobs. Partial write ACKs are reported as errors. An old ACK
+cannot update the new session, and an old `finally` cannot release a newer
+operation's gate. An invalid epoch fails connection validation.
+
+User cancellation of a file/sequence job waits for the current block's HTTP
+acknowledgement before stopping subsequent writes. Commands are never retried
+automatically; a host write ACK does not establish a device protocol ACK.
+Pausing or clearing the display does not stop acquisition. Display retention is
+bounded; use capture or the event ledger for complete data within their stated
+limits. Closing a workspace cancels pending reads, sends and display timers.
+
 ## Local hot-reload development
 
 Run the hub and Vite separately:
