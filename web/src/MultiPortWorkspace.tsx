@@ -30,14 +30,21 @@ import {
 } from "./multiSerialLog";
 import { t } from "./i18n/index";
 import { useLocale } from "./i18n/useLocale";
+import PanelGrid from "./PanelGrid";
+import {
+  defaultPanelLayout,
+  panelGrid,
+  readPanelLayout,
+  type PanelLayout,
+} from "./panelLayout";
+import { LanguageSelector } from "./i18n/LanguageSelector";
 import "./multiPort.css";
 
-function storedLayout(): number {
+function storedLayout(): PanelLayout {
   try {
-    const value = Number(localStorage.getItem("serialhub.multi.layout"));
-    return [2, 4, 6].includes(value) ? value : 4;
+    return readPanelLayout(localStorage.getItem("serialhub.multi.tiling"));
   } catch {
-    return 4;
+    return defaultPanelLayout;
   }
 }
 
@@ -47,25 +54,31 @@ export default function MultiPortWorkspace({
   onOpen,
   onManage,
   onClose,
+  onAppMenu,
 }: {
   sessions: DeviceSession[];
   active: boolean;
   onOpen: (id: string) => void;
   onManage: () => void;
   onClose: (id: string) => Promise<void>;
+  onAppMenu: () => void;
 }) {
   useLocale();
   const [layout, setLayout] = useState(storedLayout);
-  const [shortWindow, setShortWindow] = useState(
-    () => innerWidth > 760 && innerHeight < 700,
-  );
+  const [narrow, setNarrow] = useState(() => innerWidth <= 600);
   useEffect(() => {
-    const resize = () => setShortWindow(innerWidth > 760 && innerHeight < 700);
+    const resize = () => setNarrow(innerWidth <= 600);
     addEventListener("resize", resize);
     return () => removeEventListener("resize", resize);
   }, []);
-  const capacity = shortWindow ? 2 : layout;
-  const [page, setPage] = useState(0);
+  const changeLayout = (next: PanelLayout) => {
+    setLayout(next);
+    try {
+      localStorage.setItem("serialhub.multi.tiling", JSON.stringify(next));
+    } catch {
+      /* Memory only. */
+    }
+  };
   const [focus, setFocus] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const [clear, setClear] = useState(0);
@@ -82,16 +95,7 @@ export default function MultiPortWorkspace({
     (id) => sessions.find((s) => s.id === id) ?? [],
   );
   const focused = focus && sessions.some((s) => s.id === focus) ? focus : null;
-  const pages = Math.max(1, Math.ceil(sessions.length / capacity));
-  const currentPage = Math.min(page, pages - 1);
-  useEffect(() => setPage((value) => Math.min(value, pages - 1)), [pages]);
-  const visibleIds = new Set(
-    focused
-      ? [focused]
-      : ordered
-          .slice(currentPage * capacity, (currentPage + 1) * capacity)
-          .map((s) => s.id),
-  );
+  const dimensions = panelGrid(focused ? 1 : sessions.length, layout, narrow);
   return (
     <section
       className="multi-workspace"
@@ -99,55 +103,71 @@ export default function MultiPortWorkspace({
       aria-label={t("Multi-port workspace")}
     >
       <div className="multi-toolbar">
-        <div className="multi-heading">
-          <Icon name="layers" size={20} />
-          <div>
-            <h1>{t("Multi-port workspace")}</h1>
-            <small>{t("Hidden panels keep receiving.")}</small>
-          </div>
-          <span className="multi-device-count">
-            {sessions.filter((s) => s.connected).length}/{sessions.length}
-          </span>
-        </div>
+        <button
+          className="tiling-app"
+          title={t("Application menu")}
+          aria-label={t("Application menu")}
+          onClick={onAppMenu}
+        >
+          <Icon name="terminal" size={16} />
+        </button>
+        <h1>{t("Multi-port workspace")}</h1>
+        <span className="multi-device-count">
+          {sessions.filter((s) => s.connected).length}/{sessions.length}
+        </span>
         <div className="multi-controls">
           <label>
-            {t("Panels per page")}
+            {t("Layout")}
             <select
-              value={capacity}
-              onChange={(e) => {
-                const next = Number(e.target.value);
-                setLayout(next);
-                setPage(0);
-                setFocus(null);
-                try {
-                  localStorage.setItem("serialhub.multi.layout", String(next));
-                } catch {
-                  /* Memory-only layout. */
-                }
-              }}
+              aria-label={t("Layout")}
+              value={layout.mode}
+              onChange={(e) =>
+                changeLayout({
+                  ...layout,
+                  mode: e.target.value as PanelLayout["mode"],
+                })
+              }
             >
-              {[2, 4, 6].map((n) => (
-                <option key={n} value={n} disabled={shortWindow && n > 2}>
-                  {n}
-                </option>
-              ))}
+              <option value="auto">{t("Automatic")}</option>
+              <option value="columns">{t("Columns")}</option>
+              <option value="rows">{t("Rows")}</option>
             </select>
           </label>
+          {layout.mode !== "auto" && (
+            <input
+              className="tiling-count"
+              aria-label={t(layout.mode === "columns" ? "Columns" : "Rows")}
+              type="number"
+              min="1"
+              step="1"
+              value={layout.count}
+              onChange={(e) => {
+                const count = Number(e.target.value);
+                if (Number.isSafeInteger(count) && count > 0)
+                  changeLayout({ ...layout, count });
+              }}
+            />
+          )}
+          <span className="tiling-shape" title={t("Rows × columns")}>
+            {dimensions.rows} × {dimensions.columns}
+          </span>
+          {focused && (
+            <button onClick={() => setFocus(null)}>{t("Restore grid")}</button>
+          )}
           <button
             className={paused ? "active" : "ghost"}
-            onClick={() => setPaused((value) => !value)}
+            onClick={() => setPaused((v) => !v)}
           >
             {paused ? t("Resume all displays") : t("Pause all displays")}
           </button>
           <button
-            className="ghost"
-            onClick={() => setClear((value) => value + 1)}
+            className="ghost tiling-clear"
+            onClick={() => setClear((v) => v + 1)}
           >
             {t("Clear all displays")}
           </button>
-          <button onClick={onManage}>
-            {t("Manage devices")} <span aria-hidden="true">＋</span>
-          </button>
+          <button onClick={onManage}>{t("Manage devices")} +</button>
+          <LanguageSelector />
         </div>
       </div>
       {!sessions.length ? (
@@ -158,16 +178,18 @@ export default function MultiPortWorkspace({
           <button onClick={onManage}>{t("Open a device")}</button>
         </div>
       ) : (
-        <div
-          className={`multi-grid multi-grid-${focused || visibleIds.size === 1 ? 1 : visibleIds.size <= 2 ? 2 : capacity}`}
-        >
+        <PanelGrid rows={dimensions.rows} columns={dimensions.columns}>
           {ordered.map((session, index) => (
             <PortPanel
               key={session.id}
               device={session}
               index={index}
-              visible={active && visibleIds.has(session.id)}
-              hidden={!visibleIds.has(session.id)}
+              visible={active && (!focused || focused === session.id)}
+              hidden={!!focused && focused !== session.id}
+              toolsUp={
+                dimensions.rows > 1 &&
+                index >= (dimensions.rows - 1) * dimensions.columns
+              }
               globalPaused={paused}
               clearSignal={clear}
               focused={focused === session.id}
@@ -178,45 +200,8 @@ export default function MultiPortWorkspace({
               onClose={() => onClose(session.id)}
             />
           ))}
-        </div>
+        </PanelGrid>
       )}
-      <footer className="multi-footer">
-        <span>
-          {t("Send only targets this device.")} ·{" "}
-          {t("Recent display only · up to {p0} entries", {
-            p0: PANEL_LOG_LIMIT,
-          })}
-        </span>
-        <div>
-          {focused ? (
-            <button className="ghost" onClick={() => setFocus(null)}>
-              {t("Restore grid")}
-            </button>
-          ) : (
-            <>
-              <button
-                className="ghost"
-                aria-label={t("Previous panels")}
-                disabled={currentPage === 0}
-                onClick={() => setPage(currentPage - 1)}
-              >
-                ‹
-              </button>
-              <span>
-                {t("Page {p0} of {p1}", { p0: currentPage + 1, p1: pages })}
-              </span>
-              <button
-                className="ghost"
-                aria-label={t("Next panels")}
-                disabled={currentPage + 1 >= pages}
-                onClick={() => setPage(currentPage + 1)}
-              >
-                ›
-              </button>
-            </>
-          )}
-        </div>
-      </footer>
     </section>
   );
 }
@@ -227,6 +212,7 @@ function PortPanel({
   visible,
   hidden,
   globalPaused,
+  toolsUp,
   clearSignal,
   focused,
   onFocus,
@@ -238,6 +224,7 @@ function PortPanel({
   visible: boolean;
   hidden: boolean;
   globalPaused: boolean;
+  toolsUp: boolean;
   clearSignal: number;
   focused: boolean;
   onFocus: () => void;
@@ -557,7 +544,7 @@ function PortPanel({
   };
   return (
     <article
-      className="port-panel"
+      className={`port-panel${toolsUp && !focused ? " tools-up" : ""}`}
       hidden={hidden}
       aria-labelledby={`${id}-title`}
       data-device={device.path}
@@ -812,10 +799,6 @@ function PortPanel({
               HEX
             </button>
           </div>
-          <span className="port-target" title={device.path}>
-            <Icon name="arrow" size={12} />
-            <code>{device.path}</code>
-          </span>
           <select
             aria-label={t("Line ending")}
             value={ending}

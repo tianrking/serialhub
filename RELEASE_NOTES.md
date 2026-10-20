@@ -1,12 +1,12 @@
-# SerialHub v0.4.0 candidate
+# SerialHub v0.4.1 candidate
 
 Local candidate builds; platform-specific validation is recorded with each package.
 The public v0.2.3 release remains unchanged until new packages are published.
 
 - Added a multi-port workspace with simultaneous independent terminals, Text/Hex
-  send buffers, 2/4/6-panel layouts, focus, bounded recent logs, filter/export,
+  send buffers, automatic/custom row/column tiling and draggable dividers, focus, bounded recent logs, filter/export,
   pause/clear, write leases and confirmed individual device close.
-- Panel acquisition and drafts survive paging/full-workspace switches. Sends
+- Panel acquisition and drafts survive focus/full-workspace switches. Sends
   have an explicit destination and are never automatically replayed.
 - Desktop startup is detached from the terminal, with native system-tray/menu-bar
   actions to reopen the workspace, open diagnostics and quit all owners.
@@ -29,7 +29,7 @@ No terminal commands, Node.js or Rust installation are needed for downloaded pac
   retains each device's connection, drafts, acquisition and selected tool.
 - Windows: double-click `serialhub-desktop.exe`; macOS: open `SerialHub.app`;
   Linux: run `serialhub-desktop` as a program. No-argument `serialhub` also opens the manager.
-- Detect/configure ports, try a mock demo, open up to 16 independent concurrent
+- Detect/configure ports, try a mock demo, open independent concurrent
   device sessions, and switch workspaces while retaining their live connections.
 - Each device has its own owner, broker, write leases, workflows and event ledger.
   Multiple browsers/tools may subscribe; optional local TCP and Unix PTYs are available.

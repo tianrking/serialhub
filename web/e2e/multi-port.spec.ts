@@ -30,13 +30,13 @@ async function create(request: APIRequestContext, count = 4) {
   }
   return devices;
 }
-async function enter(page: Page) {
+async function enter(page: Page, count = 4) {
   await page.goto("/");
   await page
     .getByRole("tab", { name: "Multi-port workspace", exact: true })
     .click();
   await expect(page.locator(".port-panel:visible .port-state")).toHaveText(
-    Array.from({ length: 4 }, () => "Receiving"),
+    Array.from({ length: count }, () => "Receiving"),
   );
 }
 function panel(page: Page, path: string) {
@@ -82,9 +82,11 @@ test("four live panels send to their own devices with one header and no desktop 
       .stats.tx_bytes,
   ).toBe(4);
   await expect(a.locator(".port-entry.rx")).not.toContainText(["00 7f 80 ff"]);
-  expect(
-    await page.locator(".manager-brand:visible, .app .brand:visible").count(),
-  ).toBe(1);
+  await expect(page.locator(".manager-toolbar")).toBeHidden();
+  expect(await page.evaluate(() => document.fullscreenElement)).toBeNull();
+  await expect(
+    page.getByRole("button", { name: "Application menu", exact: true }),
+  ).toHaveCount(1);
   expect(await page.locator(".language-selector:visible").count()).toBe(1);
   expect(
     await page.evaluate(
@@ -100,7 +102,7 @@ test("four live panels send to their own devices with one header and no desktop 
     const box = await card
       .getByRole("button", { name: /^Send to / })
       .boundingBox();
-    expect(box!.y + box!.height).toBeLessThan(768);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(768);
   }
 });
 
@@ -174,12 +176,12 @@ test("paused displays keep receiving; filtering, export and per-port clear stay 
   await expect(page.locator(".multi-workspace .port-entry")).toHaveCount(0);
 });
 
-test("pagination and full-workspace switching retain drafts and hidden-panel acquisition", async ({
+test("all tiled panels and full-workspace switching retain drafts and background acquisition", async ({
   page,
   request,
 }) => {
   const devices = await create(request, 6);
-  await enter(page);
+  await enter(page, 6);
   const a = panel(page, devices[0].path),
     last = panel(page, devices[5].path);
   await a
@@ -188,14 +190,10 @@ test("pagination and full-workspace switching retain drafts and hidden-panel acq
   await request.post(`/sessions/${devices[5].id}/v1/write`, {
     data: { text: "background-panel-data" },
   });
-  await page.getByRole("button", { name: "Next panels", exact: true }).click();
   await expect(last).toBeVisible();
   await expect(last.locator(".port-entry.rx")).toContainText([
     "background-panel-data",
   ]);
-  await page
-    .getByRole("button", { name: "Previous panels", exact: true })
-    .click();
   await expect(
     a.getByRole("textbox", { name: "Command for Device 1", exact: true }),
   ).toHaveValue("keep-this-draft");
@@ -214,7 +212,7 @@ test("pagination and full-workspace switching retain drafts and hidden-panel acq
     a.getByRole("textbox", { name: "Command for Device 1", exact: true }),
   ).toHaveValue("keep-this-draft");
   await a.getByRole("button", { name: "Restore grid", exact: true }).click();
-  await expect(page.locator(".port-panel:visible")).toHaveCount(4);
+  await expect(page.locator(".port-panel:visible")).toHaveCount(6);
   const info = await (await request.get("/manager/info")).json();
   expect(info.sessions).toHaveLength(6);
   expect(
@@ -294,31 +292,54 @@ test("removed devices cannot receive a stale response or leak drafts into replac
   await enter(page);
   const a = panel(page, devices[0].path),
     b = panel(page, devices[1].path);
-  let started = false,
-    release = () => {};
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  await page.route(`**/sessions/${devices[0].id}/v1/write`, async (route) => {
-    const response = await route.fetch();
-    started = true;
-    await held;
-    await route.fulfill({ response }).catch(() => {});
-  });
+  // Delay only the completed write result. Keeping a CDP route handler pending
+  // can stall unrelated requests and manager polling in Chromium during teardown.
+  await page.evaluate((id) => {
+    const probe = { started: false, release: () => {} };
+    Object.assign(window, { __serialhubDelayedWrite: probe });
+    const original = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const response = await original(input, init);
+      const url = input instanceof Request ? input.url : String(input);
+      if (!url.endsWith(`/sessions/${id}/v1/write`)) return response;
+      const bytes = await response.arrayBuffer();
+      probe.started = true;
+      await new Promise<void>((resolve) => {
+        probe.release = resolve;
+      });
+      return new Response(bytes, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+    };
+  }, devices[0].id);
   await a
     .getByRole("textbox", { name: "Command for Device 1", exact: true })
     .fill("old-device-command");
   await a
     .getByRole("button", { name: "Send to mock:multi-0", exact: true })
     .click();
-  await expect.poll(() => started).toBe(true);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as Window & { __serialhubDelayedWrite: { started: boolean } })
+            .__serialhubDelayedWrite.started,
+      ),
+    )
+    .toBe(true);
   await request.delete(`/manager/sessions/${devices[0].id}`);
   await expect(a).toHaveCount(0);
   await request.post("/manager/sessions", {
     data: { path: devices[0].path, name: devices[0].name, settings },
   });
   await expect(a).toHaveCount(1);
-  release();
+  await page.evaluate(() =>
+    (
+      window as Window & { __serialhubDelayedWrite: { release: () => void } }
+    ).__serialhubDelayedWrite.release(),
+  );
   await expect(
     a.getByRole("textbox", { name: "Command for Device 1", exact: true }),
   ).toHaveValue("");
@@ -331,10 +352,10 @@ test("multi-port layouts fit desktop translations and keep narrow-screen control
   request,
 }) => {
   await create(request, 6);
-  await enter(page);
+  await enter(page, 6);
   for (const locale of ["en", "zh-Hant", "es", "fr", "ar"] as Locale[]) {
     await page
-      .locator(".manager-toolbar .language-selector select")
+      .locator(".multi-toolbar .language-selector select")
       .selectOption(locale);
     for (const width of [1280, 1366]) {
       await page.setViewportSize({ width, height: 768 });
@@ -349,7 +370,7 @@ test("multi-port layouts fit desktop translations and keep narrow-screen control
         const box = await card.boundingBox();
         expect(box!.x).toBeGreaterThanOrEqual(0);
         expect(box!.x + box!.width).toBeLessThanOrEqual(width);
-        expect(box!.y + box!.height).toBeLessThan(768);
+        expect(box!.y + box!.height).toBeLessThanOrEqual(768);
         expect(
           await card.locator(".port-log").evaluate((node) => node.clientHeight),
         ).toBeGreaterThan(45);
@@ -365,8 +386,16 @@ test("multi-port layouts fit desktop translations and keep narrow-screen control
     }
   }
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.locator(".multi-controls select").selectOption("6");
+  await page
+    .getByRole("combobox", { name: translate("ar", "Layout"), exact: true })
+    .selectOption("columns");
+  await page
+    .getByRole("spinbutton", { name: translate("ar", "Columns"), exact: true })
+    .fill("3");
   await expect(page.locator(".port-panel:visible")).toHaveCount(6);
+  await page
+    .getByRole("combobox", { name: translate("ar", "Layout"), exact: true })
+    .selectOption("auto");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".port-panel:visible").last().scrollIntoViewIfNeeded();
   expect(
@@ -401,7 +430,7 @@ test("closing a panel requires confirmation and does not close the other devices
   await expect(a).toHaveCount(0);
   await expect(b.locator(".port-state")).toHaveText("Receiving");
   await page.setViewportSize({ width: 1366, height: 600 });
-  await expect(page.locator(".port-panel:visible")).toHaveCount(2);
+  await expect(page.locator(".port-panel:visible")).toHaveCount(3);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollHeight <= innerHeight,
@@ -409,12 +438,12 @@ test("closing a panel requires confirmation and does not close the other devices
   ).toBe(true);
 });
 
-test("sixteen ports keep bounded independent recent logs while paging", async ({
+test("seventeen ports exceed the old cap and keep bounded independent tiled logs", async ({
   page,
   request,
 }) => {
-  const devices = await create(request, 16);
-  await enter(page);
+  const devices = await create(request, 17);
+  await enter(page, 17);
   const first = panel(page, devices[0].path);
   await first
     .getByRole("textbox", { name: "Command for Device 1", exact: true })
@@ -432,30 +461,156 @@ test("sixteen ports keep bounded independent recent logs while paging", async ({
     expect((await response.json()).ok).toBe(true);
   }
   await expect(first.locator(".port-entry.rx")).toHaveCount(400);
-  for (let pageIndex = 0; pageIndex < 3; pageIndex++)
-    await page
-      .getByRole("button", { name: "Next panels", exact: true })
-      .click();
-  const last = panel(page, devices[15].path);
+  const last = panel(page, devices[16].path);
   await expect(last.locator(".port-entry.rx")).toHaveCount(400);
   await expect(last.locator(".port-entry.rx").last()).toContainText(
-    "port-15 sequence=0512",
+    "port-16 sequence=0512",
   );
   await expect(
     last.locator(".port-entry.rx").filter({ hasText: "port-0 sequence=" }),
   ).toHaveCount(0);
-  for (let pageIndex = 0; pageIndex < 3; pageIndex++)
-    await page
-      .getByRole("button", { name: "Previous panels", exact: true })
-      .click();
   await expect(
     first.getByRole("textbox", { name: "Command for Device 1", exact: true }),
   ).toHaveValue("draft-at-capacity");
   const info = await (await request.get("/manager/info")).json();
-  expect(info.sessions).toHaveLength(16);
+  expect(info.sessions).toHaveLength(17);
   expect(
     info.sessions.every(
       (session: { clients: number }) => session.clients === 1,
     ),
   ).toBe(true);
+});
+
+test("automatic tiling grows from one to six panes, allows custom tracks and drag resizing", async ({
+  page,
+  request,
+}) => {
+  const devices = await create(request, 1);
+  await enter(page, 1);
+  const grid = page.locator(".multi-grid");
+  const expected = [
+    [1, 1],
+    [1, 2],
+    [2, 2],
+    [2, 2],
+    [2, 3],
+    [2, 3],
+  ];
+  for (let count = 1; count <= 6; count++) {
+    if (count > 1) {
+      const path = `mock:dynamic-${count}`;
+      const result = await request.post("/manager/sessions", {
+        data: { path, name: `Extra ${count}`, settings },
+      });
+      devices.push({ ...(await result.json()), path, name: `Extra ${count}` });
+    }
+    await expect(page.locator(".port-panel:visible")).toHaveCount(count);
+    await expect(grid).toHaveAttribute(
+      "data-rows",
+      String(expected[count - 1][0]),
+    );
+    await expect(grid).toHaveAttribute(
+      "data-columns",
+      String(expected[count - 1][1]),
+    );
+  }
+  await page
+    .getByRole("combobox", { name: "Layout", exact: true })
+    .selectOption("rows");
+  await page.getByRole("spinbutton", { name: "Rows", exact: true }).fill("3");
+  await expect(grid).toHaveAttribute("data-rows", "3");
+  await expect(grid).toHaveAttribute("data-columns", "2");
+  await page
+    .getByRole("combobox", { name: "Layout", exact: true })
+    .selectOption("columns");
+  await page
+    .getByRole("spinbutton", { name: "Columns", exact: true })
+    .fill("3");
+  await expect(grid).toHaveAttribute("data-columns", "3");
+  const first = page.locator(".port-panel:visible").first();
+  const original = (await first.boundingBox())!.width;
+  const divider = page
+    .getByRole("separator", { name: "Resize columns", exact: true })
+    .first();
+  const box = (await divider.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + 80);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 70, box.y + 80);
+  await page.mouse.up();
+  expect((await first.boundingBox())!.width).toBeGreaterThan(original + 35);
+  await divider.focus();
+  await divider.press("Home");
+  expect(Math.abs((await first.boundingBox())!.width - original)).toBeLessThan(
+    2,
+  );
+  await divider.press("ArrowRight");
+  expect((await first.boundingBox())!.width).toBeGreaterThan(original + 15);
+  await page.reload();
+  await page
+    .getByRole("tab", { name: "Multi-port workspace", exact: true })
+    .click();
+  await expect(
+    page.getByRole("combobox", { name: "Layout", exact: true }),
+  ).toHaveValue("columns");
+  await expect(
+    page.getByRole("spinbutton", { name: "Columns", exact: true }),
+  ).toHaveValue("3");
+  await request.delete(`/manager/sessions/${devices[0].id}`);
+  await expect(page.locator(".port-panel:visible")).toHaveCount(5);
+});
+
+test("HTTP and a second WebSocket share one physical owner alongside the tiled UI", async ({
+  page,
+  request,
+}) => {
+  const devices = await create(request, 2);
+  await enter(page, 2);
+  const received: string[] = [];
+  const socket = new WebSocket(
+    `ws://127.0.0.1:18889/sessions/${devices[0].id}/v1/stream`,
+  );
+  socket.binaryType = "arraybuffer";
+  socket.addEventListener("message", (event) => {
+    if (event.data instanceof ArrayBuffer)
+      received.push(new TextDecoder().decode(event.data));
+  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      socket.addEventListener("open", () => resolve(), { once: true });
+      socket.addEventListener("error", reject, { once: true });
+    });
+    socket.send(new TextEncoder().encode("from-ws-client\n"));
+    const response = await request.post(`/sessions/${devices[0].id}/v1/write`, {
+      data: { text: "from-http-client", newline: true },
+    });
+    expect((await response.json()).ok).toBe(true);
+    const a = panel(page, devices[0].path),
+      b = panel(page, devices[1].path);
+    await a.locator("textarea").fill("from-ui-client");
+    await a
+      .getByRole("button", { name: `Send to ${devices[0].path}`, exact: true })
+      .click();
+    await expect(a.locator(".port-entry.rx")).toContainText([
+      "from-ws-client",
+      "from-http-client",
+      "from-ui-client",
+    ]);
+    await expect.poll(() => received.join("")).toContain("from-ui-client");
+    expect(received.join("")).toContain("from-ws-client");
+    expect(received.join("")).toContain("from-http-client");
+    await expect(b.locator(".port-entry.rx")).toHaveCount(0);
+    const info = await (await request.get("/manager/info")).json();
+    expect(info.sessions).toHaveLength(2);
+    expect(
+      info.sessions.find((s: { id: string }) => s.id === devices[0].id).clients,
+    ).toBe(2);
+    const status = await (
+      await request.get(`/sessions/${devices[0].id}/v1/status`)
+    ).json();
+    expect(status.stats.tx_bytes).toBe(
+      "from-ws-client\nfrom-http-client\nfrom-ui-client\n".length,
+    );
+  } finally {
+    socket.close();
+  }
 });

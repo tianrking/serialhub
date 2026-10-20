@@ -1,190 +1,208 @@
+/* A terminal workspace: the page is the work surface, with no dashboard chrome. */
+.desktop-shell.has-multi {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  background: #14171b;
+}
 .multi-workspace {
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 14px 18px 0;
-  gap: 12px;
-  color: #263851;
-}
-.multi-toolbar,
-.multi-heading,
-.multi-controls,
-.multi-footer,
-.multi-footer > div {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  color: #cbd0d7;
+  background: #14171b;
 }
 .multi-toolbar {
-  justify-content: space-between;
-  flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 3px 7px;
   flex-shrink: 0;
+  background: #21252b;
+  border-bottom: 1px solid #373d46;
 }
-.multi-heading {
-  min-width: 0;
-}
-.multi-heading > svg {
-  color: #356ae8;
-}
-.multi-heading h1 {
+.multi-toolbar h1 {
+  font-size: 12px;
+  font-weight: 500;
   margin: 0;
-  font-size: 17px;
-  letter-spacing: -0.4px;
+  white-space: nowrap;
 }
-.multi-heading small {
-  color: #7c8ca3;
-  font-size: 10px;
-}
-.multi-device-count {
-  background: #e7eefb;
-  color: #3565bc;
-  border: 1px solid #d2dff5;
-  border-radius: 6px;
-  padding: 4px 8px;
+.multi-device-count,
+.tiling-shape {
+  color: #929ba8;
   font:
     11px ui-monospace,
     monospace;
+  white-space: nowrap;
 }
 .multi-controls {
-  flex-wrap: wrap;
-  gap: 7px;
-}
-.multi-controls button,
-.multi-controls select,
-.multi-footer button {
-  min-height: 30px;
-  padding: 5px 9px;
-  font-size: 10px;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 .multi-controls label {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  color: #687c99;
-  font-size: 10px;
+  gap: 5px;
+  font-size: 11px;
 }
-.multi-controls .active {
-  color: #aa6614;
-  background: #fff1d9;
-  border-color: #edca91;
+.multi-toolbar button,
+.multi-toolbar select,
+.multi-toolbar input {
+  min-height: 26px;
+  height: 26px;
+  padding: 2px 7px;
+  border: 1px solid #414852;
+  border-radius: 3px;
+  box-shadow: none;
+  font-size: 11px;
+  background: #292e36;
+  color: #d5d9df;
+  white-space: nowrap;
 }
-.multi-grid {
+.multi-toolbar button:hover {
+  background: #363d47;
+  border-color: #6e7a89;
+}
+.multi-toolbar .tiling-app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  width: 26px;
+  border-color: transparent;
+}
+.multi-toolbar .tiling-count {
+  width: 48px;
+}
+.multi-toolbar .active {
+  border-color: #c4a260;
+  color: #e6c787;
+}
+.multi-toolbar .language-selector {
+  width: auto;
+}
+.multi-toolbar .language-selector select {
+  max-width: 115px;
+  padding-inline-end: 20px;
+}
+.multi-toolbar .language-selector > svg {
+  display: none;
+}
+.panel-grid-viewport {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.multi-grid {
   display: grid;
-  gap: 12px;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  overflow: hidden;
-  padding: 1px;
-}
-.multi-grid-1 {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-}
-.multi-grid-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: minmax(0, 1fr);
-}
-.multi-grid-4 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.multi-grid-6 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 100%;
+  min-height: 100%;
+  min-width: 100%;
+  position: relative;
+  gap: 4px;
+  background: #3a424c;
 }
 .port-panel {
-  min-width: 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid #d8e2ef;
-  border-radius: 10px;
-  background: white;
-  box-shadow: 0 2px 6px #29466b05;
+  min-height: 0;
+  min-width: 0;
+  background: #14171b;
   position: relative;
 }
 .port-panel:focus-within {
-  border-color: #83a9f2;
-  box-shadow: 0 0 0 2px #3c73ef12;
+  outline: 1px solid #8b9db5;
+  outline-offset: -1px;
 }
 .port-panel:has(details[open]) {
-  z-index: 5;
+  z-index: 4;
 }
 .port-panel-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  min-height: 45px;
+  gap: 7px;
+  padding: 2px 7px;
+  min-height: 28px;
   flex-shrink: 0;
+  background: #22272e;
+  border-bottom: 1px solid #333a44;
 }
 .port-indicator {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #e4a24b;
+  width: 6px;
+  height: 6px;
   flex-shrink: 0;
+  background: #d3a35f;
+  border-radius: 50%;
 }
 .port-indicator.live {
-  background: #29b996;
-  box-shadow: 0 0 0 3px #29b99617;
+  background: #7aa68d;
 }
 .port-identity {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
   flex: 1;
   min-width: 0;
 }
 .port-identity h2 {
   margin: 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #e1e5ea;
 }
 .port-identity code {
-  display: block;
-  margin-top: 2px;
-  font-size: 9px;
-  color: #8291a9;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  direction: ltr;
-  text-align: start;
+  font-size: 10px;
   background: transparent;
+  color: #949eac;
+  padding: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  direction: ltr;
 }
 .port-state {
-  font-size: 9px;
-  color: #ad793b;
+  font-size: 10px;
+  color: #d3a35f;
   white-space: nowrap;
 }
 .port-state.live {
-  color: #15977b;
+  color: #8aa895;
 }
-.port-index {
+.port-index,
+.port-mock {
   font:
-    10px ui-monospace,
+    9px ui-monospace,
     monospace;
-  color: #b0bdcf;
-  border-inline-start: 1px solid #e3e9f2;
-  padding-inline-start: 8px;
+  color: #929baa;
 }
 .port-panel .port-icon-button {
   background: transparent;
+  color: #a2adbb;
   border: 0;
-  min-width: 23px;
-  min-height: 24px;
-  padding: 1px 4px;
-  font-size: 15px;
-  color: #7284a0;
   box-shadow: none;
+  min-height: 22px;
+  min-width: 23px;
+  padding: 0 4px;
+  font-size: 14px;
+  border-radius: 2px;
 }
 .port-panel .port-icon-button:hover,
 .port-panel .port-icon-button.selected {
-  background: #edf3ff;
-  color: #2b61cc;
+  background: #3b434f;
+  color: #edf1f5;
 }
 .port-panel .port-icon-button:disabled {
   opacity: 0.35;
@@ -192,312 +210,347 @@
 .port-log-toolbar {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-block: 1px solid #e8edf5;
-  background: #f8fafd;
+  gap: 4px;
+  padding: 1px 6px;
+  min-height: 26px;
   flex-shrink: 0;
+  background: #1d2228;
 }
 .port-log-toolbar select,
-.port-log-toolbar input {
+.port-log-toolbar input,
+.port-composer select {
+  min-height: 23px;
+  height: 23px;
+  padding: 1px 5px;
+  border: 1px solid #383f49;
+  border-radius: 2px;
+  color: #c5ccd5;
+  background: #252a32;
   font-size: 10px;
-  min-height: 25px;
-  padding: 3px 5px;
-  border: 1px solid #dde5f1;
-  border-radius: 4px;
 }
 .port-display-label {
   display: flex;
 }
 .port-display-label select {
-  width: 67px;
+  width: 64px;
 }
 .port-search {
   flex: 1;
-  width: 40px;
-  min-width: 30px;
-  background: white;
+  min-width: 25px;
+  width: 30px;
+}
+.port-search::placeholder {
+  color: #848f9f;
 }
 .port-tools {
   position: relative;
 }
 .port-tools summary {
-  list-style: none;
   cursor: pointer;
-  color: #7284a0;
+  list-style: none;
   font-size: 12px;
-  padding: 4px;
-  white-space: nowrap;
+  padding: 2px 4px;
+  color: #b0bac6;
 }
 .port-tools summary::-webkit-details-marker {
   display: none;
 }
 .port-tools > div {
   position: absolute;
-  top: 28px;
+  top: 25px;
   inset-inline-end: 0;
-  width: 225px;
-  max-height: 260px;
+  width: 230px;
+  max-width: calc(100vw - 20px);
+  max-height: 245px;
   overflow: auto;
-  background: #fff;
-  border: 1px solid #d8e2ef;
-  box-shadow: 0 12px 30px #11254226;
-  border-radius: 8px;
-  padding: 12px;
+  background: #262c34;
+  border: 1px solid #566170;
+  padding: 10px;
   z-index: 10;
+  box-shadow: 0 5px 15px #0006;
+  border-radius: 3px;
+}
+.tools-up .port-tools > div {
+  top: auto;
+  bottom: 25px;
 }
 .port-tools label {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  color: #627793;
+  gap: 8px;
+  margin-bottom: 8px;
   font-size: 11px;
 }
 .port-tools button {
-  display: block;
   width: 100%;
-  margin-top: 6px;
-  font-size: 10px;
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  min-height: 26px;
+  background: #333c48;
+  color: #d4dce7;
+  border: 1px solid #505e70;
+  box-shadow: none;
+  border-radius: 2px;
+}
+.port-tools .port-close {
+  color: #e3a4a4;
+  border-color: #81565a;
+  margin-top: 10px;
 }
 .port-tools p {
+  color: #a1adbd;
   font-size: 10px;
   line-height: 1.5;
-  color: #8494ac;
 }
 .port-log {
   flex: 1;
-  min-height: 45px;
+  min-height: 20px;
   overflow: auto;
-  background: #111e32;
-  color: #dbe5f5;
-  padding: 8px 10px;
-  scrollbar-width: thin;
-  scrollbar-color: #3a4c65 #111e32;
   overscroll-behavior: contain;
+  padding: 4px 7px;
+  background: #14171b;
+  color: #d3d8df;
+  scrollbar-width: thin;
+  scrollbar-color: #46505e #14171b;
 }
 .port-log-empty {
-  min-height: 100%;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  color: #6b7f9f;
+  height: 100%;
+  color: #697482;
   font-size: 11px;
+}
+.port-log-empty svg {
+  display: none;
 }
 .port-entry {
   display: grid;
-  grid-template-columns: 49px 21px minmax(0, 1fr);
-  gap: 6px;
-  padding: 2px 0;
+  grid-template-columns: 53px 21px minmax(0, 1fr);
+  gap: 5px;
   align-items: baseline;
   font:
-    10px/1.5 ui-monospace,
+    12px/1.45 ui-monospace,
     "SFMono-Regular",
     Consolas,
     monospace;
+  padding: 0;
 }
 .port-entry time {
-  color: #6881a5;
-  font-size: 9px;
+  color: #737f8f;
+  font-size: 10px;
   direction: ltr;
 }
 .port-entry b {
-  font-size: 8px;
-  color: #39cbb0;
+  font-size: 9px;
+  font-weight: 400;
+  color: #8ba997;
 }
 .port-entry.tx b {
-  color: #81a8ff;
+  color: #91afd1;
 }
-.port-entry.sys b {
-  color: #e4b966;
+.port-entry.sys b,
+.port-truncated {
+  color: #c2aa7e;
 }
 .port-entry.err b,
 .port-entry.err pre {
-  color: #f4a09c;
+  color: #e3a4a4;
 }
 .port-entry pre {
   margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font: inherit;
-  background: transparent;
-  padding: 0;
   min-width: 0;
-  color: inherit;
-}
-.port-truncated {
-  color: #c4a66d;
 }
 .port-stream-status {
   display: flex;
   align-items: center;
   gap: 8px;
-  justify-content: space-between;
-  padding: 3px 10px;
-  background: #16253c;
-  color: #7f97b9;
-  font-size: 8px;
-  min-height: 22px;
+  padding: 0 7px;
+  min-height: 17px;
+  background: #1b2026;
+  color: #919caa;
+  font:
+    9px ui-monospace,
+    monospace;
+  flex-shrink: 0;
 }
 .port-stream-status > span:first-child {
   flex: 1;
 }
 .port-stream-status .paused {
-  color: #e3bb73;
+  color: #d1b67f;
 }
 .port-panel .port-follow {
-  border: 0;
   padding: 0;
-  font-size: 8px;
-  background: none;
-  color: #8297b7;
-  min-height: 16px;
+  min-height: 15px;
+  font-size: 9px;
   white-space: nowrap;
+  background: transparent;
+  border: 0;
+  color: #929dab;
 }
 .port-panel .port-follow.selected {
-  color: #83aff9;
+  color: #b4c4da;
 }
 .port-composer {
-  padding: 7px 10px 3px;
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+  padding: 4px 6px 1px;
   flex-shrink: 0;
+  background: #1d2228;
 }
 .port-composer-options {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 5px;
+  gap: 5px;
 }
 .port-mode {
   display: flex;
-  background: #eef2f9;
-  border-radius: 4px;
-  padding: 2px;
+  flex-direction: column;
 }
 .port-panel .port-mode button {
-  min-height: 20px;
-  background: transparent;
+  min-height: 14px;
+  padding: 0 4px;
   border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #7b8899;
   font-size: 9px;
-  padding: 2px 9px;
-  color: #7789a4;
 }
 .port-panel .port-mode button[aria-pressed="true"] {
-  background: white;
-  color: #2f69d8;
-  box-shadow: 0 1px 3px #183b7414;
-}
-.port-target {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  min-width: 0;
-  color: #8b9cb5;
-  gap: 5px;
-}
-.port-target code {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 9px;
-  background: none;
-  padding: 0;
-  color: #6b82a4;
+  background: #3d4755;
+  color: #e3eaf4;
 }
 .port-composer-options > select {
-  font-size: 9px;
-  padding: 3px 5px;
-  max-width: 104px;
-  min-height: 23px;
+  max-width: 90px;
+  width: 80px;
 }
 .port-compose-row {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   align-items: stretch;
+  flex: 1;
+  min-width: 0;
 }
 .port-compose-row textarea {
   flex: 1;
-  width: 50px;
   min-width: 0;
+  width: 30px;
   resize: none;
-  height: 39px;
-  min-height: 39px;
-  border: 1px solid #dce5f1;
-  border-radius: 5px;
-  padding: 7px;
+  height: 32px;
+  min-height: 32px;
+  padding: 6px;
+  border: 1px solid #46515f;
+  border-radius: 2px;
+  background: #14191f;
+  color: #e0e6ee;
   font:
-    11px/1.3 ui-monospace,
+    12px/1.3 ui-monospace,
     Consolas,
     monospace;
-  background: #fafcfe;
-  color: #243a5c;
 }
 .port-compose-row > button {
+  min-width: 55px;
+  padding: 2px 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 5px 12px;
+  gap: 3px;
   font-size: 11px;
-  min-width: 76px;
-  border-radius: 5px;
+  background: #35465c;
+  border: 1px solid #526883;
+  border-radius: 2px;
+  color: #e0e8f3;
+  box-shadow: none;
+}
+.port-compose-row > button svg {
+  display: none;
 }
 .port-result {
-  height: 19px;
-  min-height: 19px;
   display: flex;
+  gap: 6px;
   align-items: center;
-  gap: 8px;
-  padding: 0 10px 4px;
-  font-size: 8px;
-  color: #8c9db5;
+  height: 15px;
+  min-height: 15px;
+  flex-shrink: 0;
+  padding: 0 7px 1px;
+  background: #1d2228;
+  color: #7e8b9c;
+  font-size: 9px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .port-result[role="alert"] {
-  color: #bd5264;
+  color: #e3a4a4;
 }
-.port-result > button {
-  padding: 0;
-  background: none;
+.port-result button {
+  background: transparent;
   border: 0;
+  color: #a9c2e4;
   font-size: inherit;
-  color: #386bcd;
+  padding: 0;
+  min-height: 12px;
 }
-.multi-footer {
-  flex-shrink: 0;
-  justify-content: space-between;
-  min-height: 29px;
-  padding-bottom: 6px;
-  color: #7e8fa9;
-  font-size: 9px;
+.panel-dividers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
-.multi-footer > div {
-  gap: 6px;
+.panel-divider {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  z-index: 3;
+  outline: none;
 }
-.multi-footer button {
-  min-height: 24px;
-  padding: 2px 8px;
+.panel-divider-x {
+  width: 8px;
+  height: 100%;
+  top: 0;
+  transform: translateX(-50%);
+  cursor: col-resize;
+}
+[dir="rtl"] .panel-divider-x {
+  transform: translateX(50%);
+}
+.panel-divider-y {
+  height: 8px;
+  width: 100%;
+  inset-inline-start: 0;
+  transform: translateY(-50%);
+  cursor: row-resize;
+}
+.panel-divider:hover,
+.panel-divider:focus-visible {
+  background: #9cb2cf66;
 }
 .multi-empty {
-  flex: 1;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   flex-direction: column;
-  gap: 12px;
-  color: #8a9cb4;
+  gap: 10px;
+  flex: 1;
+  color: #98a5b6;
 }
 .multi-empty h2 {
   margin: 0;
-  font-size: 19px;
-  color: #405575;
+  font-size: 17px;
 }
 .multi-empty p {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 12px;
 }
 .multi-workspace .sr-only {
@@ -511,142 +564,44 @@
   white-space: nowrap;
   border: 0;
 }
-@media (max-width: 1100px) {
-  .multi-grid-6 .port-state,
-  .multi-grid-6 .port-index {
-    display: none;
-  }
+@media (max-width: 1000px) {
   .multi-toolbar {
-    gap: 7px;
+    flex-wrap: wrap;
+    gap: 5px;
   }
-  .multi-heading small {
-    display: none;
-  }
-  .multi-grid-6 .port-panel-header {
-    padding-block: 5px;
-    min-height: 35px;
-  }
-  .multi-grid-6 .port-log-toolbar {
-    padding-block: 2px;
-  }
-  .multi-grid-6 .port-composer {
-    padding-top: 4px;
-  }
-}
-@media (max-width: 760px) {
-  .multi-workspace {
-    padding: 10px 10px 0;
-    overflow: auto;
-  }
-  .multi-grid,
-  .multi-grid-2,
-  .multi-grid-4,
-  .multi-grid-6 {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    overflow: visible;
-  }
-  .port-panel {
-    min-height: 340px;
-    height: 380px;
-    flex-shrink: 0;
-  }
-  .multi-toolbar,
   .multi-controls {
-    align-items: flex-start;
-  }
-  .multi-heading h1 {
-    font-size: 15px;
-  }
-  .multi-footer {
     flex-wrap: wrap;
   }
+  .port-identity {
+    gap: 5px;
+  }
+  .port-state,
+  .port-index {
+    display: none;
+  }
 }
-
-.desktop-shell.has-multi {
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
-}
-.has-multi .manager-toolbar {
-  flex-basis: auto;
-}
-.port-mock {
-  font:
-    7px ui-monospace,
-    monospace;
-  color: #7395c9;
-  border: 1px solid #d9e5f6;
-  padding: 1px 3px;
-  border-radius: 3px;
-}
-.port-tools .port-close {
-  margin-top: 12px;
-  border-color: #edd8dc;
-  color: #b24d61;
-  background: #fff8f9;
-}
-.multi-grid-4 .port-panel:nth-child(n + 3) .port-tools > div,
-.multi-grid-6 .port-panel:nth-child(n + 4) .port-tools > div {
-  top: auto;
-  bottom: 28px;
-}
-@media (max-height: 500px) {
-  .multi-workspace {
-    overflow: auto;
+@media (max-width: 600px) {
+  .multi-toolbar h1 {
+    font-size: 11px;
+  }
+  .multi-controls {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+  .tiling-clear,
+  .tiling-shape {
+    display: none;
   }
   .multi-grid {
-    min-height: 320px;
-    flex-shrink: 0;
+    height: max(100%, 600px);
   }
-}
-/* Keep the receive area useful on a 1366 × 768 desktop. */
-.multi-controls label,
-.port-tools label {
-  flex-direction: row;
-}
-.port-panel-header {
-  min-height: 39px;
-  padding-block: 6px;
-}
-.port-identity code {
-  font-size: 10px;
-}
-.port-log-toolbar {
-  padding-block: 2px;
-}
-.port-entry {
-  font-size: 11px;
-  line-height: 1.35;
-  padding-block: 1px;
-}
-.port-stream-status {
-  min-height: 18px;
-  padding-block: 1px;
-  font-size: 9px;
-}
-.port-composer {
-  padding-top: 5px;
-}
-.port-composer-options {
-  margin-bottom: 3px;
-}
-.port-panel .port-mode button {
-  min-height: 17px;
-  padding-block: 0;
-}
-.port-composer-options > select {
-  min-height: 21px;
-  padding-block: 2px;
-}
-.port-compose-row textarea {
-  height: 32px;
-  min-height: 32px;
-  padding-block: 5px;
-}
-.port-result {
-  min-height: 15px;
-  height: 15px;
-  padding-bottom: 2px;
+  .port-identity code {
+    max-width: 135px;
+  }
+  .port-composer-options {
+    gap: 3px;
+  }
+  .port-composer-options > select {
+    width: 64px;
+  }
 }

@@ -1,21 +1,34 @@
 # Multi-port workspace
 
-Available in v0.4.0 source/candidate builds. Published v0.2.3 does not include this mode.
+Available in v0.4.1 source/candidate builds. Published v0.2.3 does not include this mode.
 
 Open devices in the manager, then select **Multi-port workspace**. It is also
 available in the single-device selector and the SerialHub application menu.
 Each panel follows one existing device session: it never opens another physical
-owner. All panels subscribe at the same time, including panels on other pages.
+owner. All panels subscribe at the same time, including panels hidden by focus mode.
 
 ## Everyday use
 
-- Choose 2, 4 or 6 panels per page. Short desktop windows automatically show two
-  panels so send controls remain accessible; the saved larger layout returns
-  when space permits. Narrow screens scroll inside the workspace.
+- Entering this mode fills the browser's page content with terminals and one
+  slim toolbar. It does not request browser/OS fullscreen. Use **Manage devices**
+  to leave, or the terminal icon for the existing application menu/quit controls.
+- All devices are tiled together, without pagination or a fixed session cap.
+  Automatic layout uses 1×1, 1×2, 2×2 for three/four devices, and 2×3 for five/six
+  (rows × columns). Choose **Columns** or **Rows** and a positive count to arrange
+  other grids. Layout preference is saved locally; old paginated preferences are ignored.
+- Drag a divider to redistribute neighboring rows/columns. A focused divider also
+  accepts arrow keys; Home or double-click restores equal tracks in that direction.
+  Adding/removing devices preserves panel identities/drafts; a changed grid shape
+  resets its proportions. Focusing and restoring an unchanged grid keeps proportions.
+- Normal desktop layouts fill the available page. Small windows/large inventories
+  scroll inside the terminal area to preserve minimum control sizes. Automatic
+  layout stacks vertically on narrow screens. Explicit row/column layouts are honored.
+  No browser can display an unlimited number of legible terminals at once; device
+  count and throughput remain subject to OS/adapter/browser resources.
 - Each panel has device identity, baud, physical/stream state, recent RX, a Text/Hex
   send buffer and a visible destination. Ctrl/Command+Enter sends only from the
   focused panel's composer. There is no implicit broadcast send.
-- **Focus panel** expands one panel; **Restore grid** returns to the same page.
+- **Focus panel** expands one panel; **Restore grid** returns to all tiled panels.
   **Open full workspace** provides the existing scope, protocols, file tools and
   device controls. Panel drafts and recent acquisition survive these switches.
 - Pause a panel or all displays to inspect a snapshot. Reception continues into
@@ -50,6 +63,10 @@ older evidence is available through the existing event ledger, subject to its
 retention limits. Closing/reloading the browser loses panel drafts/recent display;
 closing the page also stops its browser-side jobs. Device owners keep running
 until explicitly closed or the application exits.
+
+The panel receives binary data over `/sessions/{id}/v1/stream` WebSocket and sends
+acknowledged writes over `/sessions/{id}/v1/write` HTTP. Other WS/HTTP clients may
+monitor or write the same owner; per-device leases and TX policy still apply.
 
 A previously visited full workspace retains its own subscription, drafts and
 explicit jobs. Multi-port panels add lightweight subscriptions to the same owner;

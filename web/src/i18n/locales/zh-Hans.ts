@@ -1,6 +1,13 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 import type { Catalog } from "../index.ts";
 const messages = {
+  "Resize rows": "调整行高",
+  "Resize columns": "调整列宽",
+  "Rows \u00d7 columns": "行 × 列",
+  "Rows": "行数",
+  "Columns": "列数",
+  "Automatic": "自动",
+  "Layout": "布局",
   "Confirm close": "确认关闭",
   "Close this device and disconnect its clients?": "关闭此设备并断开其客户端？",
   "Multi-port workspace": "多串口工作台",

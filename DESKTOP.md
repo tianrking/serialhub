@@ -1,6 +1,6 @@
 # Desktop device manager
 
-The lifecycle behavior below is implemented in the v0.4.0 source/candidate builds.
+The lifecycle behavior below is implemented in the v0.4.1 source/candidate builds.
 The current published v0.2.3 packages predate native tray support.
 
 Run `serialhub-desktop` (Windows: `.exe`, macOS: `SerialHub.app`) or run
@@ -79,9 +79,10 @@ Linux packages require glibc 2.39+; Windows virtual COM drivers are separate.
 ## Multi-port workspace
 
 Select **Multi-port workspace** in the manager, device selector or app menu to
-monitor and manually send to multiple devices at the same time. Use 2/4/6 panels,
-focus one panel, or return to the full workbench without discarding panel drafts.
-Reception continues on hidden pages and while the display is paused. Commands
+monitor and manually send to multiple devices at the same time. All devices tile on the full browser page,
+with automatic or custom row/column layouts and draggable dividers. Focus one
+panel or return to the full workbench without discarding panel drafts.
+Reception continues in unfocused panels and while the display is paused. Commands
 only target the named panel; there is no broadcast-send shortcut. Panel tools
 include encodings, leases and a confirmed close action. See [MULTIPORT.md](MULTIPORT.md)
 for display limits, export semantics and subscription behavior.
@@ -109,7 +110,10 @@ owners. Registry operations serialize device creation/close and reserve an
 owner until shutdown completes; data streams do not take this registry lock.
 Each session has a separate broker, policy, ledger, workflow runner and cancellation
 token. Creation rejects duplicate canonical device paths (including Unix symlinks,
-macOS callout aliases and Windows COM case), invalid settings and more than 16 sessions.
+macOS callout aliases and Windows COM case) and invalid settings. There is no fixed
+session-count cap; practical capacity depends on host/adapter/browser resources.
+`GET /manager/info` reports `limit: null` for this uncapped inventory; clients must
+not interpret it as zero or substitute the old 16-session cap.
 TCP and PTY resources are prepared before opening hardware; failed binds roll back.
 
 **Created** means the owner is running, not that the hardware successfully opened.

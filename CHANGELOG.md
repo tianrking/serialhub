@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Terminal tiling (0.4.1 candidate)
+
+- Replaced paginated cards with a full-page, restrained terminal workspace. All
+  device panels tile together, with automatic grids, custom rows/columns and
+  draggable/keyboard-adjustable dividers; browser fullscreen is never requested.
+- Removed the fixed 16-session manager cap. Each owner/log remains independently
+  bounded; practical scale depends on host and browser resources.
+- Kept independent HTTP writes and WebSocket reception, leases, drafts, focus,
+  confirmed close, pause/filter/export, six languages and application quit access.
+- Added dynamic 1–6 panel geometry, resizing, 17-owner, and shared HTTP/WS tests.
+
 ### Multi-port workspace (0.4.0 candidate)
 
 - Added simultaneous lightweight per-device terminals with independent Text/Hex

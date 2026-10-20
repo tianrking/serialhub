@@ -1,5 +1,12 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 const messages = {
+  "Resize rows": "Resize rows",
+  "Resize columns": "Resize columns",
+  "Rows \u00d7 columns": "Rows × columns",
+  "Rows": "Rows",
+  "Columns": "Columns",
+  "Automatic": "Automatic",
+  "Layout": "Layout",
   "Confirm close": "Confirm close",
   "Close this device and disconnect its clients?": "Close this device and disconnect its clients?",
   "Multi-port workspace": "Multi-port workspace",

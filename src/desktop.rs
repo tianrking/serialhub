@@ -32,7 +32,6 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use tower::ServiceExt;
 
-const MAX_SESSIONS: usize = 16;
 #[derive(Clone)]
 struct Manager {
     inner: Arc<Mutex<Inner>>,
@@ -414,7 +413,7 @@ async fn info(State(gate): State<Gate>) -> Json<Value> {
         json!({"id": id, "name": s.name, "path": snapshot.port.path, "baud":snapshot.port.baud, "connected":snapshot.port.connected, "detail":snapshot.port.detail, "clients":snapshot.clients.len(), "rx_bytes":snapshot.stats.rx_bytes,"tx_bytes":snapshot.stats.tx_bytes})
     }).collect();
     Json(
-        json!({"product":"serialhub.desktop.v1", "version":env!("CARGO_PKG_VERSION"), "local":gate.secret.is_none(), "app": {"background":gate.manager.control.background.load(Ordering::Relaxed),"tray":gate.manager.control.tray.load(Ordering::Relaxed)}, "limit":MAX_SESSIONS, "supports_pty":cfg!(unix), "sessions":sessions,
+        json!({"product":"serialhub.desktop.v1", "version":env!("CARGO_PKG_VERSION"), "local":gate.secret.is_none(), "app": {"background":gate.manager.control.background.load(Ordering::Relaxed),"tray":gate.manager.control.tray.load(Ordering::Relaxed)}, "limit":null, "supports_pty":cfg!(unix), "sessions":sessions,
         "lan": if gate.secret.is_none() { inner.lan.as_ref().map(|lan| json!({"url":lan.url, "pair_url":format!("{}#pair={}",lan.url,lan.secret),"port":lan.address.port()})) } else {None}}),
     )
 }
@@ -483,9 +482,6 @@ async fn open_session(State(gate): State<Gate>, Json(body): Json<OpenSession>) -
     let mut inner = gate.manager.inner.lock().await;
     if inner.closing {
         return error(StatusCode::SERVICE_UNAVAILABLE, "Manager is stopping");
-    }
-    if inner.sessions.len() >= MAX_SESSIONS {
-        return error(StatusCode::CONFLICT, "Session limit reached");
     }
     if inner.sessions.values().any(|s| s.device_key == key) {
         return error(

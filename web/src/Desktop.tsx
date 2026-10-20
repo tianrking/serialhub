@@ -14,7 +14,7 @@ type Info = {
   product: string;
   version: string;
   local: boolean;
-  limit: number;
+  limit: number | null;
   supports_pty: boolean;
   app?: { background: boolean; tray: boolean };
   sessions: Session[];
@@ -331,7 +331,7 @@ export default function Desktop() {
     <div
       className={`desktop-shell${selected ? " has-workspace" : multi ? " has-multi" : ""}`}
     >
-      <header className="manager-toolbar" hidden={!!selected}>
+      <header className="manager-toolbar" hidden={!!selected || multi}>
         {heading}
         <div
           className="manager-tabs"
@@ -383,7 +383,7 @@ export default function Desktop() {
           <div className="manager-count">
             <strong>
               {info?.sessions.length ?? 0}
-              <small> / {info?.limit}</small>
+              {info?.limit != null && <small> / {info.limit}</small>}
             </strong>
             <span>{t("Independent sessions")}</span>
           </div>
@@ -576,7 +576,8 @@ export default function Desktop() {
                 disabled={
                   busy ||
                   !path.trim() ||
-                  (info?.sessions.length ?? 0) >= (info?.limit ?? 16)
+                  (info?.limit != null &&
+                    (info?.sessions.length ?? 0) >= info.limit)
                 }
               >
                 {busy ? t("Working…") : t("Open workspace")}
@@ -827,6 +828,7 @@ export default function Desktop() {
       </div>
       {multiVisited && (
         <MultiPortWorkspace
+          onAppMenu={openAppMenu}
           sessions={info?.sessions ?? []}
           active={multi && !selected}
           onOpen={openWorkspace}
