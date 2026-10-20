@@ -1,6 +1,19 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 import type { Catalog } from "../index.ts";
 const messages = {
+  "Copy stream address": "复制数据流地址",
+  "Copy API address": "复制 API 地址",
+  "Select text": "选中文本",
+  "Clipboard access is unavailable. Select the text and press Ctrl+C or Command+C.": "无法访问剪贴板。请选中文本后按 Ctrl+C 或 Command+C。",
+  "Text to copy": "待复制文本",
+  "Copy manually": "手动复制",
+  "Copied": "已复制",
+  "Copy HEX": "复制 HEX",
+  "Copy result": "复制结果",
+  "Copy events": "复制事件",
+  "Copy metrics": "复制指标",
+  "Copy payload": "复制载荷",
+  "Copy log": "复制日志",
   "Resize rows": "调整行高",
   "Resize columns": "调整列宽",
   "Rows \u00d7 columns": "行 × 列",

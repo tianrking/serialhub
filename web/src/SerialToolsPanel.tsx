@@ -1,3 +1,4 @@
+import CopyButton from "./Clipboard";
 import { t, getFormattingLocale, localizeStatus } from "./i18n/index.ts";
 import { useEffect, useId, useState } from "react";
 import type { QuickCommand, ConnectionProfile } from "./commandUtils";
@@ -117,7 +118,7 @@ export default function SerialToolsPanel(props: Props) {
       <div><label className="block">{t("Conversion input")} <textarea aria-label={t("Conversion input")} rows={4} maxLength={65536} value={conversion} onChange={event => setConversion(event.target.value)} placeholder={t("Text or 41 54 0d 0a")} /></label><div className="row">
         <button type="button" className="ghost" onClick={() => { try { setConverted(fullHex(encodeText(conversion, encoding))); } catch (error) { report(error); } }}>{t("Text → HEX")}</button>
         <button type="button" className="ghost" onClick={() => { try { setConverted(decodeText(hexBytes(conversion), encoding)); } catch (error) { report(error); } }}>{t("HEX → Text")}</button></div></div>
-      <label className="block">{t("Conversion result ·")} {encoding.toUpperCase()}<textarea aria-label={t("Conversion result")} rows={6} value={converted} readOnly /><span className="hint">{t("Conversion does not send data. Unsupported characters cause an error.")}</span></label>
+      <label className="block">{t("Conversion result ·")} {encoding.toUpperCase()}<textarea aria-label={t("Conversion result")} rows={6} value={converted} readOnly /><CopyButton label="Copy result" text={converted} disabled={!converted} /><span className="hint">{t("Conversion does not send data. Unsupported characters cause an error.")}</span></label>
     </div>}
     {tab === "backup" && <div role="tabpanel" id={`${toolsId}-tool-backup`} aria-labelledby={`${toolsId}-tab-backup`} className="tool-columns">
       <div><h3>{t("Take your debugging setup with you")}</h3><p className="hint">{t("Export")} {commands.length} {t("shortcuts and")} {profiles.length} {t("Hub profiles. Tokens, leases and recordings are excluded.")}</p>

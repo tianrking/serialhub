@@ -8,11 +8,11 @@ const PLOT = { width: 1000, height: 330, left: 65, right: 24, top: 24, bottom: 4
 export function PlotGrid({ xDomain, yDomain, xLabel = t("Time / s"), yLabel = t("Amplitude"), height = PLOT.height, hideY = false }: { xDomain: [number, number]; yDomain: [number, number]; xLabel?: string; yLabel?: string; height?: number; hideY?: boolean }) {
   const { width: w, left: l, right: r, top: t, bottom: b } = PLOT;
   const h = height;
-  return <g fontFamily="ui-monospace,monospace" fontSize="10" fill="#758aa9">
-    <rect width={w} height={h} rx="10" fill="#0e1b2e" />
-    {Array.from({ length: 9 }, (_, index) => <g key={`x${index}`}><line x1={l + index * (w - l - r) / 8} x2={l + index * (w - l - r) / 8} y1={t} y2={h - b} stroke="#24364e" strokeWidth=".6" />
+  return <g fontFamily="ui-monospace,monospace" fontSize="10" fill="#a2adbb">
+    <rect width={w} height={h} rx="10" fill="#14171b" />
+    {Array.from({ length: 9 }, (_, index) => <g key={`x${index}`}><line x1={l + index * (w - l - r) / 8} x2={l + index * (w - l - r) / 8} y1={t} y2={h - b} stroke="#303741" strokeWidth=".6" />
       <text x={l + index * (w - l - r) / 8} y={h - 23} textAnchor="middle">{axisTick(xDomain[0] + index / 8 * (xDomain[1] - xDomain[0]), (xDomain[1] - xDomain[0]) / 8)}</text></g>)}
-    {Array.from({ length: 5 }, (_, index) => <g key={`y${index}`}><line x1={l} x2={w - r} y1={t + index * (h - t - b) / 4} y2={t + index * (h - t - b) / 4} stroke="#24364e" strokeWidth=".6" />
+    {Array.from({ length: 5 }, (_, index) => <g key={`y${index}`}><line x1={l} x2={w - r} y1={t + index * (h - t - b) / 4} y2={t + index * (h - t - b) / 4} stroke="#303741" strokeWidth=".6" />
       {!hideY && <text x={l - 10} y={t + index * (h - t - b) / 4 + 3} textAnchor="end">{axisTick(yDomain[1] - index / 4 * (yDomain[1] - yDomain[0]), (yDomain[1] - yDomain[0]) / 4)}</text>}</g>)}
     <text x={w - r} y={h - 5} textAnchor="end">{xLabel}</text><text x={l} y="20">{yLabel}</text>
   </g>;
@@ -76,13 +76,13 @@ export function ScopePlot({ samples, channels, selected, sampleRate, yDomain, cu
       const bandHeight = (height - PLOT.top - PLOT.bottom) / Math.max(1, selected.length);
       const bandTop = PLOT.top + band * bandHeight;
       const y = stacked ? (value: number) => bandTop + 15 + (1 - (value - domain[0]) / (domain[1] - domain[0])) * (bandHeight - 30) : scale.y;
-      return <g key={channel}>{stacked && <><line x1={PLOT.left} x2={PLOT.width - PLOT.right} y1={bandTop + bandHeight} y2={bandTop + bandHeight} stroke="#283d5b" />
+      return <g key={channel}>{stacked && <><line x1={PLOT.left} x2={PLOT.width - PLOT.right} y1={bandTop + bandHeight} y2={bandTop + bandHeight} stroke="#3a424d" />
         <text x={PLOT.left + 6} y={bandTop + 12} fill={channels[channel]!.color} fontSize="10">{channels[channel]!.name} {channels[channel]!.unit} · {formatNumber(domain[0])} … {formatNumber(domain[1])}</text></>}
         <path data-channel={channel} d={plotPath(points, scale.x, y)} fill="none" stroke={channels[channel]!.color} strokeWidth="1.8" vectorEffect="non-scaling-stroke" /></g>;
     })}
     {cursors.map((index, cursor) => index !== null && index >= first && index <= last && <g key={cursor}><line x1={scale.x(index / sampleRate)} x2={scale.x(index / sampleRate)} y1={PLOT.top} y2={height - PLOT.bottom} stroke={cursor ? "#fbbf24" : "#e2e8f0"} strokeDasharray="4 4" />
       <text x={scale.x(index / sampleRate) + 5} y={PLOT.top + 12} fontSize="12" fill={cursor ? "#fbbf24" : "#e2e8f0"}>{cursor ? "B" : "A"}</text></g>)}</g>
-    {!samples.length && <text x="500" y={height / 2} textAnchor="middle" fill="#7691b6" fontSize="13">{t("Receive FireWater / JustFloat data, or import CSV")}</text>}
+    {!samples.length && <text x="500" y={height / 2} textAnchor="middle" fill="#a2adbb" fontSize="13">{t("Receive FireWater / JustFloat data, or import CSV")}</text>}
   </svg>;
 }
 export function SpectrumPlot({ result, logarithmic, unit, maxFrequency = 0 }: { maxFrequency?: number; result: Spectrum | null; logarithmic: boolean; unit: string }) {
@@ -110,9 +110,9 @@ export function XYPlot({ samples, channels, xChannel, yChannel }: { samples: rea
 }
 export function HistogramPlot({ values }: { values: number[] }) {
   const result = histogram(values), maximum = Math.max(1, ...result.counts);
-  return <svg viewBox="0 0 600 180" role="img" aria-label={t("Sample histogram")}><rect width="600" height="180" rx="8" fill="#0e1b2e" />
+  return <svg viewBox="0 0 600 180" role="img" aria-label={t("Sample histogram")}><rect width="600" height="180" rx="8" fill="#14171b" />
     {result.counts.map((count, index) => <rect key={index} x={35 + index * 22} y={145 - count / maximum * 120} width="18" height={count / maximum * 120} rx="2" fill="#38bdf8" opacity=".75" />)}
-    <text x="35" y="165" fill="#8096b6" fontSize="11">{formatNumber(result.min)}</text><text x="560" y="165" textAnchor="end" fill="#8096b6" fontSize="11">{formatNumber(result.max)}</text>
+    <text x="35" y="165" fill="#a2adbb" fontSize="11">{formatNumber(result.min)}</text><text x="560" y="165" textAnchor="end" fill="#a2adbb" fontSize="11">{formatNumber(result.max)}</text>
   </svg>;
 }
 export function Waterfall({ rows }: { rows: readonly number[][] }) {

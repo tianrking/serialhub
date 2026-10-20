@@ -1,8 +1,14 @@
-# SerialHub v0.4.1 candidate
+# SerialHub v0.0.4 candidate
 
 Local candidate builds; platform-specific validation is recorded with each package.
 The public v0.2.3 release remains unchanged until new packages are published.
 
+- Standardized source, UI and binaries on version **0.0.4**. Earlier local
+  candidate labels are superseded; historical published GitHub tags are unchanged.
+- Unified all pages and dialogs around a compact dark workbench with readable
+  data, shared theme tokens, restrained state colors and dense table layouts.
+- Added copy actions for logs/payloads, frames, conversion results, filtered events,
+  metrics and addresses, with permission/HTTP fallback and manual copy dialog.
 - Added a multi-port workspace with simultaneous independent terminals, Text/Hex
   send buffers, automatic/custom row/column tiling and draggable dividers, focus, bounded recent logs, filter/export,
   pause/clear, write leases and confirmed individual device close.

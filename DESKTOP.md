@@ -1,6 +1,6 @@
 # Desktop device manager
 
-The lifecycle behavior below is implemented in the v0.4.1 source/candidate builds.
+The lifecycle behavior below is implemented in the v0.0.4 source/candidate builds.
 The current published v0.2.3 packages predate native tray support.
 
 Run `serialhub-desktop` (Windows: `.exe`, macOS: `SerialHub.app`) or run
@@ -75,6 +75,29 @@ and opens the correct URL. Repeated launches reuse a manager already listening a
 address. Managers on different explicit ports remain independent; do not open the
 same hardware from different manager processes. Use **Quit SerialHub** to stop an instance. The OS must permit the downloaded executable to run.
 Linux packages require glibc 2.39+; Windows virtual COM drivers are separate.
+
+## Workbench and copy
+
+The entire UI uses the same compact terminal palette. Device lists are dense rows;
+console, Signal Studio and tool dialogs retain one header and readable controls.
+On desktop, event evidence and metrics appear side by side, with independent
+scrolling. The guide places HTTP and WebSocket references together with copyable
+addresses. Shared UI colors/density live in `web/src/workbenchTheme.css`; channel
+colors retain their signal meaning and SVG exports keep explicit paint values.
+
+Select log text and use the normal OS copy shortcut, or use **Copy log** to copy
+the current filtered/displayed snapshot. Hover a row for **Copy payload** (the
+bounded displayed text/HEX, including truncation indicators, not raw recording).
+Selecting logs disables tail following, without stopping reception. Re-enable
+Auto-scroll to follow new data. Protocol **Copy HEX** copies the complete parsed
+frame; Encoding tools, events, metrics and endpoints have their own copy buttons.
+Events copy filtered NDJSON; metrics copy the raw Prometheus text.
+
+Clipboard operations are user initiated and never read clipboard contents or
+transmit to a serial device. Secure clipboard access is attempted first; HTTP
+LAN/permission failures try a selected-text fallback while restoring prior focus
+and caret. If neither works, a modal shows selectable text for Ctrl/Command+C.
+Payloads are not persisted in clipboard-related local storage or diagnostic logs.
 
 ## Multi-port workspace
 

@@ -1,3 +1,4 @@
+import CopyButton from "./Clipboard";
 import { t, getFormattingLocale, translate, type Locale } from "./i18n/index.ts";
 import { useLocale } from "./i18n/useLocale";
 import { memo, useMemo, useState } from "react";
@@ -283,7 +284,7 @@ export default function EventLedgerPanel({
         >
           {loading ? t("Loading…") : t("Refresh events")}
         </button>
-        <button type="button" className="ghost" disabled={!online} onClick={onExport}>{t("Export NDJSON")}</button>
+        <CopyButton label="Copy events" text={() => visibleEvents.map(event => JSON.stringify(event)).join("\n")} disabled={!visibleEvents.length} /><button type="button" className="ghost" disabled={!online} onClick={onExport}>{t("Export NDJSON")}</button>
       </div>
 
       {status ? (

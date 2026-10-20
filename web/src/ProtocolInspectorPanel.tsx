@@ -1,3 +1,5 @@
+import CopyButton from "./Clipboard";
+import { fullHex } from "./serialTools";
 import { t, getFormattingLocale } from "./i18n/index.ts";
 import { useMemo } from "react";
 import { bytesToHex } from "./api/wsStream";
@@ -38,7 +40,7 @@ export default function ProtocolInspectorPanel({
                 <span className={`tag ${frame.valid === false ? "analysis-invalid" : "analysis-valid"}`}>
                   {frame.valid === false ? "INVALID" : "FRAME"}
                 </span>
-                <strong>{frame.summary}</strong>
+                <strong>{frame.summary}</strong><CopyButton label="Copy HEX" text={() => fullHex(frame.bytes)} />
               </div>
               <div className="analysis-body">
                 <code>{bytesToHex(frame.bytes, 256)}</code>

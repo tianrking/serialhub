@@ -1,5 +1,7 @@
 # SerialHub
 
+当前源码/本地候选版本统一为 **0.0.4**。参见 [版本说明](RELEASE_NOTES.md) 和 [图形界面用法](GETTING_STARTED.zh-CN.md)。下方历史 GitHub Release 下载保持原状，新包尚未上传。
+
 Web 工作台默认英文，支持繁体中文、西班牙语、法语、阿拉伯语 RTL，并保留简体中文。可在界面切换、记忆偏好，也可在构建时限制开放语言；参见 [i18n 配置与维护](./I18N.md)。
 
 <p align="center">

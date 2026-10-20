@@ -1,5 +1,18 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 const messages = {
+  "Copy stream address": "Copy stream address",
+  "Copy API address": "Copy API address",
+  "Select text": "Select text",
+  "Clipboard access is unavailable. Select the text and press Ctrl+C or Command+C.": "Clipboard access is unavailable. Select the text and press Ctrl+C or Command+C.",
+  "Text to copy": "Text to copy",
+  "Copy manually": "Copy manually",
+  "Copied": "Copied",
+  "Copy HEX": "Copy HEX",
+  "Copy result": "Copy result",
+  "Copy events": "Copy events",
+  "Copy metrics": "Copy metrics",
+  "Copy payload": "Copy payload",
+  "Copy log": "Copy log",
   "Resize rows": "Resize rows",
   "Resize columns": "Resize columns",
   "Rows \u00d7 columns": "Rows × columns",

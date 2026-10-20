@@ -1,3 +1,4 @@
+import useClipboard from "./useClipboard";
 import {
   useCallback,
   useEffect,
@@ -232,6 +233,7 @@ function PortPanel({
   onClose: () => Promise<void>;
 }) {
   const locale = useLocale();
+  const clipboard = useClipboard();
   const id = useId();
   const connection = useMemo(() => desktopConnection(device.id), [device.id]);
   const {
@@ -625,6 +627,7 @@ function PortPanel({
         >
           ⌫
         </button>
+        <button className="port-icon-button" title={t("Copy log")} aria-label={t("Copy log")} disabled={!filtered.length} onClick={() => void clipboard.copy(filtered.map(row => `${new Date(row.time).toISOString()} ${row.kind.toUpperCase()} ${row.text}${row.truncated ? " …" : ""}`).join("\n"))}>⧉</button>
         <button
           className="port-icon-button"
           title={t("Export visible log")}
@@ -718,6 +721,7 @@ function PortPanel({
       <div
         className="port-log"
         ref={logBox}
+        onPointerDown={event => { if (!(event.target as Element).closest("button")) setFollow(false); }}
         role="region"
         tabIndex={0}
         aria-label={t("Recent log for {p0}", { p0: device.name })}
@@ -748,6 +752,7 @@ function PortPanel({
                 </span>
               )}
             </pre>
+            <button type="button" className="log-copy-row" tabIndex={-1} title={t("Copy payload")} aria-label={t("Copy payload")} onClick={() => void clipboard.copy(row.text)}>⧉</button>
           </div>
         ))}
       </div>
@@ -851,6 +856,7 @@ function PortPanel({
       >
         {failure ||
           error ||
+          clipboard.feedback ||
           message ||
           (!ready
             ? status?.port.detail
@@ -861,6 +867,7 @@ function PortPanel({
           <button onClick={() => void connectPanel()}>{t("Reconnect")}</button>
         )}
       </div>
+      {clipboard.dialog}
     </article>
   );
 }

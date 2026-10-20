@@ -4,49 +4,28 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-### Terminal tiling (0.4.1 candidate)
+## [0.0.4] — source / local candidate
 
-- Replaced paginated cards with a full-page, restrained terminal workspace. All
-  device panels tile together, with automatic grids, custom rows/columns and
-  draggable/keyboard-adjustable dividers; browser fullscreen is never requested.
-- Removed the fixed 16-session manager cap. Each owner/log remains independently
-  bounded; practical scale depends on host and browser resources.
-- Kept independent HTTP writes and WebSocket reception, leases, drafts, focus,
-  confirmed close, pause/filter/export, six languages and application quit access.
-- Added dynamic 1–6 panel geometry, resizing, 17-owner, and shared HTTP/WS tests.
+Version metadata now follows the requested 0.0.x numbering. Earlier 0.3.x/0.4.x
+local candidate labels are superseded; historical published tags are unchanged.
 
-### Multi-port workspace (0.4.0 candidate)
-
-- Added simultaneous lightweight per-device terminals with independent Text/Hex
-  send buffers, explicit targets, encodings, line endings and scoped hotkeys.
-- Added 2/4/6-panel layouts, focus mode, responsive paging, per-panel/global pause
-  and clear, filtering/export, lease controls and confirmed individual close.
-- Kept recent acquisition and drafts across paging/full-workspace switches;
-  bounded display storage and batched rendering, with streaming UTF-8/GBK decode.
-- Added six-language labels, Arabic RTL and regressions for four/six live devices,
-  cross-device isolation, denied/stale writes, layout fit and whole-app shutdown.
-
-
-### Desktop lifecycle (0.3.1 candidate)
-
-- Fixed successful CLI quit returning before native device handles and the worker
-  ownership lock were released, including when web/tray shutdown was already in
-  progress. Added a regression using a real Linux PTY and an immediate exclusive
-  reopen, without polling away a shutdown race.
-
-- Added native Windows notification-area, macOS menu-bar and Linux
-  StatusNotifierItem menus with workspace, private diagnostics and quit actions.
-  Linux uses a pure Rust D-Bus backend and has application-menu launch/quit fallbacks.
-- Detached desktop startup from the terminal, bounded private logs, added verified
-  per-user discovery and singleton locks, and reused actual fallback addresses.
-- Added an application menu to the existing brand area without another header;
-  local language choices also update the native tray menu.
-- Added stopped events for all open browsers, immediate shutdown write rejection,
-  confirmation/cancel behavior, and protection against late status responses.
-- Added macOS Finder reopen handling and branded app/Windows resources with a
-  per-monitor DPI manifest. Preserved explicit foreground and container startup.
-- Added native tray, detached lifecycle and browser shutdown regressions. Local
-  Windows GNU builds can be packaged separately from the six native CI targets.
+- Unified the manager, console, signals, events/metrics, connections, guide and
+  dialogs around a compact terminal palette with shared semantic theme tokens.
+- Added explicit copy actions for filtered/paused logs, displayed row payloads,
+  protocol frame HEX, conversion results, filtered NDJSON events, raw metrics,
+  endpoints and LAN pairing links. Copy operations never send device data.
+- Added clipboard permission/HTTP fallback with focus/selection restoration and
+  selectable manual text when browser clipboard access is unavailable.
+- Kept native text selection and disabled tail following when selecting logs.
+- Show event evidence and metrics together on desktop; use compact inventory
+  rows, legible HEX and two-column protocol references with copyable API addresses.
+- Added full-page terminal tiling with automatic/custom rows/columns, resizable
+  tracks, focus and preserved independent acquisition/drafts. Removed the fixed
+  16-session cap; practical scale remains constrained by host/browser resources.
+- Preserved explicit atomic HTTP writes, WebSocket reception, leases, encodings,
+  signal analysis, file tools, six languages and confirmed device/application close.
+- Added clipboard/selection/denial regressions and retained shared HTTP/WS,
+  multiple-owner isolation, native tray/detached startup and OS cleanup checks.
 
 ## [0.2.3] — 2026-10-19
 

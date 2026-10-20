@@ -1,3 +1,4 @@
+import CopyButton from "./Clipboard";
 import { t } from "./i18n/index.ts";
 import { useMemo } from "react";
 
@@ -41,7 +42,7 @@ export default function MetricsPanel({ text, loading, error, online, onRefresh, 
           <button type="button" className="ghost" disabled={!online || loading} onClick={onRefresh}>
             {loading ? t("Loading…") : t("Refresh metrics")}
           </button>
-          <button type="button" className="ghost" disabled={!text} onClick={onExport}>{t("Download text")}</button>
+          <CopyButton label="Copy metrics" text={text} disabled={!text} /><button type="button" className="ghost" disabled={!text} onClick={onExport}>{t("Download text")}</button>
         </div>
       </div>
       {error ? <p className="error" role="alert">{error}</p> : null}

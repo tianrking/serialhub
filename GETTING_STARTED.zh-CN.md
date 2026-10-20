@@ -42,7 +42,7 @@ SSCOM 类调试功能与 VOFA 类信号分析，是共享服务上的操作界�
 - **macOS**：打开 `SerialHub.app`。
 - **Linux**：在文件管理器中将 `serialhub-desktop` 作为程序运行；文件需要可执行权限。
 
-v0.4.1 源码/候选包增加了系统托盘：Windows 右键托盘图标、macOS 点击菜单栏图标、Linux 使用支持 StatusNotifierItem 的托盘，可以重新打开工作台、打开日志和退出。Linux 默认启动器也会创建应用菜单中的“SerialHub”和“Quit SerialHub”入口。
+v0.0.4 源码/候选包增加了系统托盘：Windows 右键托盘图标、macOS 点击菜单栏图标、Linux 使用支持 StatusNotifierItem 的托盘，可以重新打开工作台、打开日志和退出。Linux 默认启动器也会创建应用菜单中的“SerialHub”和“Quit SerialHub”入口。
 工作区点击 SerialHub 品牌旁的菜单标记，也可确认退出全部设备。关闭网页只关闭浏览器端工作；设备服务继续运行。退出旧版本后再启动新版，避免复用旧版后台。
 
 浏览器会自动弹出。首页选择串口、设置波特率等参数，再点 **Open workspace（打开工作区）**。

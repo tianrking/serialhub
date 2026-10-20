@@ -1,6 +1,6 @@
 # Multi-port workspace
 
-Available in v0.4.1 source/candidate builds. Published v0.2.3 does not include this mode.
+Available in v0.0.4 source/candidate builds. Published v0.2.3 does not include this mode.
 
 Open devices in the manager, then select **Multi-port workspace**. It is also
 available in the single-device selector and the SerialHub application menu.

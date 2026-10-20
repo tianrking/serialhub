@@ -13,9 +13,9 @@ export function MeterCards({ samples, channels, selected }: { samples: readonly 
     return <article className={`signal-meter ${outOfRange ? "out-of-range" : ""}`} key={index} style={{ "--channel-color": channel.color } as React.CSSProperties}>
       <div className="meter-title"><span className="channel-dot" /><strong>{channel.name}</strong><span>{channel.unit || `CH${index}`}</span></div>
       <div className="meter-main"><div><strong data-testid={`meter-value-${index}`}>{formatNumber(value, 6)}</strong><small>{outOfRange ? t("Outside configured range") : t("Latest sample")}</small></div>
-        <svg viewBox="0 0 120 75" role="img" aria-label={t("{p0} gauge {p1}", { p0: String(channel.name), p1: String(formatNumber(value)) })}><path d="M15 65 A45 45 0 0 1 105 65" pathLength="100" fill="none" stroke="#e9eff8" strokeWidth="9" strokeLinecap="round" />
+        <svg viewBox="0 0 120 75" role="img" aria-label={t("{p0} gauge {p1}", { p0: String(channel.name), p1: String(formatNumber(value)) })}><path d="M15 65 A45 45 0 0 1 105 65" pathLength="100" fill="none" stroke="#3a424d" strokeWidth="9" strokeLinecap="round" />
           <path d="M15 65 A45 45 0 0 1 105 65" pathLength="100" fill="none" stroke={channel.color} strokeWidth="9" strokeLinecap="round" strokeDasharray={`${ratio * 100} 100`} />
-          <line x1="60" y1="65" x2={60 - Math.cos(ratio * Math.PI) * 34} y2={65 - Math.sin(ratio * Math.PI) * 34} stroke="#526783" strokeWidth="2" /><circle cx="60" cy="65" r="4" fill="#526783" /></svg></div>
+          <line x1="60" y1="65" x2={60 - Math.cos(ratio * Math.PI) * 34} y2={65 - Math.sin(ratio * Math.PI) * 34} stroke="#cbd3df" strokeWidth="2" /><circle cx="60" cy="65" r="4" fill="#cbd3df" /></svg></div>
       <div className="meter-bar"><span style={{ width: `${ratio * 100}%` }} /></div>
       <div className="meter-statistics"><span>{t("Minimum value")} <b>{formatNumber(stats.min)}</b></span><span>{t("Maximum value")} <b>{formatNumber(stats.max)}</b></span><span>RMS <b>{formatNumber(stats.rms)}</b></span></div>
     </article>;

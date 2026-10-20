@@ -2,7 +2,7 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: #f3f6fb;
+  background: var(--surface);
 }
 .desktop-shell [hidden] {
   display: none !important;
@@ -14,8 +14,8 @@
   padding: 12px 26px;
   min-height: 66px;
   flex: 0 0 66px;
-  background: #111e33;
-  color: #d8e2f4;
+  background: var(--chrome);
+  color: var(--text);
 }
 .manager-brand {
   display: flex;
@@ -28,35 +28,35 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 1px solid #34445d;
-  border-radius: 9px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
   font-size: 23px;
   font-weight: 750;
-  color: #7ba8ff;
-  background: #20324e;
-  box-shadow: inset 0 1px #ffffff40;
+  color: var(--accent);
+  background: var(--chrome);
+  box-shadow: none;
 }
 .manager-brand strong {
   display: block;
-  color: white;
+  color: var(--text);
   font-size: 17px;
   letter-spacing: -0.5px;
   line-height: 1.2;
 }
 .manager-brand strong span {
-  color: #719bff;
+  color: var(--accent);
 }
 .manager-brand small {
-  color: #94a7c4;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .manager-toolbar > .language-selector {
   order: 3;
 }
 .manager-toolbar .language-selector select {
-  background: #20324e;
-  color: #e1e9f5;
-  border-color: #34445d;
+  background: var(--chrome);
+  color: var(--text);
+  border-color: var(--border);
 }
 .manager-tabs {
   display: flex;
@@ -79,17 +79,17 @@
   white-space: nowrap;
   border: 1px solid transparent;
   background: transparent;
-  color: #a2b4ce;
+  color: var(--muted);
   font-size: 11px;
-  border-radius: 6px;
+  border-radius: 3px;
 }
 .manager-tabs button[aria-selected="true"] {
-  color: white;
-  background: #283f65;
-  border-color: #3b5784;
+  color: var(--text);
+  background: var(--chrome);
+  border-color: var(--border);
 }
 .manager-tabs b {
-  background: #ffffff15;
+  background: var(--panel);
   font:
     10px ui-monospace,
     monospace;
@@ -101,18 +101,18 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #d6a451;
+  background: var(--surface);
   flex-shrink: 0;
 }
 .manager-tabs i.connected,
 .manager-session-main > i.connected {
-  background: #2bbd93;
-  box-shadow: 0 0 0 3px #2bbd9314;
+  background: var(--surface);
+  box-shadow: none;
 }
 .manager-host {
   order: 2;
-  font-size: 10px;
-  color: #9caeca;
+  font-size: 11px;
+  color: var(--muted);
   white-space: nowrap;
 }
 .manager-dashboard {
@@ -133,8 +133,8 @@
   gap: 20px;
 }
 .manager-kicker {
-  font-size: 9px;
-  color: #6681a7;
+  font-size: 11px;
+  color: var(--muted);
   letter-spacing: 1.5px;
   font-weight: 650;
 }
@@ -142,13 +142,13 @@
   font-size: 27px;
   margin: 6px 0;
   letter-spacing: -0.8px;
-  color: #253a59;
+  color: var(--text);
 }
 .manager-intro p,
 .manager-sharing p {
   margin: 0;
   font-size: 12px;
-  color: #7d8ca3;
+  color: var(--muted);
   line-height: 1.65;
 }
 .manager-count {
@@ -159,17 +159,17 @@
 .manager-count strong {
   font-size: 30px;
   font-weight: 550;
-  color: #345b99;
+  color: var(--accent);
   line-height: 1.2;
 }
 .manager-count small {
   font-size: 14px;
   font-weight: 400;
-  color: #9aaac0;
+  color: var(--muted);
 }
 .manager-count span {
-  color: #8191aa;
-  font-size: 10px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .manager-grid {
   flex: 1;
@@ -180,10 +180,10 @@
   gap: 18px;
 }
 .manager-card {
-  background: white;
-  border: 1px solid #e0e7f1;
-  border-radius: 11px;
-  box-shadow: 0 3px 12px #17365e04;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  box-shadow: none;
   padding: 20px;
   min-width: 0;
 }
@@ -204,21 +204,21 @@
   font-size: 15px;
   margin: 0;
   font-weight: 650;
-  color: #2b4263;
+  color: var(--accent);
 }
 .manager-card-title > span {
-  color: #91a0b4;
-  font-size: 10px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .manager-step {
   display: grid;
   place-items: center;
-  background: #ecf2fd;
-  border: 1px solid #dce7fa;
+  background: var(--surface);
+  border: 1px solid var(--border);
   width: 27px;
   height: 27px;
-  border-radius: 7px;
-  color: #5c7fbd;
+  border-radius: 3px;
+  color: var(--accent);
   font:
     10px ui-monospace,
     monospace;
@@ -238,7 +238,7 @@
   display: grid;
   gap: 6px;
   font-size: 11px;
-  color: #70829d;
+  color: var(--muted);
 }
 .manager-new input,
 .manager-new select,
@@ -247,17 +247,17 @@
   width: 100%;
   min-width: 0;
   height: 34px;
-  border: 1px solid #dbe4f0;
-  border-radius: 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
   padding: 6px 10px;
-  background: #fbfcff;
-  color: #344f74;
+  background: var(--panel);
+  color: var(--accent);
   font-size: 12px;
 }
 .manager-new input:focus,
 .manager-new select:focus {
-  border-color: #6997ee;
-  outline: 2px solid #527fdf15;
+  border-color: var(--border);
+  outline: 2px solid var(--border);
 }
 .manager-new input[placeholder="COM3 / /dev/ttyUSB0"],
 .manager-lan-controls input {
@@ -276,9 +276,9 @@
   align-items: center;
   min-height: 38px;
   margin-top: 4px;
-  border-radius: 6px;
+  border-radius: 3px;
   font-size: 12px;
-  background: #336be1;
+  background: var(--surface);
 }
 .manager-demo {
   display: flex;
@@ -287,15 +287,15 @@
   justify-content: space-between;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #e8edf5;
+  border-top: 1px solid var(--border);
 }
 .manager-demo strong {
   font-size: 11px;
-  color: #597196;
+  color: var(--muted);
 }
 .manager-demo p {
-  font-size: 10px;
-  color: #8c9bb0;
+  font-size: 11px;
+  color: var(--muted);
   line-height: 1.7;
   margin: 4px 0 0;
 }
@@ -324,28 +324,28 @@
   margin: auto;
 }
 .manager-empty > span {
-  color: #7299e1;
+  color: var(--accent);
   font-size: 60px;
   line-height: 1;
 }
 .manager-empty h3 {
-  color: #48648c;
+  color: var(--text);
   font-size: 15px;
   font-weight: 550;
   margin: 18px 0 8px;
 }
 .manager-empty p {
-  color: #93a0b4;
+  color: var(--muted);
   font-size: 11px;
   line-height: 1.9;
   margin: 0;
 }
 .manager-session {
-  border: 1px solid #e2e9f3;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
   padding: 13px 15px;
   margin-bottom: 12px;
-  background: linear-gradient(110deg, #ffffff, #fbfcff);
+  background: linear-gradient(110deg, var(--panel), var(--panel));
 }
 .manager-session-main {
   display: flex;
@@ -360,26 +360,26 @@
 }
 .manager-session-main strong {
   font-size: 12px;
-  color: #354f74;
+  color: var(--text);
   overflow-wrap: anywhere;
 }
 .manager-session-main code {
-  color: #96a4ba;
-  font-size: 10px;
+  color: var(--muted);
+  font-size: 11px;
   overflow-wrap: anywhere;
 }
 .manager-ready,
 .manager-waiting {
-  font-size: 9px;
+  font-size: 11px;
   border-radius: 4px;
   padding: 3px 7px;
-  color: #218365;
-  background: #eaf7f2;
+  color: var(--ok);
+  background: var(--surface);
   flex-shrink: 0;
 }
 .manager-waiting {
-  color: #a07730;
-  background: #faf3e6;
+  color: var(--warn);
+  background: var(--surface);
 }
 .manager-session-stats {
   display: flex;
@@ -388,7 +388,7 @@
   font:
     10px ui-monospace,
     monospace;
-  color: #8193ad;
+  color: var(--muted);
   margin: 12px 0;
 }
 .manager-session-actions {
@@ -398,22 +398,22 @@
   align-items: center;
 }
 .manager-session-actions > span {
-  font-size: 10px;
-  color: #ae6c72;
+  font-size: 11px;
+  color: var(--muted);
   margin-inline-start: auto;
 }
 .manager-session-actions button {
-  font-size: 10px;
+  font-size: 11px;
   min-height: 27px;
   padding: 4px 9px;
 }
 .manager-session-actions .manager-close {
   margin-inline-start: auto;
-  color: #98a5b8;
+  color: var(--muted);
 }
 .manager-detail {
-  font-size: 10px;
-  color: #a07730;
+  font-size: 11px;
+  color: var(--warn);
   overflow-wrap: anywhere;
 }
 .manager-sharing {
@@ -421,7 +421,7 @@
   align-items: center;
   gap: 22px;
   justify-content: space-between;
-  background: #fafdff;
+  background: var(--panel);
 }
 .manager-sharing > div:first-child {
   flex: 1;
@@ -432,7 +432,7 @@
   margin-block: 5px 8px;
 }
 .manager-sharing p {
-  font-size: 10px;
+  font-size: 11px;
 }
 .manager-lan-controls {
   flex: 1;
@@ -444,25 +444,25 @@
   gap: 6px;
 }
 .manager-lan-controls button {
-  font-size: 10px;
+  font-size: 11px;
   padding: 6px 10px;
 }
 .manager-lan-controls small {
-  color: #929cae;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: 11px;
   line-height: 1.6;
 }
 .manager-private {
-  font-size: 10px;
-  color: #718ba7;
+  font-size: 11px;
+  color: var(--muted);
 }
 .manager-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 15px;
-  font-size: 10px;
-  color: #97a5b9;
+  font-size: 11px;
+  color: var(--muted);
   min-height: 30px;
 }
 .manager-footer > div {
@@ -472,7 +472,7 @@
 }
 .manager-footer button {
   padding: 3px 7px;
-  font-size: 10px;
+  font-size: 11px;
   min-height: 25px;
 }
 .manager-alert {
@@ -481,32 +481,32 @@
   gap: 15px;
   align-items: center;
   padding: 9px 14px;
-  border: 1px solid #d9e6fa;
-  background: #edf5ff;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 3px;
   font-size: 11px;
   margin: 0;
 }
 .manager-alert.error {
-  background: #fff3f3;
-  border-color: #f1d5da;
+  background: var(--panel);
+  border-color: var(--border);
   overflow-wrap: anywhere;
 }
 .manager-alert button {
-  font-size: 10px;
+  font-size: 11px;
   min-height: 24px;
   padding: 3px 7px;
 }
 .manager-gate {
   min-height: 100dvh;
-  background: radial-gradient(at 80% 5%, #e7efff, transparent 50%), #f6f8fc;
+  background: radial-gradient(at 80% 5%, var(--surface), transparent 50%), var(--panel);
 }
 .manager-gate > header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20px 30px;
-  background: #111e33;
+  background: var(--chrome);
 }
 .manager-gate > main {
   max-width: 550px;
@@ -518,7 +518,7 @@
   letter-spacing: -0.7px;
 }
 .manager-gate p {
-  color: #8091aa;
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.8;
 }
@@ -535,8 +535,8 @@
 .managed-error {
   padding: 6px 12px;
   font-size: 11px;
-  background: #fff0f1;
-  border-radius: 5px;
+  background: var(--panel);
+  border-radius: 3px;
 }
 .managed-error button {
   margin-inline-start: 10px;
@@ -645,16 +645,16 @@
 }
 .manager-advanced {
   grid-column: 1 / -1;
-  color: #7e91ad;
-  font-size: 10px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .manager-advanced summary {
   cursor: pointer;
   padding: 4px 0;
 }
 .manager-advanced p {
-  font-size: 10px;
-  color: #8b9ab1;
+  font-size: 11px;
+  color: var(--muted);
   line-height: 1.6;
 }
 @media (min-width: 1000px) {
@@ -701,10 +701,10 @@
   display: none;
 }
 .workspace-device-switch {
-  color: #9eb6dd;
+  color: var(--accent);
   gap: 5px;
   padding-inline-start: 10px;
-  border-inline-start: 1px solid #34445d;
+  border-inline-start: 1px solid var(--border);
 }
 .workspace-device-switch select {
   width: 118px;
@@ -712,20 +712,20 @@
   min-height: 28px;
   padding: 3px 5px;
   font-size: 11px;
-  color: #e1e9f5;
-  border-color: #34445d;
-  border-radius: 5px;
-  background: #20324e;
+  color: var(--text);
+  border-color: var(--border);
+  border-radius: 3px;
+  background: var(--chrome);
 }
 .workspace-controls .language-selector select {
-  background: #20324e;
-  border-color: #34445d;
-  color: #e1e9f5;
+  background: var(--chrome);
+  border-color: var(--border);
+  color: var(--text);
 }
 .workspace-controls .lamp {
   padding: 3px 8px;
-  font-size: 10px;
-  border-radius: 5px;
+  font-size: 11px;
+  border-radius: 3px;
 }
 @media (min-width: 1000px) {
   .app-managed .sidebar-nav button {
@@ -824,20 +824,20 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--text);
   text-align: start;
 }
 .manager-brand:hover,
 .app-managed .brand:hover {
-  background: #20324e;
+  background: var(--chrome);
 }
 .brand-caret {
   position: absolute;
   inset-inline-end: -7px;
   bottom: -3px;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
-  color: #9eb6dd;
+  color: var(--accent);
 }
 .app-menu {
   width: min(460px, calc(100vw - 32px));
@@ -870,6 +870,6 @@
   margin-top: 16px;
 }
 .app-menu button.danger {
-  background: #c94457;
-  color: white;
+  background: var(--surface);
+  color: var(--text);
 }

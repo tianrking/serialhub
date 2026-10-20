@@ -1,3 +1,4 @@
+import CopyButton from "./Clipboard";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import App from "./App";
 import Icon from "./Icon";
@@ -731,23 +732,7 @@ export default function Desktop() {
                       />
                     </label>
                     <div className="row">
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          void action(async () => {
-                            if (navigator.clipboard && window.isSecureContext) {
-                              await navigator.clipboard.writeText(
-                                info.lan!.pair_url,
-                              );
-                              setNotice(t("Pairing link copied"));
-                            } else {
-                              setNotice(t("Select and copy the pairing link"));
-                            }
-                          })
-                        }
-                      >
-                        {t("Copy pairing link")}
-                      </button>
+                      <CopyButton label="Copy pairing link" text={info.lan.pair_url} disabled={busy} />
                       <button
                         className="ghost"
                         disabled={busy}

@@ -1,6 +1,6 @@
 [package]
 name = "serialhub"
-version = "0.4.1"
+version = "0.0.4"
 edition = "2021"
 default-run = "serialhub"
 autobins = false

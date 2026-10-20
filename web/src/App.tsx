@@ -1,3 +1,5 @@
+import CopyButton from "./Clipboard";
+import useClipboard from "./useClipboard";
 import { t, getFormattingLocale, translate } from "./i18n/index.ts";
 import { LanguageSelector } from "./i18n/LanguageSelector";
 import { useLocale } from "./i18n/useLocale";
@@ -160,6 +162,7 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
   const [paused, setPaused] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const logId = useRef(0);
+  const clipboard = useClipboard();
   const logBoxRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
 
@@ -823,14 +826,7 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
     } finally { endOperation(session); }
   };
 
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      pushLog({ kind: "sys", text: t("Copied: {p0}", { p0: String(text) }) });
-    } catch {
-      pushLog({ kind: "err", text: t("Copy failed") });
-    }
-  };
+  const copy = clipboard.copy;
 
   const statusLamp = useMemo(() => {
     if (phase === "connecting") return { cls: "warn", label: translate(locale, "Connecting…") };
@@ -1264,7 +1260,7 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
                     checked={autoScroll}
                     onChange={(e) => setAutoScroll(e.target.checked)}
                   /> {t("Auto-scroll")}</label>
-                <label>{t("Display")} <select value={displayMode} onChange={(e) => setDisplayMode(e.target.value as typeof displayMode)}>
+                <label>{t("Display")} <select aria-label={t("Display")} value={displayMode} onChange={(e) => setDisplayMode(e.target.value as typeof displayMode)}>
                     <option value="both">{t("Text + Hex")}</option>
                     <option value="text">{t("Text only")}</option>
                     <option value="hex">{t("Hex only")}</option>
@@ -1296,11 +1292,12 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
                   logBuffer.clear();
                   setLogs([]);
                 }}>{t("Clear")}</button>
+                <button type="button" className="ghost" disabled={!visibleLogs.length} onClick={() => void copy(visibleLogs.map(l => [showTimestamp ? l.ts : "", l.kind.toUpperCase(), displayMode === "hex" ? l.hex ?? "" : displayMode === "both" && l.hex ? `${l.text}\n${l.hex}` : l.text].filter(Boolean).join(" ")).join("\n"))}>{t("Copy log")}</button>
                 <button type="button" className="ghost" onClick={exportVisibleLogs}>{t("Export log")}</button>
               </div>
             </div>
             <div className="log-filter"><Icon name="search" size={16} /><input aria-label={t("Search terminal log")} placeholder={t("Search text or Hex…")} value={logSearch} onChange={(event) => setLogSearch(event.target.value)} /><select aria-label={t("Log type")} value={logKind} onChange={(event) => setLogKind(event.target.value)}><option value="all">{t("All types")}</option><option value="rx">{t("RX received data")}</option><option value="tx">{t("TX sent data")}</option><option value="err">{t("Error")}</option><option value="sys">{t("System")}</option></select><span>{visibleLogs.length} {t("records")}</span></div>
-            <div className="log" ref={logBoxRef} role="region" aria-label={t("Live terminal records")} tabIndex={0}>
+            <div className="log" ref={logBoxRef} onPointerDown={event => { if (!(event.target as Element).closest("button")) setAutoScroll(false); }} role="region" aria-label={t("Live terminal records")} tabIndex={0}>
               {visibleLogs.length === 0 && <div className="terminal-empty"><span className="empty-terminal-icon">⌁</span><strong>{logs.length ? t("No matching records") : t("Waiting for device data")}</strong><span>{online ? t("Send a command or wait for device output.") : t("Device output will appear here after connecting to the Hub.")}</span></div>}
               {visibleLogs.map((l) => (
                 <div key={l.id} className={`line ${l.kind}`}>
@@ -1308,6 +1305,7 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
                   <span className="kind">{l.kind.toUpperCase()}</span>
                   {displayMode !== "hex" && <span className="msg" dir={l.kind === "rx" || l.kind === "tx" ? "ltr" : "auto"}>{l.text}</span>}
                   {displayMode !== "text" && l.hex && <span className="hex">{l.hex}</span>}
+                  <button type="button" className="log-copy-row" tabIndex={-1} title={t("Copy payload")} aria-label={t("Copy payload")} onClick={() => void copy(displayMode === "hex" ? l.hex ?? "" : l.text)}>⧉</button>
                 </div>
               ))}
             </div>
@@ -1318,13 +1316,15 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
         </div>
       )}
 
+      {clipboard.dialog}
+      {clipboard.feedback && <output className="clipboard-notice" role="status">{clipboard.feedback}</output>}
       <SignalWorkbench isMock={status?.port.path.startsWith("mock:")} visible={tab === "signals"} store={signalStore} protocol={streamProtocol} onProtocol={setStreamProtocol}
         canWrite={canWrite} busy={busy} commands={quickCommands}
         onQuick={command => transmit(command.mode, command.payload, command.lineEnding)}
         onValue={payload => transmit("hex", fullHex(new TextEncoder().encode(payload + "\n")), "none")} />
 
       {tab === "events" && (
-        <div className="auxiliary-workspace">
+        <div className="auxiliary-workspace events-workspace">
           <EventLedgerPanel
           status={ledgerStatus}
           events={ledgerEvents}
@@ -1424,7 +1424,9 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
           <h2>{t("Protocol essentials")}</h2>
           <p>{t("Full documentation in the repository:")} <code>web/PROTOCOL.zh-TW.md</code>
           </p>
-          <h3>HTTP</h3>
+          <div className="protocol-columns"><section>
+          <h3>HTTP</h3><CopyButton label="Copy API address" text={httpBase(conn)} />
+          <code className="protocol-address">{httpBase(conn)}</code>
           <ul>
             <li>
               <code>GET /v1/health</code> {t("— health check")}</li>
@@ -1441,7 +1443,8 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
               <code>POST /v1/lock</code> · <code>DELETE /v1/lock</code>
             </li>
           </ul>
-          <h3>WebSocket <code>/v1/stream</code></h3>
+          </section><section><h3>WebSocket <code>/v1/stream</code></h3>
+          <CopyButton label="Copy stream address" text={wsUrl(conn)} /><code className="protocol-address">{wsUrl(conn)}</code>
           <ul>
             <li>
               <strong>{t("Downstream binary")}</strong> {t(": raw device RX bytes (first packet may include history)")}</li>
@@ -1451,7 +1454,7 @@ export default function App({ managedConnection, deviceNavigation, onAppMenu }: 
               <strong>{t("Upstream binary")}</strong> {t(": forwarded unchanged through the TX policy")}</li>
             <li>{t("For acknowledged writes, use HTTP")} <code>/v1/write</code> {t("(returns ok/error)")}</li>
           </ul>
-          <h3>{t("Usage notes")}</h3>
+          </section></div><h3>{t("Usage notes")}</h3>
           <ul>
             <li>{t("One physical port supports multiple PTY/TCP/WS clients; RX is broadcast to all readers")}</li>
             <li>{t("TX defaults to line queues to prevent interleaved bytes")}</li>

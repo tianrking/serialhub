@@ -1,5 +1,7 @@
 # SerialHub
 
+Current source/local candidate: **0.0.4**. See [release notes](RELEASE_NOTES.md) and [GUI usage](DESKTOP.md). Historical GitHub release downloads below remain unchanged until new packages are uploaded.
+
 The web workspace defaults to English and supports Traditional Chinese, Spanish,
 French and Arabic with RTL, plus the existing Simplified Chinese interface.
 See [localization and deployment controls](./I18N.md).
@@ -31,7 +33,7 @@ See [localization and deployment controls](./I18N.md).
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" /></a>
   <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/rust-edition%202021-orange?style=flat-square&logo=rust" /></a>
   <img alt="Platforms" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" />
-  <a href="https://github.com/tianrking/serialhub/releases/tag/v0.2.3"><img alt="Version" src="https://img.shields.io/badge/version-v0.2.3-0ea5e9?style=flat-square" /></a>
+  <a href="./Cargo.toml"><img alt="Source version" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat-square" /></a>
   <img alt="Status" src="https://img.shields.io/badge/status-active-22c55e?style=flat-square" />
   <a href="https://github.com/tianrking/serialhub/releases"><img alt="Release" src="https://img.shields.io/badge/release-watch%20releases-0ea5e9?style=flat-square" /></a>
   <a href="https://github.com/tianrking/serialhub"><img alt="GitHub" src="https://img.shields.io/badge/github-tianrking%2Fserialhub-181717?style=flat-square&logo=github" /></a>

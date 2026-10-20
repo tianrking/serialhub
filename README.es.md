@@ -1,5 +1,7 @@
 # SerialHub
 
+Versión actual del código/candidato local: **0.0.4**. Consulta [las notas](RELEASE_NOTES.md). Las descargas históricas de GitHub permanecen sin cambios hasta publicar los nuevos paquetes.
+
 <p align="center">
   <img alt="serialhub" src="https://img.shields.io/badge/serialhub-hub%20serie-0ea5e9?style=for-the-badge&logo=rust&logoColor=white" />
 </p>

@@ -1,6 +1,19 @@
 // UI messages only. Device payloads and protocol values must never be translated.
 import type { Catalog } from "../index.ts";
 const messages = {
+  "Copy stream address": "Copier l’adresse du flux",
+  "Copy API address": "Copier l’adresse API",
+  "Select text": "Sélectionner le texte",
+  "Clipboard access is unavailable. Select the text and press Ctrl+C or Command+C.": "Le presse-papiers est indisponible. Sélectionnez le texte et appuyez sur Ctrl+C ou Command+C.",
+  "Text to copy": "Texte à copier",
+  "Copy manually": "Copier manuellement",
+  "Copied": "Copié",
+  "Copy HEX": "Copier HEX",
+  "Copy result": "Copier le résultat",
+  "Copy events": "Copier les événements",
+  "Copy metrics": "Copier les métriques",
+  "Copy payload": "Copier les données",
+  "Copy log": "Copier le journal",
   "Resize rows": "Redimensionner les lignes",
   "Resize columns": "Redimensionner les colonnes",
   "Rows \u00d7 columns": "Lignes × colonnes",
