@@ -23,8 +23,9 @@ With hosted CI paused, use the local-build path below; do not tag or dispatch Ac
    git push origin v0.0.4
    ```
 
-4. Follow the **Release** workflow through publication. A successful tag push
-   alone does not establish that a downloadable release exists.
+4. If hosted CI is available, explicitly run **Release** with the existing tag
+   using **Run workflow**. Tag creation does not start Actions. A successful tag
+   push alone does not establish that a downloadable release exists.
 5. Confirm all six platform archives and `SHA256SUMS` appear on the Release page.
 
 The Release workflow resolves an existing tag to an immutable commit, verifies
@@ -83,6 +84,13 @@ acceptance remain separate from cross-platform package validation.
 
 
 ## Local builds when hosted CI is unavailable
+
+The Release workflow is manual-only: creating a `v*` tag does not trigger it.
+For server publication, do not dispatch a workflow. Build and test the supported
+packages on the server, create a draft release pointing to the exact source commit,
+upload the archives and `SHA256SUMS`, download them again and compare every hash,
+then publish. A release containing only Linux x64 GNU and Windows x64 GNU must
+state that coverage explicitly; do not present it as a six-platform release.
 
 Commit the reviewed sources with `[skip ci]` when explicitly avoiding hosted
 Actions usage. Build `web/dist` first, then all three Rust binaries. Never attach
