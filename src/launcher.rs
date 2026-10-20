@@ -96,7 +96,7 @@ fn request(address: SocketAddr, method: &str, path: &str) -> Result<serde_json::
     );
     Ok(serde_json::from_str(body)?)
 }
-fn discover(bind: SocketAddr, files: &Paths) -> Option<SocketAddr> {
+fn discover(bind: SocketAddr, files: &Paths, include_stopping: bool) -> Option<SocketAddr> {
     let saved: Instance =
         serde_json::from_reader(File::open(&files.ready).ok()?.take(4096)).ok()?;
     if !saved.address.ip().is_loopback() {
@@ -104,13 +104,13 @@ fn discover(bind: SocketAddr, files: &Paths) -> Option<SocketAddr> {
     }
     let identity = request(saved.address, "GET", "/manager/identity").ok()?;
     (identity["product"] == "serialhub.desktop.v1"
-        && identity["stopping"] != true
+        && (include_stopping || identity["stopping"] != true)
         && identity["instance"] == saved.instance
         && saved.address.ip() == bind.ip())
     .then_some(saved.address)
 }
 fn existing(bind: SocketAddr, files: &Paths) -> Option<SocketAddr> {
-    discover(bind, files).or_else(|| {
+    discover(bind, files, false).or_else(|| {
         request(bind, "GET", "/manager/identity")
             .ok()
             .filter(|v| v["product"] == "serialhub.desktop.v1" && v["stopping"] != true)
@@ -180,7 +180,7 @@ pub fn launch(bind: SocketAddr, open_browser: bool) -> Result<SocketAddr> {
         .context("Could not launch the background service")?;
     let deadline = Instant::now() + Duration::from_secs(12);
     loop {
-        if let Some(address) = discover(bind, &files) {
+        if let Some(address) = discover(bind, &files, false) {
             if open_browser {
                 opener::open(format!("http://{address}/")).with_context(|| {
                     format!("SerialHub is running at http://{address}/; could not open the browser")
@@ -207,15 +207,51 @@ pub fn launch(bind: SocketAddr, open_browser: bool) -> Result<SocketAddr> {
 }
 pub fn stop(bind: SocketAddr) -> Result<()> {
     let files = paths(bind)?;
-    let Some(address) = existing(bind, &files) else {
-        return Ok(());
-    };
-    let identity = request(address, "GET", "/manager/identity")?;
-    request(address, "POST", "/manager/quit")?;
+    let ownership = private_file(&files.lock, false)?;
     let deadline = Instant::now() + Duration::from_secs(18);
-    while request(address, "GET", "/manager/identity")
-        .is_ok_and(|v| v["instance"] == identity["instance"])
-    {
+    let mut target: Option<(SocketAddr, serde_json::Value)> = None;
+    loop {
+        // An instance that is already stopping still owns its devices. Prefer
+        // verified discovery so a replacement on a new fallback port is also
+        // recognized as a different owner rather than waited on or stopped.
+        let address = discover(bind, &files, true)
+            .or_else(|| target.as_ref().map(|(address, _)| *address))
+            .or_else(|| {
+                request(bind, "GET", "/manager/identity")
+                    .ok()
+                    .filter(|v| v["product"] == "serialhub.desktop.v1")
+                    .map(|_| bind)
+            });
+        let identity = address.and_then(|address| {
+            request(address, "GET", "/manager/identity")
+                .ok()
+                .filter(|v| v["product"] == "serialhub.desktop.v1")
+                .map(|identity| (address, identity["instance"].clone()))
+        });
+        if let Some((address, instance)) = identity {
+            if let Some((_, previous)) = &target {
+                // A replacement is a different owner; never stop it as a retry.
+                if previous != &instance {
+                    return Ok(());
+                }
+            } else {
+                target = Some((address, instance.clone()));
+                if let Err(error) = request(address, "POST", "/manager/quit") {
+                    // A simultaneous tray/web quit may close HTTP before this
+                    // request completes. Continue waiting for its ownership lock.
+                    if request(address, "GET", "/manager/identity")
+                        .is_ok_and(|v| v["instance"] == instance && v["stopping"] != true)
+                    {
+                        return Err(error);
+                    }
+                }
+            }
+        } else if FileExt::try_lock_exclusive(&ownership).is_ok() {
+            // HTTP closes before owners and the native tray finish draining.
+            // The worker releases this lock only after all runtime cleanup.
+            FileExt::unlock(&ownership)?;
+            return Ok(());
+        }
         anyhow::ensure!(
             Instant::now() < deadline,
             "SerialHub is still shutting down; see {}",
@@ -223,7 +259,6 @@ pub fn stop(bind: SocketAddr) -> Result<()> {
         );
         std::thread::sleep(Duration::from_millis(60));
     }
-    Ok(())
 }
 fn rotate(path: &Path) {
     if fs::metadata(path).is_ok_and(|m| m.len() > 4 * 1024 * 1024) {

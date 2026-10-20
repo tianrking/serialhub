@@ -1,6 +1,6 @@
 # Desktop device manager
 
-The lifecycle behavior below is implemented in the v0.3.0 source/candidate builds.
+The lifecycle behavior below is implemented in the v0.3.1 source/candidate builds.
 The current published v0.2.3 packages predate native tray support.
 
 Run `serialhub-desktop` (Windows: `.exe`, macOS: `SerialHub.app`) or run
@@ -36,6 +36,9 @@ Use **Quit SerialHub** to stop the service, cancel active jobs, revoke LAN shari
 and release all device handles. Open browsers receive a final stopped event. New
 writes are rejected as soon as shutdown starts; old status responses cannot revive
 an already stopped workspace. Quit does not finish queued file transfers.
+The CLI quit commands wait for the desktop ownership lock to be released, so
+a successful return follows device-handle cleanup, including an already-started
+web/tray shutdown.
 
 The app menu and native tray follow the language selected on the local host's
 web page; remote browser language changes do not change the host's native menu.

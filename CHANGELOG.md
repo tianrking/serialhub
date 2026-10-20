@@ -4,7 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-### Desktop lifecycle (0.3.0 candidate)
+### Desktop lifecycle (0.3.1 candidate)
+
+- Fixed successful CLI quit returning before native device handles and the worker
+  ownership lock were released, including when web/tray shutdown was already in
+  progress. Added a regression using a real Linux PTY and an immediate exclusive
+  reopen, without polling away a shutdown race.
 
 - Added native Windows notification-area, macOS menu-bar and Linux
   StatusNotifierItem menus with workspace, private diagnostics and quit actions.

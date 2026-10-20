@@ -1,4 +1,4 @@
-# SerialHub v0.3.0 candidate
+# SerialHub v0.3.1 candidate
 
 Local candidate builds; platform-specific validation is recorded with each package.
 The public v0.2.3 release remains unchanged until new packages are published.
@@ -7,6 +7,8 @@ The public v0.2.3 release remains unchanged until new packages are published.
   actions to reopen the workspace, open diagnostics and quit all owners.
 - The existing SerialHub brand opens an application menu in every workspace.
   Closing the page keeps device owners running; explicit Quit stops the service.
+- CLI quit now waits for device handles and worker ownership cleanup before
+  returning success, including a concurrent web/tray shutdown.
 - Repeated launches reuse the actual listening address, including fallback ports.
   Open browsers show a stopped state on exit and ignore stale status replies.
 - Linux application-menu open/quit entries provide a fallback when a desktop

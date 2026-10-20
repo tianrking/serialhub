@@ -27,7 +27,8 @@ DOCS = (
     "SSCOM_PARITY.zh-CN.md", "VOFA_PARITY.zh-CN.md", "WINDOWS_COM_BRIDGE.md",
     "RELEASING.md", "serialhub.example.toml", "web/PROTOCOL.zh-TW.md",
     "scripts/smoke-sharing.py", "scripts/smoke-manager.py", "scripts/smoke-launcher.py", "DESKTOP.md",
-    "POSITIONING.md", "RELIABILITY_TEST_MATRIX.md",
+    "POSITIONING.md", "RELIABILITY_TEST_MATRIX.md", "HARDWARE_CHECK.zh-CN.md",
+    "scripts/smoke-desktop-preflight.py",
 )
 MANIFEST = "release-manifest.json"
 
@@ -227,6 +228,10 @@ def test_package(archive, release_version, commit):
         subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-launcher.py"),
                         "--binary", str(destination / stage / binary_names(manifest["target"])[2])],
                        check=True, timeout=60)
+        if "linux" in manifest["target"]:
+            subprocess.run([sys.executable, str(destination / stage / "scripts/smoke-desktop-preflight.py"),
+                            "--binary", str(destination / stage / binary_names(manifest["target"])[2])],
+                           check=True, timeout=60)
     print("PACKAGE_SMOKE_OK", archive.name)
 
 

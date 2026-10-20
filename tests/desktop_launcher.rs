@@ -172,6 +172,76 @@ fn stale_registry_is_replaced_and_shutdown_can_restart_cleanly() {
 
 #[cfg(target_os = "linux")]
 #[test]
+fn quit_waits_for_the_os_serial_handle_and_worker_cleanup() {
+    for quit_from_web in [false, true] {
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path();
+        let pty = nix::pty::openpty(None, None).unwrap();
+        let device = nix::unistd::ttyname(&pty.slave).unwrap();
+        drop(pty.slave);
+        let address = start(root, "127.0.0.1:0");
+        let cleanup = Shutdown {
+            root,
+            bind: "127.0.0.1:0".into(),
+        };
+        let session = request(
+            address,
+            "POST",
+            "/manager/sessions",
+            json!({
+                "path":device,
+                "settings":{"baud":115200,"databits":8,"parity":"none","stopbits":1,"flow":"none"}
+            }),
+        )["id"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while request(
+            address,
+            "GET",
+            &format!("/sessions/{session}/v1/status"),
+            Value::Null,
+        )["port"]["connected"]
+            != true
+        {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "OS serial owner did not open"
+            );
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let open_device = || {
+            std::fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(&device)
+        };
+        assert_eq!(
+            open_device().unwrap_err().raw_os_error(),
+            Some(nix::errno::Errno::EBUSY as i32)
+        );
+        if quit_from_web {
+            request(address, "POST", "/manager/quit", json!({}));
+        }
+        drop(cleanup);
+        // Do not poll/retry here: a successful Quit must already have released
+        // the actual OS handle, including when a web/tray quit was in progress.
+        drop(open_device().expect("Quit returned while the serial device was still owned"));
+        assert!(!root.join("state/127.0.0.1-0.json").exists());
+        let ownership = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(root.join("state/127.0.0.1-0.lock"))
+            .unwrap();
+        fs2::FileExt::try_lock_exclusive(&ownership)
+            .expect("Quit returned while the worker was still running");
+        drop(pty.master);
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[test]
 fn application_menu_launches_from_a_portable_path_with_special_characters() {
     if Command::new("gio").arg("version").output().is_err() {
         return;
