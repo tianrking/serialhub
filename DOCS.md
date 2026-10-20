@@ -32,6 +32,7 @@ claim that every repository document has been translated into six languages.
 | VOFA+ common instruments, math and remaining differences | [VOFA_PARITY.zh-CN.md](VOFA_PARITY.zh-CN.md) |
 | Repeatable checks and physical hardware acceptance | [RELIABILITY_TEST_MATRIX.md](RELIABILITY_TEST_MATRIX.md), [Windows checklist](HARDWARE_CHECK.zh-CN.md) |
 | Builds, six-target workflow and local CI-free packaging | [RELEASING.md](RELEASING.md) |
+| Cross-compile all six targets and upload every format without hosted CI | [SERVER_RELEASE.md](SERVER_RELEASE.md) |
 | Candidate contents, historical changes, migration | [RELEASE_NOTES.md](RELEASE_NOTES.md), [CHANGELOG.md](CHANGELOG.md), [MIGRATION.md](MIGRATION.md) |
 | Historical initial code assessment (not current acceptance) | [PROJECT_REVIEW.zh-CN.md](PROJECT_REVIEW.zh-CN.md) |
 
@@ -41,9 +42,10 @@ GUI operation. `scripts/check-docs.py` checks local Markdown links and agreement
 of package/source versions; it does not execute every command or prove an
 external link is available.
 
-Current local platform candidates cover Linux x64 GNU and Windows x64 GNU.
-The six native release targets are a configured workflow, not proof of a run for
-0.0.4; macOS and ARM64 builds are not supplied by this Linux environment.
+Current server artifacts cover all six official targets: Linux x64 / ARM64,
+macOS Intel / Apple Silicon and Windows x64 / ARM64 MSVC. This server packaging
+pass skips runtime tests. The native CI workflow is configured but has not been
+run for this candidate; artifact completeness is not native/hardware qualification.
 Mock/browser, OS pseudoterminal and Wine checks establish different software
 behaviors. Windows 10/11 x64 USB adapters, macOS hardware, driver control lines,
 and long-duration high-rate traffic still require the documented hardware pass.

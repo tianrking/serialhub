@@ -41,13 +41,15 @@ A local-first serial device workspace. One owner keeps each physical port open; 
 
 | Distribution | Current status |
 | --- | --- |
-| Portable archives, Python `.whl`, native npm `.tgz` | Windows x64 and Linux x64 built and smoke-tested locally; **TODO**: macOS Intel / Apple Silicon, Linux ARM64 and Windows ARM64 artifacts and native validation |
-| Debian `.deb` | Linux amd64 built and tested locally; **TODO**: arm64 artifact |
+| Portable archives, Python `.whl`, native npm `.tgz` | Built for Windows x64 / ARM64, Linux x64 / ARM64 and macOS Intel / Apple Silicon; Windows uses the official MSVC targets |
+| Debian `.deb` | Built for Linux amd64 and arm64 |
 | GitHub Release downloads | **TODO: upload and publish 0.0.4**; local build files are not public downloads |
 | PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO: register and publish**; online install commands are not available yet |
 | Homebrew / WinGet / signed APT source | Definitions and validation tooling implemented; **TODO: publish tap, obtain catalog acceptance and host the signed repository** |
 
 Release attachments can include wheels, npm tarballs and Debian packages **before registry publication**. See the [platform/format matrix, offline installation and remaining TODOs](INSTALLATION.md#platform-and-format-status). The PyPI project named `serialhub` is unrelated; use this project's `serialhub-cli` artifacts.
+
+This server packaging pass produces all **25 attachments** and skips runtime tests as requested. Artifact completeness is separate from native OS/USB qualification. Maintainers can reproduce the [six-platform server build and draft upload](SERVER_RELEASE.md) without hosted CI.
 
 ## The workbench
 
@@ -147,7 +149,7 @@ Ideal for embedded debug when **a human terminal and an AI agent/script must sha
 
 Check the version and assets on [Releases](https://github.com/tianrking/serialhub/releases).
 The historical v0.2.3 packages do not include the current 0.0.4 tray/tiled-workspace updates.
-Use a verified 0.0.4 candidate or build the current source for those features. Extract the matching archive and launch:
+Use a 0.0.4 candidate with matching manifest/checksums or build the current source for those features. Extract the matching archive and launch:
 
 | Platform | Open |
 | --- | --- |
@@ -303,7 +305,7 @@ CLI / Config
 | Mock loopback | ✅ | ✅ | ✅ |
 | Architectures | arm64 / x64 | x64 / arm64 | x64 / arm64 |
 
-**Ubuntu tip:** install `build-essential pkg-config libudev-dev` before building.
+**Linux source builds:** install a Rust toolchain and a native C linker (for example `build-essential` on Ubuntu). The core does not require `libudev-dev`. Portable downloads need no build tools.
 
 **Windows tip:** apps that only list COM ports need TCP/WS or an external COM bridge; PTY is Unix-only.
 
@@ -337,25 +339,29 @@ Download from [GitHub Releases](https://github.com/tianrking/serialhub/releases)
 | Windows ARM64 | `…-aarch64-pc-windows-msvc.zip` |
 
 ```bash
-# example (Linux/macOS)
-tar -xzf serialhub-<tag>-<target>.tar.gz
-./serialhub-<tag>-<target>/serialhub share mock:demo --ui
+# Linux x64 example
+tar -xzf serialhub-v0.0.4-x86_64-unknown-linux-gnu.tar.gz
+./serialhub-v0.0.4-x86_64-unknown-linux-gnu/serialhub-desktop
 ```
 
 ### Requirements (from source)
 
 - [Rust](https://rustup.rs/) stable  
-- **Ubuntu/Debian:** `build-essential pkg-config libudev-dev`  
-- **macOS:** Xcode CLT · **Windows:** MSVC via rustup  
+- **Ubuntu/Debian:** `build-essential`; `libudev-dev` is not required
+- **macOS:** Xcode Command Line Tools · **Windows:** MSVC Rust toolchain plus Visual Studio C++ Build Tools and Windows SDK
+- **Only when rebuilding the web assets:** Node.js 22.18+ or 24+ and npm; committed `web/dist` is usable without them
 
 ### Build from source
 
 ```bash
 git clone https://github.com/tianrking/serialhub.git
 cd serialhub
-./scripts/build-all.sh   # web + cargo release
-# or: cargo build --release   # uses committed web/dist
+cargo build --locked --release   # uses committed web/dist; works on all three OSes
 ```
+
+To refresh the frontend first, run `npm --prefix web ci` and
+`npm --prefix web run build`, then rebuild Rust. On Linux/macOS,
+`./scripts/build-all.sh` performs the web and native release builds together.
 
 | OS | Binary |
 |----|--------|

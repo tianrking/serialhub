@@ -74,7 +74,7 @@
 | macOS x64 / Apple Silicon | 已实现 | 已实现 | 已实现 | 不适用 |
 | Windows x64 / ARM64 | 已实现（`COMx`） | 不支持 | 已实现 | `bridge-com` + 已安装的虚拟 COM 提供方 |
 
-六个原生目标是发布工作流的构建矩阵；当前 0.0.4 本地候选仅有 Linux x64 GNU 与 Windows x64 GNU，未发布新 GitHub Release，也未产出本次 macOS/ARM64 包。历史 v0.2.3 的下载状态与当前候选分开管理。CI、单元 / 集成测试、mock 传输和跨平台编译证明的是可重复的代码与协议行为；它们**不等同于**对某一 USB 转串口适配器、OS 驱动、RS-232/RS-485 电气层或业务设备命令的实机认证。
+当前 0.0.4 服务器候选已编译 Linux x64 / ARM64、macOS Intel / Apple Silicon、Windows x64 / ARM64 MSVC 六个正式目标，分发产物包含便携包、各平台 wheel/npm 包及两种 Debian 包。本次按要求暂不运行原生系统、安装或硬件测试；文件齐全和交叉编译成功不等于 USB 转串口适配器、OS 驱动、RS-232/RS-485 电气层或业务设备命令的实机认证。发布上传与软件源上架状态见 [INSTALLATION.md](INSTALLATION.md)，服务器构建方法见 [SERVER_RELEASE.md](SERVER_RELEASE.md)。历史 v0.2.3 的身份与下载保持不变。
 
 在面向生产的设备 / 适配器组合上线前，必须按 [`RELIABILITY_TEST_MATRIX.md`](./RELIABILITY_TEST_MATRIX.md) 做硬件在环验证：端口枚举、串口参数、拔插重连、控制线、真实上位机和实际协议命令都应留存证据。
 

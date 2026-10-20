@@ -1,9 +1,17 @@
 # SerialHub v0.0.4 candidate
 
-**Publication TODO:** the actual local builds cover Linux x64 GNU and Windows
-x64 GNU, including their Python wheels, npm tarballs and the amd64 Debian package.
-macOS and ARM64 artifacts, registry publication and the GitHub Release upload are
-still TODO. See the [platform/format status](INSTALLATION.md#platform-and-format-status).
+**Artifact coverage:** six native targets: Linux x64 / ARM64, macOS Intel / Apple
+Silicon and Windows x64 / ARM64 MSVC. The complete 25-file download set includes
+six wheels, six native npm packages plus launcher, two Debian packages,
+Homebrew/WinGet definitions, metadata, coverage and checksums. The server build
+uses no hosted CI and intentionally skips runtime tests. Native OS/USB
+qualification remains deferred. Registry publication and final GitHub asset
+upload/publication remain TODO until completed. See the
+[platform/format status](INSTALLATION.md#platform-and-format-status).
+
+- Added repeatable six-platform cross-build and resumable draft publication
+  commands. Windows builds include icon, DPI and version resources; macOS app
+  metadata and wheels consistently require macOS 15+.
 
 - Added strict complete-format release validation, missing-platform coverage
   reports and synchronized README publication TODOs. Complete releases require

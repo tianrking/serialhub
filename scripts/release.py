@@ -39,7 +39,7 @@ DOCS = (
     "assets/brand/serialhub-tray.svg", "assets/brand/serialhub-tray-template.svg",
     "assets/brand/FONT-LICENSE.txt", "assets/serialhub.png", "assets/serialhub.ico",
     "assets/serialhub.icns", "web/public/favicon.svg",
-    "INSTALLATION.md", "scripts/smoke-headless.py",
+    "INSTALLATION.md", "SERVER_RELEASE.md", "scripts/smoke-headless.py",
 )
 MANIFEST = "release-manifest.json"
 
@@ -82,6 +82,7 @@ def extra_files(target, release_version):
         "CFBundleExecutable": "SerialHub", "CFBundleIdentifier": "io.serialhub.desktop",
         "CFBundleName": "SerialHub", "CFBundlePackageType": "APPL",
         "CFBundleShortVersionString": release_version, "CFBundleVersion": release_version,
+        "LSMinimumSystemVersion": "15.0",
         "LSUIElement": True, "NSHighResolutionCapable": True, "CFBundleIconFile": "SerialHub.icns",
     }), "SerialHub.app/Contents/Resources/SerialHub.icns": (ROOT / "assets/serialhub.icns").read_bytes()}
 
