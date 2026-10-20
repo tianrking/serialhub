@@ -5,9 +5,30 @@
 </picture>
 
 <p align="center">
-  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a>
+  <a href="README.md"><img alt="English" src="https://img.shields.io/badge/lang-English-3b82f6?style=flat-square" /></a>
+  <a href="README.zh-CN.md"><img alt="简体中文" src="https://img.shields.io/badge/lang-%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-e11d48?style=flat-square" /></a>
+  <a href="README.es.md"><img alt="Español" src="https://img.shields.io/badge/lang-Espa%C3%B1ol-22c55e?style=flat-square" /></a>
   &nbsp; / &nbsp;
   <a href="GETTING_STARTED.zh-CN.md">快速上手</a> · <a href="DOCS.md">完整文档</a> · <a href="https://github.com/tianrking/serialhub/releases">下载</a>
+</p>
+
+<p align="center">
+  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat-square" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-3b82f6?style=flat-square" /></a>
+  <a href="DESKTOP.md"><img alt="Platforms: Windows, macOS, Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-64748b?style=flat-square" /></a>
+  <a href="https://www.rust-lang.org/"><img alt="Rust" src="https://img.shields.io/badge/Rust-2021-e57324?style=flat-square&amp;logo=rust&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&amp;logo=typescript&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="React" src="https://img.shields.io/badge/React-149eca?style=flat-square&amp;logo=react&amp;logoColor=white" /></a>
+</p>
+
+<p align="center">
+  <a href="Cargo.toml"><img alt="Async: Tokio" src="https://img.shields.io/badge/async-Tokio-c026d3?style=flat-square" /></a>
+  <a href="Cargo.toml"><img alt="Web: Axum" src="https://img.shields.io/badge/web-Axum-7c3aed?style=flat-square" /></a>
+  <a href="DOCS.md"><img alt="Serial: UART, COM, tty" src="https://img.shields.io/badge/serial-UART%20%2F%20COM%20%2F%20tty-0ea5e9?style=flat-square" /></a>
+  <a href="web/PROTOCOL.zh-TW.md"><img alt="API: HTTP and WebSocket" src="https://img.shields.io/badge/API-HTTP%20%2B%20WebSocket-06b6d4?style=flat-square" /></a>
+  <a href="DOCS.md"><img alt="Stream: TCP" src="https://img.shields.io/badge/stream-TCP-3b82f6?style=flat-square" /></a>
+  <a href="DOCS.md"><img alt="Unix: PTY" src="https://img.shields.io/badge/Unix-PTY-14b8a6?style=flat-square" /></a>
+  <a href="serialhub.example.toml"><img alt="Config: TOML" src="https://img.shields.io/badge/config-TOML-e11d48?style=flat-square" /></a>
 </p>
 
 本地优先的串口调试工作台。每个真实串口由一个 owner 持有，浏览器、测试脚本与传统上位机共享接收数据，并统一仲裁发送；多个设备可以同时平铺调试。
