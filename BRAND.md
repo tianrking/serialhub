@@ -64,7 +64,17 @@ of branding, and connection/error colors retain their operational meaning.
 ## README presentation and screenshots
 
 The English, Simplified Chinese and Spanish READMEs share the same identity.
-Their first view contains the logo, a short product description, navigation and
+The header contains one centered, transparent logo, one product sentence and
+five standard Shields badges: source version, MIT, Rust, TypeScript and React.
+Use the usual flat style and familiar technology colors. Keep language selection
+as plain text links; runtime and protocol names are text in the body, not another
+badge collection. Detailed publication status stays beside installation links.
+
+Badges link to Shields.io and require network access to render; descriptive alt
+text remains available offline. Update the source-version URL in all three
+READMEs when changing the version. The documentation check detects stale URLs.
+
+Their first view contains the logo, a short product description, five badges and
 an actual multi-port screenshot. Additional full-size console and Signal Studio
 screenshots sit in an expandable section. Captions identify **Mock/Demo** sources
 and the source version. No screenshot is a hardware certification or a promise
@@ -93,6 +103,8 @@ npm --prefix web run build
 cargo build --locked --release --bins
 ```
 
+Use `python3 scripts/build-brand-assets.py --readme-only` to regenerate only
+the transparent README logos without touching application or tray artwork.
 Use `--font-dir` for a non-default DejaVu font directory. Without the Chromium
 variable, the renderer uses Playwright's installed Chromium. The script creates
 SVG/React sources, rasterizes the original vectors, packages ICO/ICNS and encodes

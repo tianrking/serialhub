@@ -39,7 +39,7 @@ DOCS = (
     "assets/brand/serialhub-tray.svg", "assets/brand/serialhub-tray-template.svg",
     "assets/brand/FONT-LICENSE.txt", "assets/serialhub.png", "assets/serialhub.ico",
     "assets/serialhub.icns", "web/public/favicon.svg",
-    "INSTALLATION.md", "SERVER_RELEASE.md", "scripts/smoke-headless.py",
+    "INSTALLATION.md", "SERVER_RELEASE.md", "ROADMAP.md", "scripts/smoke-headless.py",
 )
 MANIFEST = "release-manifest.json"
 

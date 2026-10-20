@@ -1,34 +1,24 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
-  <img alt="SerialHub — One port. Shared access." src="assets/brand/serialhub-lockup-dark.svg" width="1200" />
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
+    <img alt="SerialHub" src="assets/brand/serialhub-lockup-light.svg" width="420" />
+  </picture>
+</p>
+
+<p align="center">多程序共享串口，多设备同屏调试。</p>
+
+<p align="center">
+  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-3da639?style=flat" /></a>
+  <a href="Cargo.toml"><img alt="Rust 2021" src="https://img.shields.io/badge/Rust-2021-dea584?style=flat&amp;logo=rust&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?style=flat&amp;logo=typescript&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="React" src="https://img.shields.io/badge/React-149eca?style=flat&amp;logo=react&amp;logoColor=white" /></a>
+</p>
 
 <p align="center">
   <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a>
-  &nbsp; / &nbsp;
-  <a href="GETTING_STARTED.zh-CN.md">快速上手</a> · <a href="DOCS.md">完整文档</a> · <a href="https://github.com/tianrking/serialhub/releases">下载</a>
 </p>
-
-本地优先的串口调试工作台。每个真实串口由一个 owner 持有，浏览器、测试脚本与传统上位机共享接收数据，并统一仲裁发送；多个设备可以同时平铺调试。
-
-**当前源码 / 本地候选：0.0.4。** 历史公开 v0.2.3 下载不含最新托盘、平铺及字号更新；参见[发布状态](RELEASE_NOTES.md)。
-
-**安装与无界面运行：**参见[包管理器、固定端口服务与登录自启动](INSTALLATION.md)。桌面用户仍可下载便携包，双击打开网页。
-
-### 下载与安装状态 · 0.0.4
-
-| 分发形式 | 当前状态 |
-| --- | --- |
-| 便携包、Python `.whl`、原生 npm `.tgz` | Windows x64 / ARM64、Linux x64 / ARM64、macOS Intel / Apple Silicon 六个平台均已编译；Windows 使用正式 MSVC 目标 |
-| Debian `.deb` | Linux amd64、arm64 两种包均已生成 |
-| GitHub Release 下载 | **TODO：上传并发布 0.0.4**；本地文件还不是公开下载 |
-| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO：注册、上架**；暂不能从公开源执行一行安装 |
-| Homebrew / WinGet / 签名 APT 源 | 已实现定义生成与校验；**TODO：发布 tap、提交并通过目录审核、托管签名仓库** |
-
-软件源尚未上架时，GitHub Release 仍可附带 wheel、npm 压缩包和 Debian 包，供用户本地安装。参见[平台与格式矩阵、离线安装、未完成事项](INSTALLATION.md#platform-and-format-status)。PyPI 上的 `serialhub` 属于其他项目，本项目使用 `serialhub-cli`。
-
-本次服务器打包生成完整的 **25 个附件**，按要求暂不运行测试。文件齐全不等于完成原生系统和 USB 串口验收。维护者可复用[六平台服务器构建与草稿上传流程](SERVER_RELEASE.md)，不消耗云端 CI。
 
 ## 工作台一览
 
@@ -61,7 +51,48 @@
 
 界面默认英文，支持繁体/简体中文、西班牙语、法语和阿拉伯语 RTL。点击 **Aa** 可调整界面文字和串口日志/发送框字号。参见[多语言](I18N.md)、[显示设置](DISPLAY.md)和[品牌规范](BRAND.md)。
 
-[MIT](LICENSE) · Rust · Windows / macOS / Linux · [CI](https://github.com/tianrking/serialhub/actions/workflows/ci.yml)
+<details>
+<summary>运行时与通信接口</summary>
+
+| | |
+| --- | --- |
+| 运行时 | <a href="Cargo.toml">Tokio</a> <a href="Cargo.toml">Axum</a> |
+| 串口与传输 | <a href="DOCS.md">UART / COM / tty</a> <a href="DOCS.md">TCP</a> <a href="DOCS.md">PTY</a> |
+| 浏览器 API | <a href="web/PROTOCOL.zh-TW.md">HTTP + WebSocket</a> |
+| 配置 | <a href="serialhub.example.toml">TOML</a> |
+
+</details>
+
+<p align="center">
+  <a href="GETTING_STARTED.zh-CN.md">快速上手</a> &nbsp;·&nbsp; <a href="INSTALLATION.md">安装方式</a> &nbsp;·&nbsp; <a href="DOCS.md">完整文档</a> &nbsp;·&nbsp; <a href="https://github.com/tianrking/serialhub/releases">版本发布</a>
+</p>
+
+> **x64 / ARM64 构建已齐备 · 公开发布待完成。** [安装与发布状态](INSTALLATION.md#platform-and-format-status)。
+
+<details>
+<summary>构建与发布明细 · 0.0.4</summary>
+
+**当前源码 / 本地候选：0.0.4。** 历史公开 v0.2.3 下载不含最新托盘、平铺及字号更新；参见[发布状态](RELEASE_NOTES.md)。
+
+**安装与无界面运行：**参见[包管理器、固定端口服务与登录自启动](INSTALLATION.md)。桌面用户仍可下载便携包，双击打开网页。
+
+### 下载与安装状态 · 0.0.4
+
+| 分发形式 | 当前状态 |
+| --- | --- |
+| 便携包、Python `.whl`、原生 npm `.tgz` | Windows x64 / ARM64、Linux x64 / ARM64、macOS Intel / Apple Silicon 六个平台均已编译；Windows 使用正式 MSVC 目标 |
+| Debian `.deb` | Linux amd64、arm64 两种包均已生成 |
+| GitHub Release 下载 | **TODO：上传并发布 0.0.4**；本地文件还不是公开下载 |
+| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO：注册、上架**；暂不能从公开源执行一行安装 |
+| Homebrew / WinGet / 签名 APT 源 | 已实现定义生成与校验；**TODO：发布 tap、提交并通过目录审核、托管签名仓库** |
+
+软件源尚未上架时，GitHub Release 仍可附带 wheel、npm 压缩包和 Debian 包，供用户本地安装。参见[平台与格式矩阵、离线安装、未完成事项](INSTALLATION.md#platform-and-format-status)。PyPI 上的 `serialhub` 属于其他项目，本项目使用 `serialhub-cli`。
+
+本次服务器打包生成完整的 **25 个附件**，按要求暂不运行测试。文件齐全不等于完成原生系统和 USB 串口验收。维护者可复用[六平台服务器构建与草稿上传流程](SERVER_RELEASE.md)，不消耗云端 CI。
+
+</details>
+
+下一阶段工程重点：[可靠性、问题诊断与项目配置档](ROADMAP.md)。
 
 ---
 

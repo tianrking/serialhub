@@ -1,34 +1,24 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
-  <img alt="SerialHub — One port. Shared access." src="assets/brand/serialhub-lockup-dark.svg" width="1200" />
-</picture>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
+    <img alt="SerialHub" src="assets/brand/serialhub-lockup-light.svg" width="420" />
+  </picture>
+</p>
+
+<p align="center">Share serial ports across tools and debug multiple devices in one workspace.</p>
+
+<p align="center">
+  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-3da639?style=flat" /></a>
+  <a href="Cargo.toml"><img alt="Rust 2021" src="https://img.shields.io/badge/Rust-2021-dea584?style=flat&amp;logo=rust&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?style=flat&amp;logo=typescript&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="React" src="https://img.shields.io/badge/React-149eca?style=flat&amp;logo=react&amp;logoColor=white" /></a>
+</p>
 
 <p align="center">
   <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a>
-  &nbsp; / &nbsp;
-  <a href="DESKTOP.md">Quick start</a> · <a href="DOCS.md">Documentation</a> · <a href="https://github.com/tianrking/serialhub/releases">Downloads</a>
 </p>
-
-A local-first serial device workspace. One owner keeps each physical port open; browsers, test scripts and traditional tools share its RX stream and coordinate writes.
-
-**Current source / local candidate: 0.0.4.** The historical public v0.2.3 downloads predate the latest tray, tiling and font updates. See [release status](RELEASE_NOTES.md).
-
-**Install & headless:** [package managers, fixed-port server and login services](INSTALLATION.md). The portable launcher remains the simplest desktop entry point.
-
-### Download and installation status · 0.0.4
-
-| Distribution | Current status |
-| --- | --- |
-| Portable archives, Python `.whl`, native npm `.tgz` | Built for Windows x64 / ARM64, Linux x64 / ARM64 and macOS Intel / Apple Silicon; Windows uses the official MSVC targets |
-| Debian `.deb` | Built for Linux amd64 and arm64 |
-| GitHub Release downloads | **TODO: upload and publish 0.0.4**; local build files are not public downloads |
-| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO: register and publish**; online install commands are not available yet |
-| Homebrew / WinGet / signed APT source | Definitions and validation tooling implemented; **TODO: publish tap, obtain catalog acceptance and host the signed repository** |
-
-Release attachments can include wheels, npm tarballs and Debian packages **before registry publication**. See the [platform/format matrix, offline installation and remaining TODOs](INSTALLATION.md#platform-and-format-status). The PyPI project named `serialhub` is unrelated; use this project's `serialhub-cli` artifacts.
-
-This server packaging pass produces all **25 attachments** and skips runtime tests as requested. Artifact completeness is separate from native OS/USB qualification. Maintainers can reproduce the [six-platform server build and draft upload](SERVER_RELEASE.md) without hosted CI.
 
 ## The workbench
 
@@ -61,7 +51,48 @@ Open independent devices, choose their UART settings and manage each owner from 
 
 The interface defaults to English, with Traditional/Simplified Chinese, Spanish, French and Arabic RTL. **Aa** adjusts UI text and serial log/send-editor sizes. See [languages](I18N.md), [display settings](DISPLAY.md) and the [brand guide](BRAND.md).
 
-[MIT](LICENSE) · Rust · Windows / macOS / Linux · [CI](https://github.com/tianrking/serialhub/actions/workflows/ci.yml)
+<details>
+<summary>Runtime & interfaces</summary>
+
+| | |
+| --- | --- |
+| Runtime | <a href="Cargo.toml">Tokio</a> <a href="Cargo.toml">Axum</a> |
+| Serial transport | <a href="DOCS.md">UART / COM / tty</a> <a href="DOCS.md">TCP</a> <a href="DOCS.md">PTY</a> |
+| Browser API | <a href="web/PROTOCOL.zh-TW.md">HTTP + WebSocket</a> |
+| Configuration | <a href="serialhub.example.toml">TOML</a> |
+
+</details>
+
+<p align="center">
+  <a href="DESKTOP.md">Get started</a> &nbsp;·&nbsp; <a href="INSTALLATION.md">Installation</a> &nbsp;·&nbsp; <a href="DOCS.md">Documentation</a> &nbsp;·&nbsp; <a href="https://github.com/tianrking/serialhub/releases">Releases</a>
+</p>
+
+> **x64 / ARM64 builds ready · Public release pending.** [Installation status](INSTALLATION.md#platform-and-format-status).
+
+<details>
+<summary>Build and publication details · 0.0.4</summary>
+
+**Current source / local candidate: 0.0.4.** The historical public v0.2.3 downloads predate the latest tray, tiling and font updates. See [release status](RELEASE_NOTES.md).
+
+**Install & headless:** [package managers, fixed-port server and login services](INSTALLATION.md). The portable launcher remains the simplest desktop entry point.
+
+### Download and installation status · 0.0.4
+
+| Distribution | Current status |
+| --- | --- |
+| Portable archives, Python `.whl`, native npm `.tgz` | Built for Windows x64 / ARM64, Linux x64 / ARM64 and macOS Intel / Apple Silicon; Windows uses the official MSVC targets |
+| Debian `.deb` | Built for Linux amd64 and arm64 |
+| GitHub Release downloads | **TODO: upload and publish 0.0.4**; local build files are not public downloads |
+| PyPI `serialhub-cli` / npm `@tianrking/serialhub` | **TODO: register and publish**; online install commands are not available yet |
+| Homebrew / WinGet / signed APT source | Definitions and validation tooling implemented; **TODO: publish tap, obtain catalog acceptance and host the signed repository** |
+
+Release attachments can include wheels, npm tarballs and Debian packages **before registry publication**. See the [platform/format matrix, offline installation and remaining TODOs](INSTALLATION.md#platform-and-format-status). The PyPI project named `serialhub` is unrelated; use this project's `serialhub-cli` artifacts.
+
+This server packaging pass produces all **25 attachments** and skips runtime tests as requested. Artifact completeness is separate from native OS/USB qualification. Maintainers can reproduce the [six-platform server build and draft upload](SERVER_RELEASE.md) without hosted CI.
+
+</details>
+
+Next engineering priorities: [reliability, diagnostics and workspace profiles](ROADMAP.md).
 
 ---
 

@@ -44,7 +44,7 @@ current package matrix**.
 
 | Public channel | Remaining publication work |
 | --- | --- |
-| GitHub Release 0.0.4 | **TODO:** upload actual artifacts, download and compare hashes, then publish. Git pushes work here; GitHub API/upload endpoints are blocked by the environment policy. |
+| GitHub Release 0.0.4 | **TODO:** upload actual artifacts, download and compare hashes, then publish. A draft alone is not a completed release; valid GitHub asset-upload authorization is required. |
 | PyPI `serialhub-cli` | **TODO:** register the project/trusted publisher and upload the verified wheels. |
 | npm `@tianrking/serialhub` | **TODO:** establish scope ownership/publisher authentication; publish native packages first, launcher last. |
 | Homebrew `tianrking/serialhub` | **TODO:** publish the tap and its generated Formula; Mac/Linux x64 and ARM64 URLs require matching public archives. |

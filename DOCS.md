@@ -32,6 +32,7 @@ claim that every repository document has been translated into six languages.
 | VOFA+ common instruments, math and remaining differences | [VOFA_PARITY.zh-CN.md](VOFA_PARITY.zh-CN.md) |
 | Repeatable checks and physical hardware acceptance | [RELIABILITY_TEST_MATRIX.md](RELIABILITY_TEST_MATRIX.md), [Windows checklist](HARDWARE_CHECK.zh-CN.md) |
 | Builds, six-target workflow and local CI-free packaging | [RELEASING.md](RELEASING.md) |
+| Prioritized reliability, support and workspace improvements | [ROADMAP.md](ROADMAP.md) |
 | Cross-compile all six targets and upload every format without hosted CI | [SERVER_RELEASE.md](SERVER_RELEASE.md) |
 | Candidate contents, historical changes, migration | [RELEASE_NOTES.md](RELEASE_NOTES.md), [CHANGELOG.md](CHANGELOG.md), [MIGRATION.md](MIGRATION.md) |
 | Historical initial code assessment (not current acceptance) | [PROJECT_REVIEW.zh-CN.md](PROJECT_REVIEW.zh-CN.md) |

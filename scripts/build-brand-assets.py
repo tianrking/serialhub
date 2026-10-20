@@ -30,9 +30,6 @@ def text_paths(text, x, baseline, size, font, color, tracking=0):
     return ''.join(parts)
 
 def build_vectors(font_dir):
-    from fontTools.ttLib import TTFont
-    regular = TTFont(font_dir / 'DejaVuSans.ttf')
-    bold = TTFont(font_dir / 'DejaVuSans-Bold.ttf')
     BRAND.mkdir(parents=True, exist_ok=True)
     (BRAND / 'serialhub-symbol.svg').write_text(svg(f'<g color="{COLOR}">{MARK}</g>',32,32))
     app = svg(f'<rect x="1" y="1" width="62" height="62" rx="13" fill="#1d2228" stroke="#3a424d" stroke-width="2"/><g transform="translate(8 8) scale(1.5)" color="{COLOR}">{MARK}</g>',64,64)
@@ -40,16 +37,7 @@ def build_vectors(font_dir):
     (ROOT / 'web/public/favicon.svg').write_text(app)
     (BRAND / 'serialhub-tray.svg').write_text(svg(f'<rect x=".5" y=".5" width="31" height="31" rx="6" fill="#1d2228" stroke="#3a424d"/><g transform="translate(2 2) scale(.875)" color="{COLOR}">{MARK}</g>',32,32))
     (BRAND / 'serialhub-tray-template.svg').write_text(svg(f'<g color="#000000">{MARK}</g>',32,32))
-    for mode, bg, ink, secondary, line in [('dark','#14171b','#d6dce5','#a2adbb','#3a424d'),('light','#f6f7f8','#1d262c','#596570','#cbd2d8')]:
-        body=f'<rect width="1200" height="280" rx="6" fill="{bg}"/>'
-        body+=f'<g transform="translate(68 63) scale(3.6)" color="{COLOR if mode=="dark" else "#397a70"}">{MARK}</g>'
-        body+=text_paths('SerialHub',222,134,64,bold,ink,tracking=-1.6)
-        body+=text_paths('One port. Shared access.',225,177,22,regular,secondary,tracking=.35)
-        body+=f'<path d="M68 223h1064" stroke="{line}"/>'
-        body+=text_paths('SERIAL SHARING   /   TILED TERMINALS   /   SIGNAL STUDIO   /   HTTP + WEBSOCKET',70,251,11,regular,secondary,tracking=1)
-        body+=text_paths('SERIAL DEVICE',925,109,12,regular,secondary,tracking=1.8)
-        body+=text_paths('WORKSPACE',925,132,12,regular,secondary,tracking=1.8)
-        (BRAND/f'serialhub-lockup-{mode}.svg').write_text(svg(body,1200,280,'SerialHub — One port. Shared access.'))
+    build_readme_logo(font_dir)
     # The React symbol uses the same geometry as the standalone vector source.
     (ROOT/'web/src/BrandMark.tsx').write_text('''/** SerialHub fan-out symbol. Geometry source: scripts/build-brand-assets.py. */
 export default function BrandMark({ size = 24 }: { size?: number }) {
@@ -60,6 +48,21 @@ export default function BrandMark({ size = 24 }: { size?: number }) {
   </svg>;
 }
 ''')
+
+def build_readme_logo(font_dir):
+    """A transparent standalone mark and wordmark; no banner or feature labels."""
+    from fontTools.ttLib import TTFont
+    bold = TTFont(font_dir / 'DejaVuSans-Bold.ttf')
+    size, tracking = 44, -1.0
+    cmap = bold.getBestCmap()
+    width = sum(bold['hmtx'].metrics[cmap[ord(c)]][0] * size / bold['head'].unitsPerEm
+                for c in 'SerialHub') + tracking * (len('SerialHub') - 1)
+    BRAND.mkdir(parents=True, exist_ok=True)
+    for mode, ink, accent in [('dark', '#e6edf3', COLOR), ('light', '#1d262c', '#397a70')]:
+        body = f'<g transform="translate(162 16) scale(3)" color="{accent}">{MARK}</g>'
+        body += text_paths('SerialHub', (420 - width) / 2, 177, size, bold, ink, tracking)
+        (BRAND / f'serialhub-lockup-{mode}.svg').write_text(svg(body, 420, 200))
+
 
 def build_native():
     from PIL import Image
@@ -88,6 +91,12 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--font-dir',type=Path,default=Path('/usr/share/fonts/truetype/dejavu'))
     parser.add_argument('--raster',action='store_true')
+    parser.add_argument('--readme-only', action='store_true', help='Only regenerate the standalone README logos')
     options=parser.parse_args()
-    build_vectors(options.font_dir)
-    if options.raster:build_native()
+    if options.readme_only:
+        if options.raster:
+            parser.error('--readme-only cannot be combined with --raster')
+        build_readme_logo(options.font_dir)
+    else:
+        build_vectors(options.font_dir)
+        if options.raster:build_native()
