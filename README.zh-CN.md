@@ -1,31 +1,24 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
-  <img alt="SerialHub — One port. Shared access." src="assets/brand/serialhub-lockup-dark.svg" width="1200" />
-</picture>
-
 <p align="center">
-  <a href="README.md"><img alt="English" src="assets/badges/english.svg" height="20" /></a>
-  <a href="README.zh-CN.md"><img alt="简体中文" src="assets/badges/chinese.svg" height="20" /></a>
-  <a href="README.es.md"><img alt="Español" src="assets/badges/spanish.svg" height="20" /></a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
+    <img alt="SerialHub" src="assets/brand/serialhub-lockup-light.svg" width="420" />
+  </picture>
 </p>
 
-<p align="center">多程序共享串口，多设备同屏调试。接收广播，发送统一仲裁。</p>
+<p align="center">多程序共享串口，多设备同屏调试。</p>
 
 <p align="center">
-  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="assets/badges/source.svg" height="20" /></a>
-  <a href="LICENSE"><img alt="License: MIT" src="assets/badges/license.svg" height="20" /></a>
-  <a href="DESKTOP.md"><img alt="Platforms: Windows, macOS, Linux" src="assets/badges/platforms.svg" height="20" /></a>
-  <a href="Cargo.toml"><img alt="Rust 2021" src="assets/badges/rust.svg" height="20" /></a>
-  <a href="web/package.json"><img alt="TypeScript" src="assets/badges/typescript.svg" height="20" /></a>
-  <a href="web/package.json"><img alt="React" src="assets/badges/react.svg" height="20" /></a>
+  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-3da639?style=flat" /></a>
+  <a href="Cargo.toml"><img alt="Rust 2021" src="https://img.shields.io/badge/Rust-2021-dea584?style=flat&amp;logo=rust&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?style=flat&amp;logo=typescript&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="React" src="https://img.shields.io/badge/React-149eca?style=flat&amp;logo=react&amp;logoColor=white" /></a>
 </p>
 
 <p align="center">
-  <a href="GETTING_STARTED.zh-CN.md">快速上手</a> &nbsp;·&nbsp; <a href="INSTALLATION.md">安装方式</a> &nbsp;·&nbsp; <a href="DOCS.md">完整文档</a> &nbsp;·&nbsp; <a href="https://github.com/tianrking/serialhub/releases">版本发布</a>
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a>
 </p>
-
-> **x64 / ARM64 构建已齐备 · 公开发布待完成。** [安装与发布状态](INSTALLATION.md#platform-and-format-status)。
 
 ## 工作台一览
 
@@ -63,12 +56,18 @@
 
 | | |
 | --- | --- |
-| 运行时 | <a href="Cargo.toml"><img alt="Tokio" src="assets/badges/tokio.svg" height="20" /></a> <a href="Cargo.toml"><img alt="Axum" src="assets/badges/axum.svg" height="20" /></a> |
-| 串口与传输 | <a href="DOCS.md"><img alt="UART / COM / tty" src="assets/badges/serial.svg" height="20" /></a> <a href="DOCS.md"><img alt="TCP" src="assets/badges/tcp.svg" height="20" /></a> <a href="DOCS.md"><img alt="PTY" src="assets/badges/pty.svg" height="20" /></a> |
-| 浏览器 API | <a href="web/PROTOCOL.zh-TW.md"><img alt="HTTP + WebSocket" src="assets/badges/api.svg" height="20" /></a> |
-| 配置 | <a href="serialhub.example.toml"><img alt="TOML" src="assets/badges/toml.svg" height="20" /></a> |
+| 运行时 | <a href="Cargo.toml">Tokio</a> <a href="Cargo.toml">Axum</a> |
+| 串口与传输 | <a href="DOCS.md">UART / COM / tty</a> <a href="DOCS.md">TCP</a> <a href="DOCS.md">PTY</a> |
+| 浏览器 API | <a href="web/PROTOCOL.zh-TW.md">HTTP + WebSocket</a> |
+| 配置 | <a href="serialhub.example.toml">TOML</a> |
 
 </details>
+
+<p align="center">
+  <a href="GETTING_STARTED.zh-CN.md">快速上手</a> &nbsp;·&nbsp; <a href="INSTALLATION.md">安装方式</a> &nbsp;·&nbsp; <a href="DOCS.md">完整文档</a> &nbsp;·&nbsp; <a href="https://github.com/tianrking/serialhub/releases">版本发布</a>
+</p>
+
+> **x64 / ARM64 构建已齐备 · 公开发布待完成。** [安装与发布状态](INSTALLATION.md#platform-and-format-status)。
 
 <details>
 <summary>构建与发布明细 · 0.0.4</summary>

@@ -1,31 +1,24 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
-  <img alt="SerialHub — One port. Shared access." src="assets/brand/serialhub-lockup-dark.svg" width="1200" />
-</picture>
-
 <p align="center">
-  <a href="README.md"><img alt="English" src="assets/badges/english.svg" height="20" /></a>
-  <a href="README.zh-CN.md"><img alt="简体中文" src="assets/badges/chinese.svg" height="20" /></a>
-  <a href="README.es.md"><img alt="Español" src="assets/badges/spanish.svg" height="20" /></a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/serialhub-lockup-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/brand/serialhub-lockup-light.svg" />
+    <img alt="SerialHub" src="assets/brand/serialhub-lockup-light.svg" width="420" />
+  </picture>
 </p>
 
-<p align="center">Share serial data across tools. Debug multiple devices in one workspace.</p>
+<p align="center">Share serial ports across tools and debug multiple devices in one workspace.</p>
 
 <p align="center">
-  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="assets/badges/source.svg" height="20" /></a>
-  <a href="LICENSE"><img alt="License: MIT" src="assets/badges/license.svg" height="20" /></a>
-  <a href="DESKTOP.md"><img alt="Platforms: Windows, macOS, Linux" src="assets/badges/platforms.svg" height="20" /></a>
-  <a href="Cargo.toml"><img alt="Rust 2021" src="assets/badges/rust.svg" height="20" /></a>
-  <a href="web/package.json"><img alt="TypeScript" src="assets/badges/typescript.svg" height="20" /></a>
-  <a href="web/package.json"><img alt="React" src="assets/badges/react.svg" height="20" /></a>
+  <a href="Cargo.toml"><img alt="Source version: 0.0.4" src="https://img.shields.io/badge/source-v0.0.4-0ea5e9?style=flat" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-3da639?style=flat" /></a>
+  <a href="Cargo.toml"><img alt="Rust 2021" src="https://img.shields.io/badge/Rust-2021-dea584?style=flat&amp;logo=rust&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?style=flat&amp;logo=typescript&amp;logoColor=white" /></a>
+  <a href="web/package.json"><img alt="React" src="https://img.shields.io/badge/React-149eca?style=flat&amp;logo=react&amp;logoColor=white" /></a>
 </p>
 
 <p align="center">
-  <a href="DESKTOP.md">Get started</a> &nbsp;·&nbsp; <a href="INSTALLATION.md">Installation</a> &nbsp;·&nbsp; <a href="DOCS.md">Documentation</a> &nbsp;·&nbsp; <a href="https://github.com/tianrking/serialhub/releases">Releases</a>
+  <a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.es.md">Español</a>
 </p>
-
-> **x64 / ARM64 builds ready · Public release pending.** [Installation status](INSTALLATION.md#platform-and-format-status).
 
 ## The workbench
 
@@ -63,12 +56,18 @@ The interface defaults to English, with Traditional/Simplified Chinese, Spanish,
 
 | | |
 | --- | --- |
-| Runtime | <a href="Cargo.toml"><img alt="Tokio" src="assets/badges/tokio.svg" height="20" /></a> <a href="Cargo.toml"><img alt="Axum" src="assets/badges/axum.svg" height="20" /></a> |
-| Serial transport | <a href="DOCS.md"><img alt="UART / COM / tty" src="assets/badges/serial.svg" height="20" /></a> <a href="DOCS.md"><img alt="TCP" src="assets/badges/tcp.svg" height="20" /></a> <a href="DOCS.md"><img alt="PTY" src="assets/badges/pty.svg" height="20" /></a> |
-| Browser API | <a href="web/PROTOCOL.zh-TW.md"><img alt="HTTP + WebSocket" src="assets/badges/api.svg" height="20" /></a> |
-| Configuration | <a href="serialhub.example.toml"><img alt="TOML" src="assets/badges/toml.svg" height="20" /></a> |
+| Runtime | <a href="Cargo.toml">Tokio</a> <a href="Cargo.toml">Axum</a> |
+| Serial transport | <a href="DOCS.md">UART / COM / tty</a> <a href="DOCS.md">TCP</a> <a href="DOCS.md">PTY</a> |
+| Browser API | <a href="web/PROTOCOL.zh-TW.md">HTTP + WebSocket</a> |
+| Configuration | <a href="serialhub.example.toml">TOML</a> |
 
 </details>
+
+<p align="center">
+  <a href="DESKTOP.md">Get started</a> &nbsp;·&nbsp; <a href="INSTALLATION.md">Installation</a> &nbsp;·&nbsp; <a href="DOCS.md">Documentation</a> &nbsp;·&nbsp; <a href="https://github.com/tianrking/serialhub/releases">Releases</a>
+</p>
+
+> **x64 / ARM64 builds ready · Public release pending.** [Installation status](INSTALLATION.md#platform-and-format-status).
 
 <details>
 <summary>Build and publication details · 0.0.4</summary>

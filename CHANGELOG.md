@@ -6,9 +6,9 @@ All notable changes to this project are documented in this file.
 
 ## [0.0.4] — source / local candidate
 
-- Refined the three README introductions with compact local light/dark badges,
-  separate navigation, an earlier product screenshot and expandable technical
-  and publication details. Added prioritized engineering acceptance milestones.
+- Simplified the three README introductions to a standalone transparent logo,
+  one product description and five standard Shields badges, with plain language
+  links and an early product screenshot. Added engineering acceptance milestones.
 
 - Added repeatable Linux-server builds for all six official native targets,
   Windows cross-build icon/DPI/version resources, macOS minimum-version metadata,

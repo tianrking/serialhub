@@ -40,10 +40,7 @@ DOCS = (
     "assets/brand/FONT-LICENSE.txt", "assets/serialhub.png", "assets/serialhub.ico",
     "assets/serialhub.icns", "web/public/favicon.svg",
     "INSTALLATION.md", "SERVER_RELEASE.md", "ROADMAP.md", "scripts/smoke-headless.py",
-) + tuple(f"assets/badges/{name}.svg" for name in (
-    "source", "license", "platforms", "rust", "typescript", "react", "tokio", "axum",
-    "serial", "api", "tcp", "pty", "toml", "english", "chinese", "spanish",
-))
+)
 MANIFEST = "release-manifest.json"
 
 

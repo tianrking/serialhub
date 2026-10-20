@@ -37,9 +37,9 @@ def check():
     files = set(subprocess.check_output(["git", "ls-files", "--", "*.md"], cwd=ROOT, text=True).splitlines())
     files.update(("DISPLAY.md", "DOCS.md", "BRAND.md", "INSTALLATION.md", "docs/screenshots/README.md"))
     failures = []
-    badge = ROOT / "assets/badges/source.svg"
-    if f"source {version}" not in badge.read_text(encoding="utf-8"):
-        failures.append("README source badge is stale; run scripts/build-readme-badges.py")
+    for name in ('README.md', 'README.zh-CN.md', 'README.es.md'):
+        if f'badge/source-v{version}-' not in (ROOT / name).read_text(encoding='utf-8'):
+            failures.append(f'{name}: source badge version is stale')
     for name in sorted(files):
         text = (ROOT / name).read_text(encoding="utf-8")
         # Ignore fenced examples; validate ordinary inline Markdown links/images.
